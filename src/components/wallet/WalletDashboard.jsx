@@ -28,6 +28,7 @@ export default function WalletDashboard({ account, onLogout }) {
     const [priceLoading, setPriceLoading] = useState(true);
     const [networkHashrate, setNetworkHashrate] = useState(null);
     const [rpcConnected, setRpcConnected] = useState(null);
+    const [showRPCModal, setShowRPCModal] = useState(false);
 
     useEffect(() => {
         // Load addresses from account
