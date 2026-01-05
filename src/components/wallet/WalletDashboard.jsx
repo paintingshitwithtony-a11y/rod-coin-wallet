@@ -49,6 +49,13 @@ export default function WalletDashboard({ account, onLogout }) {
         }
         fetchWalletData();
         fetchRODPrice();
+
+        // Auto-refresh balance every 10 seconds
+        const interval = setInterval(() => {
+            fetchWalletData();
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, [account]);
 
     const fetchRODPrice = async () => {
