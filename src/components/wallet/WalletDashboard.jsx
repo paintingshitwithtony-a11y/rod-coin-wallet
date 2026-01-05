@@ -13,8 +13,8 @@ import AddressGenerator from './AddressGenerator';
 import SendReceive from './SendReceive';
 import { toast } from 'sonner';
 
-export default function WalletDashboard({ connection, onDisconnect }) {
-    const [balance, setBalance] = useState({ confirmed: 0, unconfirmed: 0 });
+export default function WalletDashboard({ account, onLogout }) {
+    const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
     const [addresses, setAddresses] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -22,9 +22,29 @@ export default function WalletDashboard({ connection, onDisconnect }) {
     const [activeTab, setActiveTab] = useState('overview');
 
     useEffect(() => {
-        // Simulate fetching wallet data
+        // Load addresses from account
+        if (account) {
+            const mainAddress = {
+                id: 'main',
+                address: account.wallet_address,
+                label: 'Primary Address',
+                createdAt: account.created_date,
+                isValid: true
+            };
+            
+            const additionalAddresses = (account.additional_addresses || []).map((addr, i) => ({
+                id: `addr-${i}`,
+                address: addr.address,
+                label: addr.label || `Address ${i + 2}`,
+                createdAt: addr.created_at,
+                isValid: true
+            }));
+            
+            setAddresses([mainAddress, ...additionalAddresses]);
+            setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
+        }
         fetchWalletData();
-    }, []);
+    }, [account]);
 
     const fetchWalletData = async () => {
         setLoading(true);
@@ -32,14 +52,13 @@ export default function WalletDashboard({ connection, onDisconnect }) {
             // Simulate API call delay
             await new Promise(resolve => setTimeout(resolve, 800));
             
-            // Mock data - in production this would come from ROD Core RPC
-            setBalance({ confirmed: 1250.5678, unconfirmed: 45.0 });
+            // Mock transactions - in production this would come from ROD Core RPC
             setTransactions([
                 {
                     id: 1,
                     type: 'receive',
                     amount: 100.0,
-                    address: 'RKxT8B...7Fy3qP',
+                    address: account?.wallet_address?.slice(0, 8) + '...' + account?.wallet_address?.slice(-6),
                     confirmations: 156,
                     timestamp: new Date(Date.now() - 3600000).toISOString()
                 },
@@ -50,14 +69,6 @@ export default function WalletDashboard({ connection, onDisconnect }) {
                     address: 'RMnYq2...9Hk4rW',
                     confirmations: 89,
                     timestamp: new Date(Date.now() - 86400000).toISOString()
-                },
-                {
-                    id: 3,
-                    type: 'receive',
-                    amount: 500.0,
-                    address: 'RPvLx7...2Nm8sT',
-                    confirmations: 245,
-                    timestamp: new Date(Date.now() - 172800000).toISOString()
                 }
             ]);
         } finally {
@@ -89,10 +100,10 @@ export default function WalletDashboard({ connection, onDisconnect }) {
                         <div className="flex items-center gap-2">
                             <Badge variant="outline" className="border-green-500/50 text-green-400">
                                 <span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />
-                                Connected
+                                Logged In
                             </Badge>
                             <span className="text-xs text-slate-500">
-                                via {connection?.method === 'rpc' ? 'RPC' : 'Local'}
+                                {account?.email}
                             </span>
                         </div>
                     </div>
@@ -109,11 +120,11 @@ export default function WalletDashboard({ connection, onDisconnect }) {
                     </Button>
                     <Button
                         variant="ghost"
-                        size="icon"
-                        onClick={onDisconnect}
-                        className="text-slate-400 hover:text-red-400"
+                        onClick={onLogout}
+                        className="text-slate-400 hover:text-red-400 gap-2"
                     >
-                        <LogOut className="w-5 h-5" />
+                        <LogOut className="w-4 h-4" />
+                        <span className="hidden sm:inline">Logout</span>
                     </Button>
                 </div>
             </div>
