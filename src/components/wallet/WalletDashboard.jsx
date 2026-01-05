@@ -164,6 +164,16 @@ export default function WalletDashboard({ account, onLogout }) {
                             <span className="text-xs text-slate-500">
                                 {account?.email}
                             </span>
+                            {networkHashrate && (
+                                <>
+                                    <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-xs">
+                                        SHA256: {networkHashrate.sha256}
+                                    </Badge>
+                                    <Badge variant="outline" className="border-purple-500/50 text-purple-400 text-xs">
+                                        NEOSCRYPT: {networkHashrate.neoscrypt}
+                                    </Badge>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
