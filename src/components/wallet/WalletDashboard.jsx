@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import AddressGenerator from './AddressGenerator';
 import SendReceive from './SendReceive';
 import AddressBook from './AddressBook';
+import WalletImport from './WalletImport';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -196,6 +197,19 @@ export default function WalletDashboard({ account, onLogout }) {
 
     const handleAddressGenerated = (newAddress) => {
         setAddresses(prev => [newAddress, ...prev]);
+    };
+
+    const handleWalletImported = async (importedWallet) => {
+        const newAddress = {
+            id: `imported-${Date.now()}`,
+            address: importedWallet.address,
+            label: importedWallet.label,
+            createdAt: importedWallet.created_at,
+            isValid: true,
+            imported: true
+        };
+        setAddresses(prev => [newAddress, ...prev]);
+        await fetchWalletData();
     };
 
     const copyAddress = async (address) => {
@@ -435,6 +449,9 @@ export default function WalletDashboard({ account, onLogout }) {
                     <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
                         Generate
                     </TabsTrigger>
+                    <TabsTrigger value="import" className="data-[state=active]:bg-purple-600">
+                        Import
+                    </TabsTrigger>
                     <TabsTrigger value="send" className="data-[state=active]:bg-purple-600">
                         Send
                     </TabsTrigger>
@@ -584,6 +601,13 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 <TabsContent value="generate" className="mt-6">
                     <AddressGenerator onAddressGenerated={handleAddressGenerated} />
+                </TabsContent>
+
+                <TabsContent value="import" className="mt-6">
+                    <WalletImport 
+                        account={account}
+                        onWalletImported={handleWalletImported}
+                    />
                 </TabsContent>
 
                 <TabsContent value="send" className="mt-6">
