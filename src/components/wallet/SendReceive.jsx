@@ -120,30 +120,28 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         setShowConfirmation(false);
         
         try {
-            // Simulate transaction - in production this would call ROD Core RPC
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
             const amountNum = parseFloat(amount);
+            const feeNum = parseFloat(fee);
             
-            // Record transaction
-            await base44.entities.Transaction.create({
-                account_id: account.id,
-                type: 'send',
-                amount: -amountNum,
-                fee: parseFloat(fee),
-                address: recipient,
-                memo: memo || '',
-                confirmations: 0,
-                status: 'pending'
+            // Call backend function to broadcast transaction via ROD Core RPC
+            const response = await base44.functions.invoke('sendTransaction', {
+                recipient,
+                amount: amountNum,
+                fee: feeNum,
+                memo: memo || ''
             });
             
-            // Update balance
-            const newBalance = balance - amountNum - parseFloat(fee);
-            await base44.entities.WalletAccount.update(account.id, {
-                balance: newBalance
+            if (response.data.error) {
+                toast.error(response.data.error, {
+                    description: response.data.details || 'Please check your RPC connection'
+                });
+                return;
+            }
+            
+            toast.success('Transaction sent successfully!', {
+                description: `TxID: ${response.data.txid.slice(0, 16)}...`
             });
             
-            toast.success('Transaction sent successfully!');
             setRecipient('');
             setAmount('');
             setMemo('');
@@ -154,7 +152,9 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 onTransactionComplete();
             }
         } catch (error) {
-            toast.error('Transaction failed');
+            toast.error('Transaction failed', {
+                description: error.message || 'Failed to broadcast transaction'
+            });
         } finally {
             setSending(false);
         }
