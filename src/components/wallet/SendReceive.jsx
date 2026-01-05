@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
     ArrowUpRight, ArrowDownLeft, Copy, CheckCircle2, 
-    AlertCircle, QrCode, Send, Loader2, Wallet
+    AlertCircle, QrCode, Send, Loader2, Wallet, BookUser
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { validateRODAddress } from './Base58';
@@ -27,6 +27,33 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [copied, setCopied] = useState(false);
     const [receiveAmount, setReceiveAmount] = useState('');
     const [receiving, setReceiving] = useState(false);
+    const [contacts, setContacts] = useState([]);
+    const [showContacts, setShowContacts] = useState(false);
+
+    useEffect(() => {
+        if (mode === 'send' && account) {
+            loadContacts();
+        }
+    }, [mode, account]);
+
+    const loadContacts = async () => {
+        try {
+            const data = await base44.entities.AddressBook.filter(
+                { account_id: account.id },
+                '-created_date',
+                10
+            );
+            setContacts(data);
+        } catch (err) {
+            console.error('Failed to load contacts:', err);
+        }
+    };
+
+    const handleSelectContact = (address) => {
+        setRecipient(address);
+        validateAddress(address);
+        setShowContacts(false);
+    };
 
     const validateAddress = async (address) => {
         if (!address || address.length < 26) {
@@ -169,7 +196,20 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                     </CardHeader>
                     <CardContent className="space-y-5">
                         <div className="space-y-2">
-                            <Label className="text-slate-300">Recipient Address</Label>
+                            <div className="flex items-center justify-between">
+                                <Label className="text-slate-300">Recipient Address</Label>
+                                {contacts.length > 0 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setShowContacts(!showContacts)}
+                                        className="text-purple-400 hover:text-purple-300 h-auto py-1"
+                                    >
+                                        <BookUser className="w-4 h-4 mr-1" />
+                                        {showContacts ? 'Hide' : 'Address Book'}
+                                    </Button>
+                                )}
+                            </div>
                             <div className="relative">
                                 <Input
                                     value={recipient}
@@ -190,6 +230,29 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     ) : null}
                                 </div>
                             </div>
+
+                            {showContacts && contacts.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="p-3 rounded-lg bg-slate-800/30 border border-slate-700 space-y-2"
+                                >
+                                    <p className="text-xs text-slate-400 mb-2">Saved Contacts</p>
+                                    {contacts.map((contact) => (
+                                        <button
+                                            key={contact.id}
+                                            onClick={() => handleSelectContact(contact.address)}
+                                            className="w-full text-left p-2 rounded hover:bg-slate-700/50 transition-colors"
+                                        >
+                                            <p className="text-sm text-white font-medium">{contact.label}</p>
+                                            <p className="text-xs text-amber-400/80 font-mono truncate">
+                                                {contact.address}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
                         </div>
 
                         <div className="space-y-2">

@@ -13,6 +13,7 @@ import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import AddressGenerator from './AddressGenerator';
 import SendReceive from './SendReceive';
+import AddressBook from './AddressBook';
 import { toast } from 'sonner';
 
 export default function WalletDashboard({ account, onLogout }) {
@@ -264,6 +265,9 @@ export default function WalletDashboard({ account, onLogout }) {
                     <TabsTrigger value="receive" className="data-[state=active]:bg-purple-600">
                         Receive
                     </TabsTrigger>
+                    <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
+                        Contacts
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-6">
@@ -422,7 +426,20 @@ export default function WalletDashboard({ account, onLogout }) {
                         onGenerateNew={() => setActiveTab('generate')}
                     />
                 </TabsContent>
-            </Tabs>
+
+                <TabsContent value="contacts" className="mt-6">
+                    <AddressBook 
+                        account={account}
+                        onSelectAddress={(address) => {
+                            setActiveTab('send');
+                            setTimeout(() => {
+                                const event = new CustomEvent('selectContact', { detail: address });
+                                window.dispatchEvent(event);
+                            }, 100);
+                        }}
+                    />
+                </TabsContent>
+                </Tabs>
         </div>
     );
 }
