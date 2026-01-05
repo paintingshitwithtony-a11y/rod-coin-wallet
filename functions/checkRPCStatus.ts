@@ -9,11 +9,25 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get RPC credentials
-        const rpcHost = Deno.env.get('ROD_RPC_HOST');
-        const rpcPort = Deno.env.get('ROD_RPC_PORT');
-        const rpcUser = Deno.env.get('ROD_RPC_USERNAME');
-        const rpcPass = Deno.env.get('ROD_RPC_PASSWORD');
+        // Get user's wallet account
+        const accounts = await base44.entities.WalletAccount.filter({ 
+            email: user.email 
+        });
+
+        if (accounts.length === 0) {
+            return Response.json({ 
+                connected: false,
+                error: 'Wallet not found'
+            });
+        }
+
+        const account = accounts[0];
+
+        // Get RPC credentials from user account (fallback to env)
+        const rpcHost = account.rpc_host || Deno.env.get('ROD_RPC_HOST');
+        const rpcPort = account.rpc_port || Deno.env.get('ROD_RPC_PORT');
+        const rpcUser = account.rpc_username || Deno.env.get('ROD_RPC_USERNAME');
+        const rpcPass = account.rpc_password || Deno.env.get('ROD_RPC_PASSWORD');
 
         if (!rpcHost || !rpcPort || !rpcUser || !rpcPass) {
             return Response.json({ 

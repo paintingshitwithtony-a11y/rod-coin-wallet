@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
@@ -37,6 +39,14 @@ export default function WalletDashboard({ account, onLogout }) {
     const [networkHashrate, setNetworkHashrate] = useState(null);
     const [rpcConnected, setRpcConnected] = useState(null);
     const [showRPCModal, setShowRPCModal] = useState(false);
+    const [editingRPC, setEditingRPC] = useState(false);
+    const [rpcForm, setRpcForm] = useState({
+        host: '',
+        port: '',
+        username: '',
+        password: ''
+    });
+    const [savingRPC, setSavingRPC] = useState(false);
 
     useEffect(() => {
         // Load addresses from account
@@ -59,6 +69,14 @@ export default function WalletDashboard({ account, onLogout }) {
             
             setAddresses([mainAddress, ...additionalAddresses]);
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
+            
+            // Load RPC settings
+            setRpcForm({
+                host: account.rpc_host || 'localhost',
+                port: account.rpc_port || '9650',
+                username: account.rpc_username || '',
+                password: account.rpc_password || ''
+            });
         }
         fetchWalletData();
         fetchRODPrice();
@@ -185,6 +203,33 @@ export default function WalletDashboard({ account, onLogout }) {
         setCopiedAddress(address);
         toast.success('Address copied');
         setTimeout(() => setCopiedAddress(null), 2000);
+    };
+
+    const handleSaveRPC = async () => {
+        if (!rpcForm.host || !rpcForm.port || !rpcForm.username || !rpcForm.password) {
+            toast.error('Please fill in all RPC fields');
+            return;
+        }
+
+        setSavingRPC(true);
+        try {
+            await base44.entities.WalletAccount.update(account.id, {
+                rpc_host: rpcForm.host,
+                rpc_port: rpcForm.port,
+                rpc_username: rpcForm.username,
+                rpc_password: rpcForm.password
+            });
+
+            toast.success('RPC settings saved successfully');
+            setEditingRPC(false);
+            
+            // Test connection after saving
+            setTimeout(() => checkRPCStatus(), 500);
+        } catch (err) {
+            toast.error('Failed to save RPC settings');
+        } finally {
+            setSavingRPC(false);
+        }
     };
 
     return (
@@ -566,29 +611,111 @@ export default function WalletDashboard({ account, onLogout }) {
                         )}
                         
                         <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                            <h4 className="text-sm font-medium text-slate-300 mb-3">Configuration</h4>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Host:</span>
-                                    <span className="text-white font-mono">Set in env</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Port:</span>
-                                    <span className="text-white font-mono">Set in env</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Status:</span>
-                                    <span className={rpcConnected ? "text-blue-400" : "text-amber-400"}>
-                                        {rpcConnected ? 'Connected' : 'Offline'}
-                                    </span>
-                                </div>
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-sm font-medium text-slate-300">RPC Configuration</h4>
+                                {!editingRPC && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setEditingRPC(true)}
+                                        className="text-purple-400 hover:text-purple-300"
+                                    >
+                                        Edit
+                                    </Button>
+                                )}
                             </div>
+                            
+                            {editingRPC ? (
+                                <div className="space-y-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-slate-400 text-xs">Host</Label>
+                                        <Input
+                                            value={rpcForm.host}
+                                            onChange={(e) => setRpcForm({...rpcForm, host: e.target.value})}
+                                            placeholder="localhost or 127.0.0.1"
+                                            className="bg-slate-900 border-slate-600 text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-slate-400 text-xs">Port</Label>
+                                        <Input
+                                            value={rpcForm.port}
+                                            onChange={(e) => setRpcForm({...rpcForm, port: e.target.value})}
+                                            placeholder="9650"
+                                            className="bg-slate-900 border-slate-600 text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-slate-400 text-xs">Username</Label>
+                                        <Input
+                                            value={rpcForm.username}
+                                            onChange={(e) => setRpcForm({...rpcForm, username: e.target.value})}
+                                            placeholder="RPC username"
+                                            className="bg-slate-900 border-slate-600 text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-slate-400 text-xs">Password</Label>
+                                        <Input
+                                            type="password"
+                                            value={rpcForm.password}
+                                            onChange={(e) => setRpcForm({...rpcForm, password: e.target.value})}
+                                            placeholder="RPC password"
+                                            className="bg-slate-900 border-slate-600 text-white"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2 pt-2">
+                                        <Button
+                                            onClick={handleSaveRPC}
+                                            disabled={savingRPC}
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                        >
+                                            {savingRPC ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setEditingRPC(false);
+                                                setRpcForm({
+                                                    host: account.rpc_host || 'localhost',
+                                                    port: account.rpc_port || '9650',
+                                                    username: account.rpc_username || '',
+                                                    password: account.rpc_password || ''
+                                                });
+                                            }}
+                                            variant="outline"
+                                            className="border-slate-600 text-slate-400"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Host:</span>
+                                        <span className="text-white font-mono">{rpcForm.host || 'Not set'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Port:</span>
+                                        <span className="text-white font-mono">{rpcForm.port || 'Not set'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Username:</span>
+                                        <span className="text-white font-mono">{rpcForm.username || 'Not set'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Status:</span>
+                                        <span className={rpcConnected ? "text-blue-400" : "text-amber-400"}>
+                                            {rpcConnected ? 'Connected' : 'Offline'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         
                         <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
                             <p className="text-xs text-purple-300/80">
-                                RPC credentials are configured in the backend environment variables. 
-                                Deposits are automatically detected every 5 minutes.
+                                Connect your local ROD Core wallet for live transactions. Deposits are automatically detected every 5 minutes.
                             </p>
                         </div>
                         

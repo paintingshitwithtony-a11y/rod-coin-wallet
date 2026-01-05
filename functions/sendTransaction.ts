@@ -16,18 +16,6 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Invalid transaction parameters' }, { status: 400 });
         }
 
-        // Get RPC credentials
-        const rpcHost = Deno.env.get('ROD_RPC_HOST');
-        const rpcPort = Deno.env.get('ROD_RPC_PORT');
-        const rpcUser = Deno.env.get('ROD_RPC_USERNAME');
-        const rpcPass = Deno.env.get('ROD_RPC_PASSWORD');
-
-        if (!rpcHost || !rpcPort || !rpcUser || !rpcPass) {
-            return Response.json({ 
-                error: 'RPC credentials not configured. Please set up ROD Core RPC connection.'
-            }, { status: 500 });
-        }
-
         // Get user's wallet account
         const accounts = await base44.entities.WalletAccount.filter({ 
             email: user.email 
@@ -38,6 +26,18 @@ Deno.serve(async (req) => {
         }
 
         const account = accounts[0];
+
+        // Get RPC credentials from user account (fallback to env)
+        const rpcHost = account.rpc_host || Deno.env.get('ROD_RPC_HOST');
+        const rpcPort = account.rpc_port || Deno.env.get('ROD_RPC_PORT');
+        const rpcUser = account.rpc_username || Deno.env.get('ROD_RPC_USERNAME');
+        const rpcPass = account.rpc_password || Deno.env.get('ROD_RPC_PASSWORD');
+
+        if (!rpcHost || !rpcPort || !rpcUser || !rpcPass) {
+            return Response.json({ 
+                error: 'RPC credentials not configured. Please set up ROD Core RPC connection.'
+            }, { status: 500 });
+        }
 
         // Check balance
         if (account.balance < (amount + fee)) {
