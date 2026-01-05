@@ -22,8 +22,6 @@ export default function WalletDashboard({ account, onLogout }) {
     const [loading, setLoading] = useState(false);
     const [copiedAddress, setCopiedAddress] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
-    const [rodPrice, setRodPrice] = useState(null);
-    const [priceLoading, setPriceLoading] = useState(false);
 
     useEffect(() => {
         // Load addresses from account
@@ -48,24 +46,7 @@ export default function WalletDashboard({ account, onLogout }) {
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
         }
         fetchWalletData();
-        fetchRODPrice();
     }, [account]);
-
-    const fetchRODPrice = async () => {
-        setPriceLoading(true);
-        try {
-            const response = await fetch('https://api.klingex.io/api/tickers');
-            const data = await response.json();
-            const rodTicker = data.find(ticker => ticker.symbol === 'ROD_USDT');
-            if (rodTicker) {
-                setRodPrice(parseFloat(rodTicker.last));
-            }
-        } catch (error) {
-            console.error('Failed to fetch ROD price:', error);
-        } finally {
-            setPriceLoading(false);
-        }
-    };
 
     const fetchWalletData = async () => {
         setLoading(true);
@@ -168,45 +149,18 @@ export default function WalletDashboard({ account, onLogout }) {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <CardContent className="p-6 relative">
                         <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-6">
-                                <div>
-                                    <p className="text-sm text-slate-400 mb-1">Total Balance</p>
-                                    <h2 className="text-4xl font-bold text-white mb-2">
-                                        {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
-                                        <span className="text-xl text-slate-400 ml-2">ROD</span>
-                                    </h2>
-                                    {balance.unconfirmed > 0 && (
-                                        <div className="flex items-center gap-2 text-sm text-amber-400">
-                                            <Clock className="w-4 h-4" />
-                                            +{balance.unconfirmed} ROD pending
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="border-l border-slate-700 pl-6">
-                                    <p className="text-sm text-slate-400 mb-1">ROD Price</p>
-                                    {priceLoading ? (
-                                        <div className="h-12 flex items-center">
-                                            <RefreshCw className="w-5 h-5 text-slate-500 animate-spin" />
-                                        </div>
-                                    ) : rodPrice ? (
-                                        <>
-                                            <h3 className="text-3xl font-bold text-green-400 mb-1">
-                                                ${rodPrice.toFixed(6)}
-                                            </h3>
-                                            <a 
-                                                href="https://klingex.io" 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
-                                            >
-                                                Trade on KLINGEX.IO
-                                                <ExternalLink className="w-3 h-3" />
-                                            </a>
-                                        </>
-                                    ) : (
-                                        <p className="text-sm text-slate-500">Price unavailable</p>
-                                    )}
-                                </div>
+                            <div>
+                                <p className="text-sm text-slate-400 mb-1">Total Balance</p>
+                                <h2 className="text-4xl font-bold text-white mb-2">
+                                    {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
+                                    <span className="text-xl text-slate-400 ml-2">ROD</span>
+                                </h2>
+                                {balance.unconfirmed > 0 && (
+                                    <div className="flex items-center gap-2 text-sm text-amber-400">
+                                        <Clock className="w-4 h-4" />
+                                        +{balance.unconfirmed} ROD pending
+                                    </div>
+                                )}
                             </div>
                             <div className="flex gap-2">
                                 <Button 
