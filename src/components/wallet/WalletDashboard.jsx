@@ -201,7 +201,29 @@ export default function WalletDashboard({ account, onLogout }) {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-6">
-                    <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="space-y-6">
+                        {/* Market Data Widget */}
+                        <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden">
+                            <CardHeader>
+                                <CardTitle className="text-white text-lg flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-green-400" />
+                                    ROD Market Data
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <iframe 
+                                    src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
+                                    width="100%"
+                                    height="460"
+                                    frameBorder="0"
+                                    scrolling="no"
+                                    className="w-full"
+                                    title="ROD SpaceXpanse Market Data"
+                                />
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid gap-6 lg:grid-cols-2">
                         {/* Recent Transactions */}
                         <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
@@ -310,6 +332,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                 )}
                             </CardContent>
                         </Card>
+                        </div>
                     </div>
                 </TabsContent>
 
