@@ -80,9 +80,9 @@ export default function WalletDashboard({ account, onLogout }) {
             const response = await fetch('http://explorer1.rod.spacexpanse.org:3001/');
             const html = await response.text();
             
-            // Parse SHA256 hashrate
-            const sha256Match = html.match(/sha256d Hash Rate:\(d\/w\)\s*<\/td>\s*<td[^>]*>\s*([0-9.]+)\s*\/([0-9.]+)(\w+)\/s/);
-            const neoscryptMatch = html.match(/neoscrypt Hash Rate\(d\/w\)\s*<\/td>\s*<td[^>]*>\s*([0-9.]+)\s*\/([0-9.]+)(\w+)\/s/);
+            // Parse SHA256 hashrate - looks for the daily value
+            const sha256Match = html.match(/sha256d Hash Rate:[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
+            const neoscryptMatch = html.match(/neoscrypt Hash Rate[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
             
             if (sha256Match && neoscryptMatch) {
                 setNetworkHashrate({
