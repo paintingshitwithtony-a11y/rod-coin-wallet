@@ -155,13 +155,12 @@ export default function WalletDashboard({ account, onLogout }) {
                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
                     <Link to={createPageUrl('SecuritySettings')}>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-slate-400 hover:text-purple-400"
-                        >
-                            <Shield className="w-5 h-5" />
-                        </Button>
+                        <div className="relative p-3 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
+                            <Shield className="w-15 h-15 text-white" />
+                            <span className="absolute inset-0 flex items-center justify-center text-white font-black text-[8px] tracking-wider" style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>
+                                SECURITY
+                            </span>
+                        </div>
                     </Link>
                     <Button
                         variant="ghost"
