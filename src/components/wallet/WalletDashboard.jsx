@@ -214,7 +214,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <iframe 
                                     src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
                                     width="100%"
-                                    height="460"
+                                    height="600"
                                     frameBorder="0"
                                     scrolling="no"
                                     className="w-full"
