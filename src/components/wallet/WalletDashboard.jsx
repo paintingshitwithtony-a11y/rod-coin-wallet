@@ -6,8 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-    LogOut, Settings
+    LogOut, Settings, Shield
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import AddressGenerator from './AddressGenerator';
 import SendReceive from './SendReceive';
@@ -118,6 +120,15 @@ export default function WalletDashboard({ account, onLogout }) {
                     >
                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
+                    <Link to={createPageUrl('SecuritySettings')}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-slate-400 hover:text-purple-400"
+                        >
+                            <Shield className="w-5 h-5" />
+                        </Button>
+                    </Link>
                     <Button
                         variant="ghost"
                         onClick={onLogout}

@@ -88,11 +88,35 @@ export default function AuthScreen({ onAuth }) {
                 last_login: new Date().toISOString()
             });
 
+            // Create session record
+            const sessionToken = crypto.randomUUID();
+            const deviceInfo = navigator.userAgent;
+            
+            // Get IP address (simplified - in production use a proper service)
+            let ipAddress = 'Unknown';
+            try {
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                ipAddress = ipData.ip;
+            } catch (e) {
+                // IP detection failed, continue with unknown
+            }
+            
+            await base44.entities.UserSession.create({
+                account_id: account.id,
+                session_token: sessionToken,
+                device_info: deviceInfo,
+                ip_address: ipAddress,
+                last_active: new Date().toISOString(),
+                is_current: true
+            });
+            
             // Store session
             const session = {
                 id: account.id,
                 email: account.email,
                 wallet_address: account.wallet_address,
+                sessionToken: sessionToken,
                 timestamp: Date.now()
             };
             
@@ -152,11 +176,34 @@ export default function AuthScreen({ onAuth }) {
 
             setGeneratedAddress({ address, privateKey });
 
+            // Create session record
+            const sessionToken = crypto.randomUUID();
+            const deviceInfo = navigator.userAgent;
+            
+            let ipAddress = 'Unknown';
+            try {
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                ipAddress = ipData.ip;
+            } catch (e) {
+                // IP detection failed
+            }
+            
+            await base44.entities.UserSession.create({
+                account_id: account.id,
+                session_token: sessionToken,
+                device_info: deviceInfo,
+                ip_address: ipAddress,
+                last_active: new Date().toISOString(),
+                is_current: true
+            });
+
             // Store session
             const session = {
                 id: account.id,
                 email: account.email,
                 wallet_address: account.wallet_address,
+                sessionToken: sessionToken,
                 timestamp: Date.now()
             };
             
