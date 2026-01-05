@@ -1,38 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import WalletConnect from '@/components/wallet/WalletConnect';
+import AuthScreen from '@/components/wallet/AuthScreen';
 import WalletDashboard from '@/components/wallet/WalletDashboard';
 import { Toaster } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 export default function Wallet() {
-    const [connection, setConnection] = useState(null);
+    const [account, setAccount] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Check for existing connection in localStorage
-        const savedConnection = localStorage.getItem('rod_wallet_connection');
-        if (savedConnection) {
-            try {
-                const parsed = JSON.parse(savedConnection);
-                // Check if connection is still valid (within 24 hours)
-                if (parsed.timestamp && Date.now() - parsed.timestamp < 86400000) {
-                    setConnection(parsed);
+        // Check for existing session in localStorage
+        const checkSession = async () => {
+            const savedSession = localStorage.getItem('rod_wallet_session');
+            if (savedSession) {
+                try {
+                    const parsed = JSON.parse(savedSession);
+                    // Check if session is still valid (within 7 days)
+                    if (parsed.timestamp && Date.now() - parsed.timestamp < 604800000) {
+                        // Fetch full account data
+                        const accounts = await base44.entities.WalletAccount.filter({ id: parsed.id });
+                        if (accounts.length > 0) {
+                            setAccount(accounts[0]);
+                        } else {
+                            localStorage.removeItem('rod_wallet_session');
+                        }
+                    } else {
+                        localStorage.removeItem('rod_wallet_session');
+                    }
+                } catch (e) {
+                    localStorage.removeItem('rod_wallet_session');
                 }
-            } catch (e) {
-                localStorage.removeItem('rod_wallet_connection');
             }
-        }
-        setIsLoading(false);
+            setIsLoading(false);
+        };
+        
+        checkSession();
     }, []);
 
-    const handleConnect = (connectionInfo) => {
-        setConnection(connectionInfo);
-        localStorage.setItem('rod_wallet_connection', JSON.stringify(connectionInfo));
+    const handleAuth = (accountData) => {
+        setAccount(accountData);
     };
 
-    const handleDisconnect = () => {
-        setConnection(null);
-        localStorage.removeItem('rod_wallet_connection');
+    const handleLogout = () => {
+        setAccount(null);
+        localStorage.removeItem('rod_wallet_session');
     };
 
     if (isLoading) {
@@ -96,22 +108,22 @@ export default function Wallet() {
                             <p className="text-sm text-purple-400">SpaceXpanse ROD Coin</p>
                         </div>
                     </div>
-                    {!connection && (
+                    {!account && (
                         <p className="text-slate-400 max-w-md mx-auto">
-                            Connect to your ROD Core wallet to manage your ROD coins, generate addresses, and send/receive transactions.
+                            Create a new wallet or login to manage your ROD coins, generate addresses, and send/receive transactions.
                         </p>
                     )}
                 </motion.header>
 
                 {/* Content */}
-                {connection ? (
+                {account ? (
                     <WalletDashboard 
-                        connection={connection} 
-                        onDisconnect={handleDisconnect} 
+                        account={account}
+                        onLogout={handleLogout} 
                     />
                 ) : (
                     <div className="flex items-center justify-center min-h-[60vh]">
-                        <WalletConnect onConnect={handleConnect} />
+                        <AuthScreen onAuth={handleAuth} />
                     </div>
                 )}
 
