@@ -25,6 +25,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [addressValid, setAddressValid] = useState(null);
     const [sending, setSending] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [receiveAmount, setReceiveAmount] = useState('');
+    const [receiving, setReceiving] = useState(false);
 
     const validateAddress = async (address) => {
         if (!address || address.length < 26) {
@@ -102,6 +104,47 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         setCopied(true);
         toast.success('Address copied to clipboard');
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleReceive = async () => {
+        const amountNum = parseFloat(receiveAmount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            toast.error('Please enter a valid amount');
+            return;
+        }
+
+        setReceiving(true);
+        try {
+            await base44.entities.Transaction.create({
+                account_id: account.id,
+                type: 'receive',
+                amount: amountNum,
+                fee: 0,
+                address: selectedAddress || addresses[0]?.address,
+                memo: '',
+                confirmations: 6,
+                status: 'confirmed'
+            });
+            
+            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (accounts.length > 0) {
+                const newBalance = (accounts[0].balance || 0) + amountNum;
+                await base44.entities.WalletAccount.update(account.id, {
+                    balance: newBalance
+                });
+            }
+            
+            toast.success(`Received ${amountNum} ROD!`);
+            setReceiveAmount('');
+            
+            if (onTransactionComplete) {
+                onTransactionComplete();
+            }
+        } catch (error) {
+            toast.error('Failed to record transaction');
+        } finally {
+            setReceiving(false);
+        }
     };
 
     if (mode === 'send') {
@@ -311,6 +354,33 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                             </>
                                         )}
                                     </Button>
+
+                                    <div className="mt-6 p-4 rounded-lg bg-green-900/20 border border-green-500/30">
+                                        <p className="text-sm font-medium text-green-400 mb-3">Record Received Coins</p>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                type="number"
+                                                value={receiveAmount}
+                                                onChange={(e) => setReceiveAmount(e.target.value)}
+                                                placeholder="Amount received"
+                                                className="bg-slate-800/50 border-slate-700 text-white"
+                                            />
+                                            <Button
+                                                onClick={handleReceive}
+                                                disabled={receiving || !receiveAmount}
+                                                className="bg-green-600 hover:bg-green-700"
+                                            >
+                                                {receiving ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    'Add'
+                                                )}
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-2">
+                                            Enter the amount of ROD you received at this address
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </>
