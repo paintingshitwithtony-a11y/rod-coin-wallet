@@ -110,9 +110,11 @@ export default function WalletDashboard({ account, onLogout }) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 flex items-center justify-center">
-                        <Wallet className="w-6 h-6 text-white" />
-                    </div>
+                    <img 
+                        src="https://www.spacexpanse.org/img/about.png" 
+                        alt="SpaceXpanse Logo" 
+                        className="w-12 h-12 rounded-xl"
+                    />
                     <div>
                         <h1 className="text-2xl font-bold text-white">ROD Wallet</h1>
                         <div className="flex items-center gap-2">
@@ -165,18 +167,25 @@ export default function WalletDashboard({ account, onLogout }) {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <CardContent className="p-6 relative">
                         <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-sm text-slate-400 mb-1">Total Balance</p>
-                                <h2 className="text-4xl font-bold text-white mb-2">
-                                    {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
-                                    <span className="text-xl text-slate-400 ml-2">ROD</span>
-                                </h2>
-                                {balance.unconfirmed > 0 && (
-                                    <div className="flex items-center gap-2 text-sm text-amber-400">
-                                        <Clock className="w-4 h-4" />
-                                        +{balance.unconfirmed} ROD pending
-                                    </div>
-                                )}
+                            <div className="flex items-start gap-3">
+                                <img 
+                                    src="https://www.spacexpanse.org/img/about.png" 
+                                    alt="ROD Logo" 
+                                    className="w-10 h-10 rounded-lg mt-1"
+                                />
+                                <div>
+                                    <p className="text-sm text-slate-400 mb-1">Total Balance</p>
+                                    <h2 className="text-4xl font-bold text-white mb-2">
+                                        {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
+                                        <span className="text-xl text-slate-400 ml-2">ROD</span>
+                                    </h2>
+                                    {balance.unconfirmed > 0 && (
+                                        <div className="flex items-center gap-2 text-sm text-amber-400">
+                                            <Clock className="w-4 h-4" />
+                                            +{balance.unconfirmed} ROD pending
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="flex flex-col items-end gap-3">
                                 {priceLoading ? (
