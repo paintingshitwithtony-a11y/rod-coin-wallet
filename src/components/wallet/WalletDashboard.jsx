@@ -15,6 +15,7 @@ import AddressGenerator from './AddressGenerator';
 import SendReceive from './SendReceive';
 import AddressBook from './AddressBook';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 export default function WalletDashboard({ account, onLogout }) {
     const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
@@ -52,12 +53,14 @@ export default function WalletDashboard({ account, onLogout }) {
         fetchWalletData();
         fetchRODPrice();
         fetchNetworkHashrate();
+        checkForDeposits();
 
-        // Auto-refresh balance every 10 seconds
+        // Auto-refresh balance and check deposits every 30 seconds
         const interval = setInterval(() => {
             fetchWalletData();
             fetchNetworkHashrate();
-        }, 10000);
+            checkForDeposits();
+        }, 30000);
 
         return () => clearInterval(interval);
     }, [account]);
@@ -92,6 +95,25 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             console.error('Failed to fetch network hashrate:', err);
+        }
+    };
+
+    const checkForDeposits = async () => {
+        try {
+            const response = await base44.functions.invoke('checkDeposits', {});
+            
+            if (response.data.newDeposits && response.data.newDeposits.length > 0) {
+                response.data.newDeposits.forEach(deposit => {
+                    toast.success(`Received ${deposit.amount} ROD!`, {
+                        description: `${deposit.confirmations} confirmations`
+                    });
+                });
+                
+                // Refresh wallet data after new deposits
+                await fetchWalletData();
+            }
+        } catch (err) {
+            console.error('Failed to check deposits:', err);
         }
     };
 
