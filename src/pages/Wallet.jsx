@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AuthScreen from '@/components/wallet/AuthScreen';
 import WalletDashboard from '@/components/wallet/WalletDashboard';
+import WalletPreloader from '@/components/wallet/WalletPreloader';
 import { Toaster } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
@@ -48,11 +49,7 @@ export default function Wallet() {
     };
 
     if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-            </div>
-        );
+        return <WalletPreloader />;
     }
 
     return (
