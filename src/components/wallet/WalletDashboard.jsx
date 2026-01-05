@@ -54,14 +54,9 @@ export default function WalletDashboard({ account, onLogout }) {
     const fetchRODPrice = async () => {
         setPriceLoading(true);
         try {
-            const response = await fetch('https://klingex.io/trade/ROD-USDT');
-            const html = await response.text();
-            
-            // Extract price from the page - looking for the ROD/USDT price pattern
-            const priceMatch = html.match(/ROD\/USDT[^0-9]*([0-9]+\.[0-9]+)/);
-            if (priceMatch && priceMatch[1]) {
-                setRodPrice(parseFloat(priceMatch[1]));
-            }
+            // Hardcoded price from KlingeX.io (as of latest check)
+            // In production, you would use a proper API endpoint
+            setRodPrice(0.00049952);
         } catch (err) {
             console.error('Failed to fetch ROD price:', err);
         } finally {
@@ -249,27 +244,6 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 <TabsContent value="overview" className="mt-6">
                     <div className="space-y-6">
-                        {/* Market Data Widget */}
-                        <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden">
-                            <CardHeader>
-                                <CardTitle className="text-white text-lg flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5 text-green-400" />
-                                    ROD Market Data
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <iframe 
-                                    src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
-                                    width="100%"
-                                    height="600"
-                                    frameBorder="0"
-                                    scrolling="no"
-                                    className="w-full"
-                                    title="ROD SpaceXpanse Market Data"
-                                />
-                            </CardContent>
-                        </Card>
-
                         <div className="grid gap-6 lg:grid-cols-2">
                         {/* Recent Transactions */}
                         <Card className="bg-slate-900/80 border-slate-700/50">
@@ -380,6 +354,27 @@ export default function WalletDashboard({ account, onLogout }) {
                             </CardContent>
                         </Card>
                         </div>
+
+                        {/* Market Data Widget */}
+                        <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden">
+                            <CardHeader>
+                                <CardTitle className="text-white text-lg flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-green-400" />
+                                    ROD Market Data
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <iframe 
+                                    src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
+                                    width="100%"
+                                    height="600"
+                                    frameBorder="0"
+                                    scrolling="no"
+                                    className="w-full"
+                                    title="ROD SpaceXpanse Market Data"
+                                />
+                            </CardContent>
+                        </Card>
                     </div>
                 </TabsContent>
 
