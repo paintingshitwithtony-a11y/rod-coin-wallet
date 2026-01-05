@@ -1,11 +1,11 @@
-import Wallet from './pages/Wallet';
 import SecuritySettings from './pages/SecuritySettings';
+import Wallet from './pages/Wallet';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Wallet": Wallet,
     "SecuritySettings": SecuritySettings,
+    "Wallet": Wallet,
 }
 
 export const pagesConfig = {

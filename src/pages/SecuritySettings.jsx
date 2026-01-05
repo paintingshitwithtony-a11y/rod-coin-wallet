@@ -87,16 +87,19 @@ export default function SecuritySettings() {
                     </Link>
                     
                     <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500">
-                            <Shield className="w-7 h-7 text-white" />
+                            <div className="relative p-6 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500">
+                                <Shield className="w-20 h-20 text-white" />
+                                <span className="absolute inset-0 flex items-center justify-center text-white font-black text-xs tracking-wider" style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>
+                                    SECURITY
+                                </span>
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold text-white">Security Settings</h1>
+                                <p className="text-slate-400 mt-1">
+                                    Manage your account security and privacy
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-bold text-white">Security Settings</h1>
-                            <p className="text-slate-400 mt-1">
-                                Manage your account security and privacy
-                            </p>
-                        </div>
-                    </div>
                 </motion.div>
 
                 {/* Account Info */}
