@@ -14,6 +14,8 @@ import { motion } from 'framer-motion';
 import { validateRODAddress } from './Base58';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
+import TransactionConfirmation from './TransactionConfirmation';
+import MFAVerification from './MFAVerification';
 
 export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete }) {
     const [recipient, setRecipient] = useState('');
@@ -29,6 +31,9 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [receiving, setReceiving] = useState(false);
     const [contacts, setContacts] = useState([]);
     const [showContacts, setShowContacts] = useState(false);
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [showMFA, setShowMFA] = useState(false);
+    const [mfaVerified, setMfaVerified] = useState(false);
 
     useEffect(() => {
         if (mode === 'send' && account) {
@@ -71,7 +76,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
     };
 
-    const handleSend = async () => {
+    const handleSendClick = () => {
         if (!addressValid) {
             toast.error('Please enter a valid ROD address');
             return;
@@ -87,11 +92,38 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             toast.error('Insufficient balance');
             return;
         }
-        
+
+        // Show confirmation screen
+        setShowConfirmation(true);
+    };
+
+    const handleConfirmTransaction = () => {
+        // Check if MFA is enabled
+        if (account.mfa_enabled && !mfaVerified) {
+            setShowConfirmation(false);
+            setShowMFA(true);
+            return;
+        }
+
+        // Proceed with transaction
+        executeSend();
+    };
+
+    const handleMFAVerified = () => {
+        setShowMFA(false);
+        setMfaVerified(true);
+        executeSend();
+    };
+
+    const executeSend = async () => {
         setSending(true);
+        setShowConfirmation(false);
+        
         try {
             // Simulate transaction - in production this would call ROD Core RPC
             await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const amountNum = parseFloat(amount);
             
             // Record transaction
             await base44.entities.Transaction.create({
@@ -115,6 +147,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             setRecipient('');
             setAmount('');
             setMemo('');
+            setMfaVerified(false);
+            setAddressValid(null);
             
             if (onTransactionComplete) {
                 onTransactionComplete();
@@ -325,7 +359,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         )}
 
                         <Button
-                            onClick={handleSend}
+                            onClick={handleSendClick}
                             disabled={!addressValid || !amount || sending}
                             className="w-full bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600 h-12"
                         >
@@ -337,12 +371,35 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             ) : (
                                 <>
                                     <Send className="w-4 h-4 mr-2" />
-                                    Send ROD
+                                    Review & Send
                                 </>
                             )}
                         </Button>
                     </CardContent>
                 </Card>
+
+                {showConfirmation && (
+                    <TransactionConfirmation
+                        recipient={recipient}
+                        amount={amount}
+                        fee={fee}
+                        memo={memo}
+                        onConfirm={handleConfirmTransaction}
+                        onCancel={() => setShowConfirmation(false)}
+                        loading={sending}
+                    />
+                )}
+
+                {showMFA && (
+                    <MFAVerification
+                        account={account}
+                        onVerified={handleMFAVerified}
+                        onCancel={() => {
+                            setShowMFA(false);
+                            setShowConfirmation(true);
+                        }}
+                    />
+                )}
             </motion.div>
         );
     }
