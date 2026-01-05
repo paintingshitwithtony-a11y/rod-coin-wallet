@@ -232,6 +232,47 @@ export default function WalletDashboard({ account, onLogout }) {
         }
     };
 
+    const handleAutoConnect = async () => {
+        setSavingRPC(true);
+        toast.info('Attempting to connect to local wallet...');
+        
+        try {
+            // Auto-fill with default local wallet settings
+            const defaultConfig = {
+                host: 'localhost',
+                port: '9650',
+                username: 'roduser',
+                password: 'rodpassword'
+            };
+            
+            setRpcForm(defaultConfig);
+            
+            // Save the configuration
+            await base44.entities.WalletAccount.update(account.id, {
+                rpc_host: defaultConfig.host,
+                rpc_port: defaultConfig.port,
+                rpc_username: defaultConfig.username,
+                rpc_password: defaultConfig.password
+            });
+            
+            // Test connection
+            setTimeout(async () => {
+                const response = await base44.functions.invoke('checkRPCStatus', {});
+                if (response.data.connected) {
+                    toast.success('Successfully connected to local ROD Core wallet!');
+                    setEditingRPC(false);
+                } else {
+                    toast.warning('Default settings saved but connection failed. Please verify your ROD Core wallet is running and edit credentials if needed.');
+                }
+                checkRPCStatus();
+            }, 500);
+        } catch (err) {
+            toast.error('Auto-connect failed. Please configure manually.');
+        } finally {
+            setSavingRPC(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -719,16 +760,30 @@ export default function WalletDashboard({ account, onLogout }) {
                             </p>
                         </div>
                         
-                        <Button
-                            onClick={() => {
-                                checkRPCStatus();
-                                toast.info('Checking RPC connection...');
-                            }}
-                            className="w-full bg-purple-600 hover:bg-purple-700"
-                        >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Test Connection
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={handleAutoConnect}
+                                disabled={savingRPC}
+                                className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                            >
+                                {savingRPC ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Plug className="w-4 h-4 mr-2" />
+                                )}
+                                Auto-Connect Local Wallet
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    checkRPCStatus();
+                                    toast.info('Checking RPC connection...');
+                                }}
+                                variant="outline"
+                                className="border-slate-600 text-slate-300"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
