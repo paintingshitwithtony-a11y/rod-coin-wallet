@@ -25,6 +25,7 @@ export default function WalletDashboard({ account, onLogout }) {
     const [activeTab, setActiveTab] = useState('overview');
     const [rodPrice, setRodPrice] = useState(null);
     const [priceLoading, setPriceLoading] = useState(true);
+    const [networkHashrate, setNetworkHashrate] = useState(null);
 
     useEffect(() => {
         // Load addresses from account
@@ -50,10 +51,12 @@ export default function WalletDashboard({ account, onLogout }) {
         }
         fetchWalletData();
         fetchRODPrice();
+        fetchNetworkHashrate();
 
         // Auto-refresh balance every 10 seconds
         const interval = setInterval(() => {
             fetchWalletData();
+            fetchNetworkHashrate();
         }, 10000);
 
         return () => clearInterval(interval);
@@ -69,6 +72,26 @@ export default function WalletDashboard({ account, onLogout }) {
             console.error('Failed to fetch ROD price:', err);
         } finally {
             setPriceLoading(false);
+        }
+    };
+
+    const fetchNetworkHashrate = async () => {
+        try {
+            const response = await fetch('http://explorer1.rod.spacexpanse.org:3001/');
+            const html = await response.text();
+            
+            // Parse SHA256 hashrate
+            const sha256Match = html.match(/sha256d Hash Rate:\(d\/w\)\s*<\/td>\s*<td[^>]*>\s*([0-9.]+)\s*\/([0-9.]+)(\w+)\/s/);
+            const neoscryptMatch = html.match(/neoscrypt Hash Rate\(d\/w\)\s*<\/td>\s*<td[^>]*>\s*([0-9.]+)\s*\/([0-9.]+)(\w+)\/s/);
+            
+            if (sha256Match && neoscryptMatch) {
+                setNetworkHashrate({
+                    sha256: `${sha256Match[1]} ${sha256Match[3]}/s`,
+                    neoscrypt: `${neoscryptMatch[1]} ${neoscryptMatch[3]}/s`
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch network hashrate:', err);
         }
     };
 
