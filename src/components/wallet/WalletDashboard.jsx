@@ -22,6 +22,8 @@ export default function WalletDashboard({ account, onLogout }) {
     const [loading, setLoading] = useState(false);
     const [copiedAddress, setCopiedAddress] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [rodPrice, setRodPrice] = useState(null);
+    const [priceLoading, setPriceLoading] = useState(true);
 
     useEffect(() => {
         // Load addresses from account
@@ -46,7 +48,26 @@ export default function WalletDashboard({ account, onLogout }) {
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
         }
         fetchWalletData();
+        fetchRODPrice();
     }, [account]);
+
+    const fetchRODPrice = async () => {
+        setPriceLoading(true);
+        try {
+            const response = await fetch('https://klingex.io/trade/ROD-USDT');
+            const html = await response.text();
+            
+            // Extract price from the page - looking for the ROD/USDT price pattern
+            const priceMatch = html.match(/ROD\/USDT[^0-9]*([0-9]+\.[0-9]+)/);
+            if (priceMatch && priceMatch[1]) {
+                setRodPrice(parseFloat(priceMatch[1]));
+            }
+        } catch (err) {
+            console.error('Failed to fetch ROD price:', err);
+        } finally {
+            setPriceLoading(false);
+        }
+    };
 
     const fetchWalletData = async () => {
         setLoading(true);
@@ -162,7 +183,32 @@ export default function WalletDashboard({ account, onLogout }) {
                                     </div>
                                 )}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col items-end gap-3">
+                                {priceLoading ? (
+                                    <div className="flex items-center gap-2 text-slate-400">
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        <span className="text-sm">Loading price...</span>
+                                    </div>
+                                ) : rodPrice ? (
+                                    <a 
+                                        href="https://klingex.io/trade/ROD-USDT" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex flex-col items-end p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-purple-500/50 group"
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs text-slate-400 group-hover:text-purple-400">Current Price</span>
+                                            <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-purple-400" />
+                                        </div>
+                                        <div className="text-2xl font-bold text-green-400">
+                                            ${rodPrice.toFixed(8)}
+                                        </div>
+                                        <div className="text-xs text-slate-500 group-hover:text-purple-400">
+                                            via KLINGEX.IO
+                                        </div>
+                                    </a>
+                                ) : null}
+                                <div className="flex gap-2">
                                 <Button 
                                     onClick={() => setActiveTab('send')}
                                     className="bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700"
@@ -177,6 +223,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                     <ArrowDownLeft className="w-4 h-4 mr-2" />
                                     Receive
                                 </Button>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
