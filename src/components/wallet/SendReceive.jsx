@@ -13,8 +13,9 @@ import {
 import { motion } from 'framer-motion';
 import { validateRODAddress } from './Base58';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
-export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew }) {
+export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete }) {
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [fee, setFee] = useState('0.0001');
@@ -62,10 +63,33 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         try {
             // Simulate transaction - in production this would call ROD Core RPC
             await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Record transaction
+            await base44.entities.Transaction.create({
+                account_id: account.id,
+                type: 'send',
+                amount: -amountNum,
+                fee: parseFloat(fee),
+                address: recipient,
+                memo: memo || '',
+                confirmations: 0,
+                status: 'pending'
+            });
+            
+            // Update balance
+            const newBalance = balance - amountNum - parseFloat(fee);
+            await base44.entities.WalletAccount.update(account.id, {
+                balance: newBalance
+            });
+            
             toast.success('Transaction sent successfully!');
             setRecipient('');
             setAmount('');
             setMemo('');
+            
+            if (onTransactionComplete) {
+                onTransactionComplete();
+            }
         } catch (error) {
             toast.error('Transaction failed');
         } finally {

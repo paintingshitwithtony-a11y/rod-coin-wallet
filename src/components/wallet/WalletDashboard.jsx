@@ -67,28 +67,36 @@ export default function WalletDashboard({ account, onLogout }) {
     const fetchWalletData = async () => {
         setLoading(true);
         try {
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // Fetch actual transactions from database
+            const txs = await base44.entities.Transaction.filter(
+                { account_id: account.id },
+                '-created_date',
+                50
+            );
             
-            // Mock transactions - in production this would come from ROD Core RPC
-            setTransactions([
-                {
-                    id: 1,
-                    type: 'receive',
-                    amount: 100.0,
-                    address: account?.wallet_address?.slice(0, 8) + '...' + account?.wallet_address?.slice(-6),
-                    confirmations: 156,
-                    timestamp: new Date(Date.now() - 3600000).toISOString()
-                },
-                {
-                    id: 2,
-                    type: 'send',
-                    amount: -50.25,
-                    address: 'RMnYq2...9Hk4rW',
-                    confirmations: 89,
-                    timestamp: new Date(Date.now() - 86400000).toISOString()
-                }
-            ]);
+            // Format transactions for display
+            const formattedTxs = txs.map(tx => ({
+                id: tx.id,
+                type: tx.type,
+                amount: tx.amount,
+                address: tx.address.slice(0, 8) + '...' + tx.address.slice(-6),
+                confirmations: tx.confirmations,
+                timestamp: tx.created_date,
+                status: tx.status
+            }));
+            
+            setTransactions(formattedTxs);
+            
+            // Update balance from account
+            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (accounts.length > 0) {
+                setBalance({ 
+                    confirmed: accounts[0].balance || 0, 
+                    unconfirmed: 0 
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch transactions:', err);
         } finally {
             setLoading(false);
         }
@@ -392,7 +400,12 @@ export default function WalletDashboard({ account, onLogout }) {
                 </TabsContent>
 
                 <TabsContent value="send" className="mt-6">
-                    <SendReceive mode="send" balance={balance.confirmed} />
+                    <SendReceive 
+                        mode="send" 
+                        balance={balance.confirmed} 
+                        account={account}
+                        onTransactionComplete={fetchWalletData}
+                    />
                 </TabsContent>
 
                 <TabsContent value="receive" className="mt-6">
