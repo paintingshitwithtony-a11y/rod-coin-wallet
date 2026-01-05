@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-    LogOut, Settings, Shield
+    LogOut, Settings, Shield, Plug, Loader2, AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -16,6 +16,14 @@ import SendReceive from './SendReceive';
 import AddressBook from './AddressBook';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function WalletDashboard({ account, onLogout }) {
     const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
@@ -227,6 +235,15 @@ export default function WalletDashboard({ account, onLogout }) {
                         className="text-slate-400 hover:text-white"
                     >
                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowRPCModal(true)}
+                        className={`text-slate-400 hover:text-white ${rpcConnected === false ? 'text-amber-400' : ''}`}
+                        title="ROD Core RPC Connection"
+                    >
+                        <Plug className="w-5 h-5" />
                     </Button>
                     <Link to={createPageUrl('SecuritySettings')}>
                         <div className="relative p-3 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
@@ -513,6 +530,81 @@ export default function WalletDashboard({ account, onLogout }) {
                     />
                 </TabsContent>
                 </Tabs>
+
+            {/* RPC Connection Modal */}
+            <Dialog open={showRPCModal} onOpenChange={setShowRPCModal}>
+                <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Plug className="w-5 h-5 text-purple-400" />
+                            ROD Core RPC Connection
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                            Connection status and information
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                        {rpcConnected === null ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+                            </div>
+                        ) : rpcConnected ? (
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <CheckCircle2 className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80">
+                                    Successfully connected to ROD Core RPC
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <Alert className="bg-amber-500/10 border-amber-500/30">
+                                <AlertCircle className="h-4 w-4 text-amber-400" />
+                                <AlertDescription className="text-amber-300/80">
+                                    RPC connection is offline. Please check your ROD Core wallet is running and credentials are correct.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        
+                        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                            <h4 className="text-sm font-medium text-slate-300 mb-3">Configuration</h4>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Host:</span>
+                                    <span className="text-white font-mono">Set in env</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Port:</span>
+                                    <span className="text-white font-mono">Set in env</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Status:</span>
+                                    <span className={rpcConnected ? "text-blue-400" : "text-amber-400"}>
+                                        {rpcConnected ? 'Connected' : 'Offline'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                            <p className="text-xs text-purple-300/80">
+                                RPC credentials are configured in the backend environment variables. 
+                                Deposits are automatically detected every 5 minutes.
+                            </p>
+                        </div>
+                        
+                        <Button
+                            onClick={() => {
+                                checkRPCStatus();
+                                toast.info('Checking RPC connection...');
+                            }}
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Test Connection
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
