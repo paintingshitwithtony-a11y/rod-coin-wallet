@@ -476,29 +476,13 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     </Button>
 
                                     <div className="mt-6 p-4 rounded-lg bg-green-900/20 border border-green-500/30">
-                                        <p className="text-sm font-medium text-green-400 mb-3">Record Received Coins</p>
-                                        <div className="flex gap-2">
-                                            <Input
-                                                type="number"
-                                                value={receiveAmount}
-                                                onChange={(e) => setReceiveAmount(e.target.value)}
-                                                placeholder="Amount received"
-                                                className="bg-slate-800/50 border-slate-700 text-white"
-                                            />
-                                            <Button
-                                                onClick={handleReceive}
-                                                disabled={receiving || !receiveAmount}
-                                                className="bg-green-600 hover:bg-green-700"
-                                            >
-                                                {receiving ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    'Add'
-                                                )}
-                                            </Button>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                            <p className="text-sm font-medium text-green-400">Automatic Deposit Detection</p>
                                         </div>
-                                        <p className="text-xs text-slate-500 mt-2">
-                                            Enter the amount of ROD you received at this address
+                                        <p className="text-xs text-slate-400">
+                                            Incoming transactions are automatically detected via ROD Core RPC. 
+                                            Your balance will update automatically when you receive coins at this address.
                                         </p>
                                     </div>
                                 </div>

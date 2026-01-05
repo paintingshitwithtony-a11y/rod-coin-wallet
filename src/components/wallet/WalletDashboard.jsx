@@ -27,6 +27,7 @@ export default function WalletDashboard({ account, onLogout }) {
     const [rodPrice, setRodPrice] = useState(null);
     const [priceLoading, setPriceLoading] = useState(true);
     const [networkHashrate, setNetworkHashrate] = useState(null);
+    const [rpcConnected, setRpcConnected] = useState(null);
 
     useEffect(() => {
         // Load addresses from account
@@ -54,12 +55,14 @@ export default function WalletDashboard({ account, onLogout }) {
         fetchRODPrice();
         fetchNetworkHashrate();
         checkForDeposits();
+        checkRPCStatus();
 
         // Auto-refresh balance and check deposits every 30 seconds
         const interval = setInterval(() => {
             fetchWalletData();
             fetchNetworkHashrate();
             checkForDeposits();
+            checkRPCStatus();
         }, 30000);
 
         return () => clearInterval(interval);
@@ -95,6 +98,15 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             console.error('Failed to fetch network hashrate:', err);
+        }
+    };
+
+    const checkRPCStatus = async () => {
+        try {
+            const response = await base44.functions.invoke('checkRPCStatus', {});
+            setRpcConnected(response.data.connected);
+        } catch (err) {
+            setRpcConnected(false);
         }
     };
 
@@ -183,6 +195,12 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />
                                 Logged In
                             </Badge>
+                            {rpcConnected !== null && (
+                                <Badge variant="outline" className={rpcConnected ? "border-blue-500/50 text-blue-400" : "border-amber-500/50 text-amber-400"}>
+                                    <span className={`w-2 h-2 rounded-full ${rpcConnected ? 'bg-blue-400' : 'bg-amber-400'} mr-2`} />
+                                    RPC {rpcConnected ? 'Connected' : 'Offline'}
+                                </Badge>
+                            )}
                             <span className="text-xs text-slate-500">
                                 {account?.email}
                             </span>
