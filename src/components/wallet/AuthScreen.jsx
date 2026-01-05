@@ -230,9 +230,11 @@ export default function AuthScreen({ onAuth }) {
         >
             <Card className="bg-slate-900/80 border-purple-500/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10">
                 <CardHeader className="text-center pb-2">
-                    <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-amber-500 flex items-center justify-center">
-                        <Wallet className="w-8 h-8 text-white" />
-                    </div>
+                    <img 
+                        src="https://www.spacexpanse.org/img/about.png" 
+                        alt="SpaceXpanse Logo" 
+                        className="mx-auto mb-4 w-16 h-16 rounded-2xl"
+                    />
                     <CardTitle className="text-2xl font-bold text-white">ROD Wallet</CardTitle>
                     <CardDescription className="text-slate-400">
                         SpaceXpanse ROD Coin Wallet

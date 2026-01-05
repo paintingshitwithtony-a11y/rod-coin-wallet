@@ -65,9 +65,11 @@ export default function WalletPreloader() {
                                 ease: "easeInOut"
                             }}
                         >
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-amber-500 flex items-center justify-center shadow-lg shadow-purple-500/50">
-                                <Wallet className="w-8 h-8 text-white" />
-                            </div>
+                            <img 
+                                src="https://www.spacexpanse.org/img/about.png" 
+                                alt="SpaceXpanse Logo" 
+                                className="w-16 h-16 rounded-2xl shadow-lg shadow-purple-500/50"
+                            />
                         </motion.div>
                     </div>
                 </motion.div>
