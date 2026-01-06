@@ -19,6 +19,9 @@ import AddressBook from './AddressBook';
 import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
+import OrderBook from '../exchange/OrderBook';
+import TradingInterface from '../exchange/TradingInterface';
+import MyOrders from '../exchange/MyOrders';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -45,6 +48,8 @@ export default function WalletDashboard({ account, onLogout }) {
     const [showRPCManager, setShowRPCManager] = useState(false);
     const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
     const [selectedAddressForSeed, setSelectedAddressForSeed] = useState(null);
+    const [selectedPrice, setSelectedPrice] = useState(null);
+    const [selectedType, setSelectedType] = useState(null);
 
     useEffect(() => {
         // Load addresses from account
@@ -391,7 +396,10 @@ export default function WalletDashboard({ account, onLogout }) {
                     <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
                         Contacts
                     </TabsTrigger>
-                </TabsList>
+                    <TabsTrigger value="exchange" className="data-[state=active]:bg-purple-600">
+                        Exchange
+                    </TabsTrigger>
+                    </TabsList>
 
                 <TabsContent value="overview" className="mt-6">
                     <div className="space-y-6">
@@ -579,6 +587,37 @@ export default function WalletDashboard({ account, onLogout }) {
                             }, 100);
                         }}
                     />
+                </TabsContent>
+
+                <TabsContent value="exchange" className="mt-6">
+                    <div className="grid gap-6 lg:grid-cols-3">
+                        <div className="lg:col-span-1">
+                            <OrderBook 
+                                onSelectPrice={(price, type) => {
+                                    setSelectedPrice(price);
+                                    setSelectedType(type);
+                                }}
+                            />
+                        </div>
+                        <div className="lg:col-span-1">
+                            <TradingInterface
+                                account={account}
+                                balance={balance.confirmed}
+                                selectedPrice={selectedPrice}
+                                selectedType={selectedType}
+                                onOrderPlaced={() => {
+                                    setSelectedPrice(null);
+                                    setSelectedType(null);
+                                }}
+                            />
+                        </div>
+                        <div className="lg:col-span-1">
+                            <MyOrders
+                                account={account}
+                                onOrderCancelled={() => {}}
+                            />
+                        </div>
+                    </div>
                 </TabsContent>
                 </Tabs>
 
