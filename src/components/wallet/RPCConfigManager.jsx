@@ -344,14 +344,14 @@ export default function RPCConfigManager({ account, onClose }) {
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
-                                        rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650
+                                        rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
                                     </pre>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650');
+                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
                                             toast.success('Command copied');
                                         }}
                                     >
@@ -366,14 +366,14 @@ export default function RPCConfigManager({ account, onClose }) {
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
-                                        ./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650
+                                        ./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
                                     </pre>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650');
+                                            navigator.clipboard.writeText('./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
                                             toast.success('Command copied');
                                         }}
                                     >
@@ -392,6 +392,7 @@ export default function RPCConfigManager({ account, onClose }) {
 rpcuser=roduser
 rpcpassword=rodpassword
 rpcport=9650
+rpcbind=127.0.0.1
 rpcallowip=127.0.0.1`}
                                     </pre>
                                     <Button
@@ -399,7 +400,7 @@ rpcallowip=127.0.0.1`}
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('server=1\nrpcuser=roduser\nrpcpassword=rodpassword\nrpcport=9650\nrpcallowip=127.0.0.1');
+                                            navigator.clipboard.writeText('server=1\nrpcuser=roduser\nrpcpassword=rodpassword\nrpcport=9650\nrpcbind=127.0.0.1\nrpcallowip=127.0.0.1');
                                             toast.success('Configuration copied');
                                         }}
                                     >
