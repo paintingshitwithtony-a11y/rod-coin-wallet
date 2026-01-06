@@ -337,54 +337,67 @@ export default function RPCConfigManager({ account, onClose }) {
                                 <Terminal className="w-5 h-5 text-green-400" />
                                 <h4 className="text-white font-medium">Start ROD Core with RPC</h4>
                             </div>
+
+                            <Alert className="bg-blue-500/10 border-blue-500/30 mb-3">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-sm">
+                                    <strong>Recommended:</strong> Use cookie-based authentication (no rpcuser/rpcpassword needed) or rpcauth for better security.
+                                </AlertDescription>
+                            </Alert>
                             
                             <div className="space-y-2">
-                                <p className="text-sm text-slate-400">
-                                    Windows (Command Prompt):
+                                <p className="text-sm text-slate-300 font-medium">
+                                    Method 1: Cookie Authentication (Recommended)
+                                </p>
+                                <p className="text-xs text-slate-400 mb-1">
+                                    Windows:
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
-                                        rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
+                                        rod-qt.exe -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
                                     </pre>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
+                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
                                             toast.success('Command copied');
                                         }}
                                     >
                                         <Copy className="w-3 h-3" />
                                     </Button>
                                 </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-sm text-slate-400">
-                                    Linux/Mac (Terminal):
+                                <p className="text-xs text-slate-400 mb-1">
+                                    Linux/Mac:
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
-                                        ./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
+                                        ./rodd -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
                                     </pre>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
+                                            navigator.clipboard.writeText('./rodd -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
                                             toast.success('Command copied');
                                         }}
                                     >
                                         <Copy className="w-3 h-3" />
                                     </Button>
                                 </div>
+                                <p className="text-xs text-slate-500 italic mt-1">
+                                    Note: With cookie auth, use "__cookie__" as username and the content of .cookie file as password
+                                </p>
                             </div>
 
-                            <div className="space-y-2">
-                                <p className="text-sm text-slate-400">
-                                    Or add to rod.conf:
+                            <div className="space-y-2 mt-4">
+                                <p className="text-sm text-slate-300 font-medium">
+                                    Method 2: Legacy Username/Password (Still Works)
+                                </p>
+                                <p className="text-xs text-slate-400 mb-1">
+                                    rod.conf configuration:
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
