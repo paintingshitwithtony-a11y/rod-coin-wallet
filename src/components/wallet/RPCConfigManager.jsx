@@ -156,7 +156,14 @@ export default function RPCConfigManager({ account, onClose }) {
         setSaving(true);
         toast.info('Detecting local ROD Core wallet...');
         
-        const commonConfigs = [
+        // Cookie-based auth (modern method) - try first
+        const cookieConfigs = [
+            { host: 'localhost', port: '9650', username: '__cookie__', password: '', isCookie: true },
+            { host: '127.0.0.1', port: '9650', username: '__cookie__', password: '', isCookie: true },
+        ];
+
+        // Legacy auth (fallback)
+        const legacyConfigs = [
             { host: 'localhost', port: '9650', username: 'roduser', password: 'rodpassword' },
             { host: '127.0.0.1', port: '9650', username: 'roduser', password: 'rodpassword' },
             { host: 'localhost', port: '8332', username: 'roduser', password: 'rodpassword' },
@@ -164,7 +171,8 @@ export default function RPCConfigManager({ account, onClose }) {
 
         let detected = null;
 
-        for (const cfg of commonConfigs) {
+        // Try cookie auth first
+        for (const cfg of cookieConfigs) {
             try {
                 const rpcAuth = btoa(`${cfg.username}:${cfg.password}`);
                 const response = await fetch(`http://${cfg.host}:${cfg.port}`, {
@@ -195,15 +203,53 @@ export default function RPCConfigManager({ account, onClose }) {
             }
         }
 
+        // If cookie auth didn't work, try legacy
+        if (!detected) {
+            for (const cfg of legacyConfigs) {
+                try {
+                    const rpcAuth = btoa(`${cfg.username}:${cfg.password}`);
+                    const response = await fetch(`http://${cfg.host}:${cfg.port}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Basic ${rpcAuth}`
+                        },
+                        body: JSON.stringify({
+                            jsonrpc: '1.0',
+                            id: 'detect',
+                            method: 'getblockchaininfo',
+                            params: []
+                        }),
+                        signal: AbortSignal.timeout(3000)
+                    });
+
+                    const data = await response.json();
+                    if (!data.error && data.result) {
+                        detected = {
+                            ...cfg,
+                            nodeInfo: data.result
+                        };
+                        break;
+                    }
+                } catch (err) {
+                    continue;
+                }
+            }
+        }
+
         if (detected) {
             setFormData({
-                name: 'Local ROD Core',
+                name: detected.isCookie ? 'Local ROD Core (Cookie Auth)' : 'Local ROD Core',
                 host: detected.host,
                 port: detected.port,
                 username: detected.username,
                 password: detected.password
             });
-            toast.success(`Detected ROD Core on ${detected.host}:${detected.port}!`);
+            if (detected.isCookie) {
+                toast.success(`Detected with cookie auth! Paste .cookie file content as password.`);
+            } else {
+                toast.success(`Detected ROD Core on ${detected.host}:${detected.port}!`);
+            }
             setShowAddForm(true);
         } else {
             toast.warning('No local ROD Core wallet detected. Add manually.');
@@ -473,9 +519,10 @@ rpcallowip=127.0.0.1`}
                                     <Input
                                         value={formData.username}
                                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                        placeholder="roduser"
+                                        placeholder="__cookie__ or roduser"
                                         className="bg-slate-900 border-slate-600"
                                     />
+                                    <p className="text-xs text-slate-500">Use "__cookie__" for cookie auth</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">Password</Label>
@@ -483,9 +530,10 @@ rpcallowip=127.0.0.1`}
                                         type="password"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder="Enter password"
+                                        placeholder=".cookie content or password"
                                         className="bg-slate-900 border-slate-600"
                                     />
+                                    <p className="text-xs text-slate-500">Paste .cookie file content if using cookie auth</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
