@@ -35,6 +35,12 @@ export default function RPCConfigManager({ account, onClose }) {
     const [saving, setSaving] = useState(false);
     const [showCommandHelp, setShowCommandHelp] = useState(false);
     const [importing, setImporting] = useState(false);
+    const [showScanConfig, setShowScanConfig] = useState(false);
+    const [scanConfig, setScanConfig] = useState({
+        ports: '9650, 8332, 8333',
+        usernames: '__cookie__, roduser, rod',
+        passwords: ', rodpassword, rod'
+    });
 
     useEffect(() => {
         loadConfigurations();
@@ -230,20 +236,21 @@ export default function RPCConfigManager({ account, onClose }) {
         setSaving(true);
         toast.info('Scanning for local ROD Core wallet...');
         
-        // Common ports to scan
-        const ports = ['9650', '8332', '8333', '18332', '18333', '19650'];
-        const hosts = ['localhost', '127.0.0.1'];
+        // Parse user-provided ports
+        const ports = scanConfig.ports.split(',').map(p => p.trim()).filter(p => p);
         
-        // Common credentials to try
-        const credentials = [
-            { username: '__cookie__', password: '', isCookie: true },
-            { username: 'roduser', password: 'rodpassword' },
-            { username: 'rod', password: 'rod' },
-            { username: 'spacexpanse', password: 'spacexpanse' },
-            { username: 'admin', password: 'admin' },
-            { username: 'user', password: 'password' },
-            { username: 'rpcuser', password: 'rpcpassword' },
-        ];
+        // Parse user-provided credentials
+        const usernames = scanConfig.usernames.split(',').map(u => u.trim()).filter(u => u);
+        const passwords = scanConfig.passwords.split(',').map(p => p.trim());
+        
+        // Create credential pairs (match by index, passwords can be empty)
+        const credentials = usernames.map((username, idx) => ({
+            username,
+            password: passwords[idx] || '',
+            isCookie: username === '__cookie__'
+        }));
+        
+        const hosts = ['localhost', '127.0.0.1'];
 
         let detected = null;
         let totalAttempts = 0;
@@ -405,7 +412,7 @@ export default function RPCConfigManager({ account, onClose }) {
                     {/* Auto-detect button */}
                     <div className="flex gap-2 flex-wrap">
                         <Button
-                            onClick={autoDetectLocal}
+                            onClick={() => setShowScanConfig(!showScanConfig)}
                             disabled={saving}
                             className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                         >
@@ -452,6 +459,84 @@ export default function RPCConfigManager({ account, onClose }) {
                             <Terminal className="w-4 h-4" />
                         </Button>
                     </div>
+
+                    {/* Scan configuration */}
+                    {showScanConfig && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 space-y-3"
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-white font-medium">Scan Configuration</h4>
+                            </div>
+
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-sm">
+                                    Configure which ports and credentials to try. Use comma-separated values.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-2">
+                                <Label className="text-slate-300">Ports to Scan</Label>
+                                <Input
+                                    value={scanConfig.ports}
+                                    onChange={(e) => setScanConfig({ ...scanConfig, ports: e.target.value })}
+                                    placeholder="9650, 8332, 8333"
+                                    className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                />
+                                <p className="text-xs text-slate-500">Comma-separated port numbers</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-slate-300">Usernames to Try</Label>
+                                <Input
+                                    value={scanConfig.usernames}
+                                    onChange={(e) => setScanConfig({ ...scanConfig, usernames: e.target.value })}
+                                    placeholder="__cookie__, roduser, rod"
+                                    className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                />
+                                <p className="text-xs text-slate-500">Use __cookie__ for cookie auth</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-slate-300">Passwords to Try (matching order)</Label>
+                                <Input
+                                    value={scanConfig.passwords}
+                                    onChange={(e) => setScanConfig({ ...scanConfig, passwords: e.target.value })}
+                                    placeholder=", rodpassword, rod"
+                                    className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                />
+                                <p className="text-xs text-slate-500">Matches usernames by position. Leave empty for no password (e.g., cookie auth)</p>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button 
+                                    onClick={() => {
+                                        setShowScanConfig(false);
+                                        autoDetectLocal();
+                                    }}
+                                    disabled={saving}
+                                    className="flex-1 bg-green-600 hover:bg-green-700"
+                                >
+                                    {saving ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Activity className="w-4 h-4 mr-2" />
+                                    )}
+                                    Start Scan
+                                </Button>
+                                <Button 
+                                    onClick={() => setShowScanConfig(false)}
+                                    variant="outline" 
+                                    className="border-slate-600"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Command line help */}
                     {showCommandHelp && (
