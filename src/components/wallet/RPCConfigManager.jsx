@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ export default function RPCConfigManager({ account, onClose }) {
         password: ''
     });
     const [saving, setSaving] = useState(false);
+    const [showCommandHelp, setShowCommandHelp] = useState(false);
 
     useEffect(() => {
         loadConfigurations();
@@ -316,7 +317,105 @@ export default function RPCConfigManager({ account, onClose }) {
                             <Plus className="w-4 h-4 mr-2" />
                             Add Manually
                         </Button>
+                        <Button
+                            onClick={() => setShowCommandHelp(!showCommandHelp)}
+                            variant="outline"
+                            className="border-slate-600"
+                        >
+                            <Terminal className="w-4 h-4" />
+                        </Button>
                     </div>
+
+                    {/* Command line help */}
+                    {showCommandHelp && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 space-y-3"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Terminal className="w-5 h-5 text-green-400" />
+                                <h4 className="text-white font-medium">Start ROD Core with RPC</h4>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <p className="text-sm text-slate-400">
+                                    Windows (Command Prompt):
+                                </p>
+                                <div className="relative group">
+                                    <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
+                                        rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650');
+                                            toast.success('Command copied');
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-sm text-slate-400">
+                                    Linux/Mac (Terminal):
+                                </p>
+                                <div className="relative group">
+                                    <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
+                                        ./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText('./rodd -server -rpcuser=roduser -rpcpassword=rodpassword -rpcport=9650');
+                                            toast.success('Command copied');
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-sm text-slate-400">
+                                    Or add to rod.conf:
+                                </p>
+                                <div className="relative group">
+                                    <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
+{`server=1
+rpcuser=roduser
+rpcpassword=rodpassword
+rpcport=9650
+rpcallowip=127.0.0.1`}
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText('server=1\nrpcuser=roduser\nrpcpassword=rodpassword\nrpcport=9650\nrpcallowip=127.0.0.1');
+                                            toast.success('Configuration copied');
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-sm">
+                                    Change the username and password to match your saved configuration. After starting with these settings, use "Auto-Detect" above.
+                                </AlertDescription>
+                            </Alert>
+                        </motion.div>
+                    )}
 
                     {/* Add form */}
                     {showAddForm && (
