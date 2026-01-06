@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ export default function RPCConfigManager({ account, onClose }) {
     });
     const [saving, setSaving] = useState(false);
     const [showCommandHelp, setShowCommandHelp] = useState(false);
+    const [importing, setImporting] = useState(false);
 
     useEffect(() => {
         loadConfigurations();
@@ -149,6 +150,79 @@ export default function RPCConfigManager({ account, onClose }) {
             await loadConfigurations();
         } catch (err) {
             toast.error('Failed to delete configuration');
+        }
+    };
+
+    const parseConfigFile = (fileContent) => {
+        const lines = fileContent.split('\n');
+        const config = {
+            host: 'localhost',
+            port: '9650',
+            username: '',
+            password: '',
+            isCookie: false
+        };
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('#') || !trimmed) continue;
+
+            const [key, ...valueParts] = trimmed.split('=');
+            const value = valueParts.join('=').trim();
+
+            switch (key.trim().toLowerCase()) {
+                case 'rpcport':
+                    config.port = value;
+                    break;
+                case 'rpcbind':
+                    config.host = value === '0.0.0.0' ? 'localhost' : value;
+                    break;
+                case 'rpcuser':
+                    config.username = value;
+                    break;
+                case 'rpcpassword':
+                    config.password = value;
+                    break;
+            }
+        }
+
+        // Detect cookie auth (no rpcuser/rpcpassword set)
+        if (!config.username && !config.password) {
+            config.username = '__cookie__';
+            config.isCookie = true;
+        }
+
+        return config;
+    };
+
+    const handleImportConfig = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        try {
+            const content = await file.text();
+            const parsed = parseConfigFile(content);
+
+            setFormData({
+                name: parsed.isCookie ? 'Imported Config (Cookie Auth)' : 'Imported Config',
+                host: parsed.host,
+                port: parsed.port,
+                username: parsed.username,
+                password: parsed.password
+            });
+
+            setShowAddForm(true);
+            if (parsed.isCookie) {
+                toast.success('Config imported! Using cookie auth - paste .cookie file content as password.');
+            } else {
+                toast.success('Config imported successfully!');
+            }
+        } catch (err) {
+            toast.error('Failed to parse config file');
+        } finally {
+            setImporting(false);
+            event.target.value = '';
         }
     };
 
@@ -342,7 +416,7 @@ export default function RPCConfigManager({ account, onClose }) {
 
                 <div className="space-y-4">
                     {/* Auto-detect button */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         <Button
                             onClick={autoDetectLocal}
                             disabled={saving}
@@ -353,8 +427,28 @@ export default function RPCConfigManager({ account, onClose }) {
                             ) : (
                                 <Activity className="w-4 h-4 mr-2" />
                             )}
-                            Auto-Detect Local Node
+                            Auto-Detect
                         </Button>
+                        <Button
+                            onClick={() => document.getElementById('config-file-input').click()}
+                            disabled={importing}
+                            variant="outline"
+                            className="border-slate-600"
+                        >
+                            {importing ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Upload className="w-4 h-4 mr-2" />
+                            )}
+                            Import Config
+                        </Button>
+                        <input
+                            id="config-file-input"
+                            type="file"
+                            accept=".conf"
+                            onChange={handleImportConfig}
+                            className="hidden"
+                        />
                         <Button
                             onClick={() => setShowAddForm(!showAddForm)}
                             variant="outline"
