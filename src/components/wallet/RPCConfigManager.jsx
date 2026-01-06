@@ -44,6 +44,15 @@ export default function RPCConfigManager({ account, onClose }) {
 
     useEffect(() => {
         loadConfigurations();
+        // Load saved scan config
+        const saved = localStorage.getItem('rod_scan_config');
+        if (saved) {
+            try {
+                setScanConfig(JSON.parse(saved));
+            } catch (e) {
+                // Invalid saved config, ignore
+            }
+        }
     }, []);
 
     const loadConfigurations = async () => {
@@ -514,7 +523,17 @@ export default function RPCConfigManager({ account, onClose }) {
                             <div className="flex gap-2">
                                 <Button 
                                     onClick={() => {
-                                        setShowScanConfig(false);
+                                        localStorage.setItem('rod_scan_config', JSON.stringify(scanConfig));
+                                        toast.success('Scan configuration saved');
+                                    }}
+                                    variant="outline"
+                                    className="border-green-600 text-green-400 hover:bg-green-600/10"
+                                >
+                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    Save Config
+                                </Button>
+                                <Button 
+                                    onClick={() => {
                                         autoDetectLocal();
                                     }}
                                     disabled={saving}
@@ -526,13 +545,6 @@ export default function RPCConfigManager({ account, onClose }) {
                                         <Activity className="w-4 h-4 mr-2" />
                                     )}
                                     Start Scan
-                                </Button>
-                                <Button 
-                                    onClick={() => setShowScanConfig(false)}
-                                    variant="outline" 
-                                    className="border-slate-600"
-                                >
-                                    Cancel
                                 </Button>
                             </div>
                         </motion.div>
