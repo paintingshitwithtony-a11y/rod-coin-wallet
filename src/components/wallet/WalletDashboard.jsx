@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-    LogOut, Settings, Shield, Plug, Loader2, AlertCircle
+    LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -18,6 +18,7 @@ import SendReceive from './SendReceive';
 import AddressBook from './AddressBook';
 import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
+import AddressSeedModal from './AddressSeedModal';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -43,6 +44,7 @@ export default function WalletDashboard({ account, onLogout }) {
     const [showRPCModal, setShowRPCModal] = useState(false);
     const [showRPCManager, setShowRPCManager] = useState(false);
     const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
+    const [selectedAddressForSeed, setSelectedAddressForSeed] = useState(null);
 
     useEffect(() => {
         // Load addresses from account
@@ -485,18 +487,29 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     {addr.address}
                                                 </p>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => copyAddress(addr.address)}
-                                                className="shrink-0 text-slate-400 hover:text-white"
-                                            >
-                                                {copiedAddress === addr.address ? (
-                                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                                                ) : (
-                                                    <Copy className="w-4 h-4" />
-                                                )}
-                                            </Button>
+                                            <div className="flex gap-1 shrink-0">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setSelectedAddressForSeed(addr)}
+                                                    className="text-slate-400 hover:text-amber-400"
+                                                    title="Add/Edit Seed Phrase"
+                                                >
+                                                    <Key className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => copyAddress(addr.address)}
+                                                    className="text-slate-400 hover:text-white"
+                                                >
+                                                    {copiedAddress === addr.address ? (
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                    ) : (
+                                                        <Copy className="w-4 h-4" />
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </motion.div>
                                     ))
                                 )}
@@ -576,6 +589,41 @@ export default function WalletDashboard({ account, onLogout }) {
                     onClose={() => {
                         setShowRPCManager(false);
                         checkRPCStatus();
+                    }}
+                />
+            )}
+
+            {/* Address Seed Modal */}
+            {selectedAddressForSeed && (
+                <AddressSeedModal
+                    address={selectedAddressForSeed}
+                    account={account}
+                    onClose={() => setSelectedAddressForSeed(null)}
+                    onSaved={() => {
+                        // Reload addresses to show updated data
+                        const accounts = base44.entities.WalletAccount.filter({ id: account.id });
+                        accounts.then(accs => {
+                            if (accs.length > 0) {
+                                const mainAddress = {
+                                    id: 'main',
+                                    address: accs[0].wallet_address,
+                                    label: 'Primary Address',
+                                    createdAt: accs[0].created_date,
+                                    isValid: true
+                                };
+
+                                const additionalAddresses = (accs[0].additional_addresses || []).map((addr, i) => ({
+                                    id: `addr-${i}`,
+                                    address: addr.address,
+                                    label: addr.label || `Address ${i + 2}`,
+                                    createdAt: addr.created_at,
+                                    isValid: true,
+                                    seed_phrase: addr.seed_phrase
+                                }));
+
+                                setAddresses([mainAddress, ...additionalAddresses]);
+                            }
+                        });
                     }}
                 />
             )}
