@@ -406,12 +406,15 @@ export default function RPCConfigManager({ account, onClose }) {
                                     key={config.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className={`p-4 rounded-lg border transition-all ${getStatusColor(config.connection_status)}`}
+                                    onClick={() => !config.is_active && setActiveConfig(config)}
+                                    className={`p-4 rounded-lg border transition-all ${getStatusColor(config.connection_status)} ${
+                                        !config.is_active ? 'cursor-pointer hover:border-purple-500/50 hover:bg-slate-800/70' : ''
+                                    }`}
                                 >
                                     <div className="flex items-start justify-between mb-2">
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 flex-1">
                                             {getStatusIcon(config.connection_status)}
-                                            <div>
+                                            <div className="flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-medium text-white">{config.name}</h4>
                                                     {config.is_active && (
@@ -419,13 +422,16 @@ export default function RPCConfigManager({ account, onClose }) {
                                                             Active
                                                         </Badge>
                                                     )}
+                                                    {!config.is_active && (
+                                                        <span className="text-xs text-slate-500">Click to activate</span>
+                                                    )}
                                                 </div>
                                                 <p className="text-xs text-slate-400 font-mono">
                                                     {config.host}:{config.port}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
@@ -439,17 +445,6 @@ export default function RPCConfigManager({ account, onClose }) {
                                                     <RefreshCw className="w-4 h-4" />
                                                 )}
                                             </Button>
-                                            {!config.is_active && config.connection_status === 'connected' && (
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    onClick={() => setActiveConfig(config)}
-                                                    className="text-green-400 hover:text-green-300"
-                                                    title="Set as active"
-                                                >
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                </Button>
-                                            )}
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
