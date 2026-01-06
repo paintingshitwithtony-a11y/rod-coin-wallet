@@ -228,87 +228,74 @@ export default function RPCConfigManager({ account, onClose }) {
 
     const autoDetectLocal = async () => {
         setSaving(true);
-        toast.info('Detecting local ROD Core wallet...');
+        toast.info('Scanning for local ROD Core wallet...');
         
-        // Cookie-based auth (modern method) - try first
-        const cookieConfigs = [
-            { host: 'localhost', port: '9650', username: '__cookie__', password: '', isCookie: true },
-            { host: '127.0.0.1', port: '9650', username: '__cookie__', password: '', isCookie: true },
-        ];
-
-        // Legacy auth (fallback)
-        const legacyConfigs = [
-            { host: 'localhost', port: '9650', username: 'roduser', password: 'rodpassword' },
-            { host: '127.0.0.1', port: '9650', username: 'roduser', password: 'rodpassword' },
-            { host: 'localhost', port: '8332', username: 'roduser', password: 'rodpassword' },
+        // Common ports to scan
+        const ports = ['9650', '8332', '8333', '18332', '18333', '19650'];
+        const hosts = ['localhost', '127.0.0.1'];
+        
+        // Common credentials to try
+        const credentials = [
+            { username: '__cookie__', password: '', isCookie: true },
+            { username: 'roduser', password: 'rodpassword' },
+            { username: 'rod', password: 'rod' },
+            { username: 'spacexpanse', password: 'spacexpanse' },
+            { username: 'admin', password: 'admin' },
+            { username: 'user', password: 'password' },
+            { username: 'rpcuser', password: 'rpcpassword' },
         ];
 
         let detected = null;
+        let totalAttempts = 0;
+        const maxAttempts = hosts.length * ports.length * credentials.length;
 
-        // Try cookie auth first
-        for (const cfg of cookieConfigs) {
-            try {
-                const rpcAuth = btoa(`${cfg.username}:${cfg.password}`);
-                const response = await fetch(`http://${cfg.host}:${cfg.port}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Basic ${rpcAuth}`
-                    },
-                    body: JSON.stringify({
-                        jsonrpc: '1.0',
-                        id: 'detect',
-                        method: 'getblockchaininfo',
-                        params: []
-                    }),
-                    signal: AbortSignal.timeout(3000)
-                });
-
-                const data = await response.json();
-                if (!data.error && data.result) {
-                    detected = {
-                        ...cfg,
-                        nodeInfo: data.result
-                    };
-                    break;
-                }
-            } catch (err) {
-                continue;
-            }
-        }
-
-        // If cookie auth didn't work, try legacy
-        if (!detected) {
-            for (const cfg of legacyConfigs) {
-                try {
-                    const rpcAuth = btoa(`${cfg.username}:${cfg.password}`);
-                    const response = await fetch(`http://${cfg.host}:${cfg.port}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Basic ${rpcAuth}`
-                        },
-                        body: JSON.stringify({
-                            jsonrpc: '1.0',
-                            id: 'detect',
-                            method: 'getblockchaininfo',
-                            params: []
-                        }),
-                        signal: AbortSignal.timeout(3000)
-                    });
-
-                    const data = await response.json();
-                    if (!data.error && data.result) {
-                        detected = {
-                            ...cfg,
-                            nodeInfo: data.result
-                        };
-                        break;
+        // Try all combinations
+        for (const host of hosts) {
+            for (const port of ports) {
+                for (const cred of credentials) {
+                    totalAttempts++;
+                    
+                    // Update progress
+                    if (totalAttempts % 5 === 0) {
+                        toast.info(`Scanning... ${totalAttempts}/${maxAttempts} attempts`);
                     }
-                } catch (err) {
-                    continue;
+
+                    try {
+                        const rpcAuth = btoa(`${cred.username}:${cred.password}`);
+                        const response = await fetch(`http://${host}:${port}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Basic ${rpcAuth}`
+                            },
+                            body: JSON.stringify({
+                                jsonrpc: '1.0',
+                                id: 'detect',
+                                method: 'getblockchaininfo',
+                                params: []
+                            }),
+                            signal: AbortSignal.timeout(2000)
+                        });
+
+                        const data = await response.json();
+                        if (!data.error && data.result) {
+                            detected = {
+                                host,
+                                port,
+                                username: cred.username,
+                                password: cred.password,
+                                isCookie: cred.isCookie,
+                                nodeInfo: data.result
+                            };
+                            break;
+                        }
+                    } catch (err) {
+                        continue;
+                    }
                 }
+                if (detected) break;
             }
+            if (detected) break;
         }
 
         if (detected) {
@@ -320,9 +307,9 @@ export default function RPCConfigManager({ account, onClose }) {
                 password: detected.password
             });
             if (detected.isCookie) {
-                toast.success(`Detected with cookie auth! Paste .cookie file content as password.`);
+                toast.success(`Found on ${detected.host}:${detected.port} with cookie auth!`);
             } else {
-                toast.success(`Detected ROD Core on ${detected.host}:${detected.port}!`);
+                toast.success(`Found ROD Core on ${detected.host}:${detected.port}!`);
             }
             setShowAddForm(true);
         } else {
