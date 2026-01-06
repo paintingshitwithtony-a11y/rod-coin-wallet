@@ -17,6 +17,7 @@ import AddressGenerator from './AddressGenerator';
 import SendReceive from './SendReceive';
 import AddressBook from './AddressBook';
 import WalletImport from './WalletImport';
+import RPCConfigManager from './RPCConfigManager';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -40,14 +41,8 @@ export default function WalletDashboard({ account, onLogout }) {
     const [networkHashrate, setNetworkHashrate] = useState(null);
     const [rpcConnected, setRpcConnected] = useState(null);
     const [showRPCModal, setShowRPCModal] = useState(false);
-    const [editingRPC, setEditingRPC] = useState(false);
-    const [rpcForm, setRpcForm] = useState({
-        host: '',
-        port: '',
-        username: '',
-        password: ''
-    });
-    const [savingRPC, setSavingRPC] = useState(false);
+    const [showRPCManager, setShowRPCManager] = useState(false);
+    const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
 
     useEffect(() => {
         // Load addresses from account
@@ -67,18 +62,10 @@ export default function WalletDashboard({ account, onLogout }) {
                 createdAt: addr.created_at,
                 isValid: true
             }));
-            
+
             setAddresses([mainAddress, ...additionalAddresses]);
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
-            
-            // Load RPC settings
-            setRpcForm({
-                host: account.rpc_host || 'localhost',
-                port: account.rpc_port || '9650',
-                username: account.rpc_username || '',
-                password: account.rpc_password || ''
-            });
-        }
+            }
         fetchWalletData();
         fetchRODPrice();
         fetchNetworkHashrate();
@@ -133,8 +120,12 @@ export default function WalletDashboard({ account, onLogout }) {
         try {
             const response = await base44.functions.invoke('checkRPCStatus', {});
             setRpcConnected(response.data.connected);
+            if (response.data.connected && response.data.nodeInfo) {
+                setRpcNodeInfo(response.data.nodeInfo);
+            }
         } catch (err) {
             setRpcConnected(false);
+            setRpcNodeInfo(null);
         }
     };
 
@@ -219,73 +210,7 @@ export default function WalletDashboard({ account, onLogout }) {
         setTimeout(() => setCopiedAddress(null), 2000);
     };
 
-    const handleSaveRPC = async () => {
-        if (!rpcForm.host || !rpcForm.port || !rpcForm.username || !rpcForm.password) {
-            toast.error('Please fill in all RPC fields');
-            return;
-        }
 
-        setSavingRPC(true);
-        try {
-            await base44.entities.WalletAccount.update(account.id, {
-                rpc_host: rpcForm.host,
-                rpc_port: rpcForm.port,
-                rpc_username: rpcForm.username,
-                rpc_password: rpcForm.password
-            });
-
-            toast.success('RPC settings saved successfully');
-            setEditingRPC(false);
-            
-            // Test connection after saving
-            setTimeout(() => checkRPCStatus(), 500);
-        } catch (err) {
-            toast.error('Failed to save RPC settings');
-        } finally {
-            setSavingRPC(false);
-        }
-    };
-
-    const handleAutoConnect = async () => {
-        setSavingRPC(true);
-        toast.info('Attempting to connect to local wallet...');
-        
-        try {
-            // Auto-fill with default local wallet settings
-            const defaultConfig = {
-                host: 'localhost',
-                port: '9650',
-                username: 'roduser',
-                password: 'rodpassword'
-            };
-            
-            setRpcForm(defaultConfig);
-            
-            // Save the configuration
-            await base44.entities.WalletAccount.update(account.id, {
-                rpc_host: defaultConfig.host,
-                rpc_port: defaultConfig.port,
-                rpc_username: defaultConfig.username,
-                rpc_password: defaultConfig.password
-            });
-            
-            // Test connection
-            setTimeout(async () => {
-                const response = await base44.functions.invoke('checkRPCStatus', {});
-                if (response.data.connected) {
-                    toast.success('Successfully connected to local ROD Core wallet!');
-                    setEditingRPC(false);
-                } else {
-                    toast.warning('Default settings saved but connection failed. Please verify your ROD Core wallet is running and edit credentials if needed.');
-                }
-                checkRPCStatus();
-            }, 500);
-        } catch (err) {
-            toast.error('Auto-connect failed. Please configure manually.');
-        } finally {
-            setSavingRPC(false);
-        }
-    };
 
     return (
         <div className="space-y-6">
@@ -339,11 +264,14 @@ export default function WalletDashboard({ account, onLogout }) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setShowRPCModal(true)}
-                        className={`text-slate-400 hover:text-white ${rpcConnected === false ? 'text-amber-400' : ''}`}
-                        title="ROD Core RPC Connection"
+                        onClick={() => setShowRPCManager(true)}
+                        className={`relative text-slate-400 hover:text-white ${rpcConnected === false ? 'text-amber-400 animate-pulse' : rpcConnected ? 'text-green-400' : ''}`}
+                        title="RPC Node Management"
                     >
                         <Plug className="w-5 h-5" />
+                        {rpcConnected === false && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
+                        )}
                     </Button>
                     <Link to={createPageUrl('SecuritySettings')}>
                         <div className="relative p-3 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
@@ -641,176 +569,32 @@ export default function WalletDashboard({ account, onLogout }) {
                 </TabsContent>
                 </Tabs>
 
-            {/* RPC Connection Modal */}
-            <Dialog open={showRPCModal} onOpenChange={setShowRPCModal}>
-                <DialogContent className="bg-slate-900 border-slate-700 text-white">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Plug className="w-5 h-5 text-purple-400" />
-                            ROD Core RPC Connection
-                        </DialogTitle>
-                        <DialogDescription className="text-slate-400">
-                            Connection status and information
-                        </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4">
-                        {rpcConnected === null ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-                            </div>
-                        ) : rpcConnected ? (
-                            <Alert className="bg-blue-500/10 border-blue-500/30">
-                                <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                                <AlertDescription className="text-blue-300/80">
-                                    Successfully connected to ROD Core RPC
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <Alert className="bg-amber-500/10 border-amber-500/30">
-                                <AlertCircle className="h-4 w-4 text-amber-400" />
-                                <AlertDescription className="text-amber-300/80">
-                                    RPC connection is offline. Please check your ROD Core wallet is running and credentials are correct.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                        
-                        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-                            <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-sm font-medium text-slate-300">RPC Configuration</h4>
-                                {!editingRPC && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setEditingRPC(true)}
-                                        className="text-purple-400 hover:text-purple-300"
-                                    >
-                                        Edit
-                                    </Button>
-                                )}
-                            </div>
-                            
-                            {editingRPC ? (
-                                <div className="space-y-3">
-                                    <div className="space-y-1">
-                                        <Label className="text-slate-400 text-xs">Host</Label>
-                                        <Input
-                                            value={rpcForm.host}
-                                            onChange={(e) => setRpcForm({...rpcForm, host: e.target.value})}
-                                            placeholder="localhost or 127.0.0.1"
-                                            className="bg-slate-900 border-slate-600 text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-slate-400 text-xs">Port</Label>
-                                        <Input
-                                            value={rpcForm.port}
-                                            onChange={(e) => setRpcForm({...rpcForm, port: e.target.value})}
-                                            placeholder="9650"
-                                            className="bg-slate-900 border-slate-600 text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-slate-400 text-xs">Username</Label>
-                                        <Input
-                                            value={rpcForm.username}
-                                            onChange={(e) => setRpcForm({...rpcForm, username: e.target.value})}
-                                            placeholder="RPC username"
-                                            className="bg-slate-900 border-slate-600 text-white"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-slate-400 text-xs">Password</Label>
-                                        <Input
-                                            type="password"
-                                            value={rpcForm.password}
-                                            onChange={(e) => setRpcForm({...rpcForm, password: e.target.value})}
-                                            placeholder="RPC password"
-                                            className="bg-slate-900 border-slate-600 text-white"
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 pt-2">
-                                        <Button
-                                            onClick={handleSaveRPC}
-                                            disabled={savingRPC}
-                                            className="flex-1 bg-green-600 hover:bg-green-700"
-                                        >
-                                            {savingRPC ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                setEditingRPC(false);
-                                                setRpcForm({
-                                                    host: account.rpc_host || 'localhost',
-                                                    port: account.rpc_port || '9650',
-                                                    username: account.rpc_username || '',
-                                                    password: account.rpc_password || ''
-                                                });
-                                            }}
-                                            variant="outline"
-                                            className="border-slate-600 text-slate-400"
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Host:</span>
-                                        <span className="text-white font-mono">{rpcForm.host || 'Not set'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Port:</span>
-                                        <span className="text-white font-mono">{rpcForm.port || 'Not set'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Username:</span>
-                                        <span className="text-white font-mono">{rpcForm.username || 'Not set'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Status:</span>
-                                        <span className={rpcConnected ? "text-blue-400" : "text-amber-400"}>
-                                            {rpcConnected ? 'Connected' : 'Offline'}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30">
-                            <p className="text-xs text-purple-300/80">
-                                Connect your local ROD Core wallet for live transactions. Deposits are automatically detected every 5 minutes.
-                            </p>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={handleAutoConnect}
-                                disabled={savingRPC}
-                                className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-                            >
-                                {savingRPC ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Plug className="w-4 h-4 mr-2" />
-                                )}
-                                Auto-Connect Local Wallet
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    checkRPCStatus();
-                                    toast.info('Checking RPC connection...');
-                                }}
-                                variant="outline"
-                                className="border-slate-600 text-slate-300"
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {/* RPC Manager Modal */}
+            {showRPCManager && (
+                <RPCConfigManager 
+                    account={account}
+                    onClose={() => {
+                        setShowRPCManager(false);
+                        checkRPCStatus();
+                    }}
+                />
+            )}
+
+            {/* Connection Status Alert */}
+            {rpcConnected === false && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fixed top-4 right-4 z-50 max-w-md"
+                >
+                    <Alert className="bg-amber-500/10 border-amber-500/30 backdrop-blur-xl">
+                        <AlertCircle className="h-4 w-4 text-amber-400" />
+                        <AlertDescription className="text-amber-300/80">
+                            RPC connection offline. Click the <Plug className="inline w-4 h-4 mx-1" /> button to configure.
+                        </AlertDescription>
+                    </Alert>
+                </motion.div>
+            )}
         </div>
     );
 }

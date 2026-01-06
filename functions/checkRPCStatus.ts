@@ -74,8 +74,12 @@ Deno.serve(async (req) => {
 
             return Response.json({ 
                 connected: true,
-                blockHeight: rpcData.result.blocks,
-                chain: rpcData.result.chain
+                nodeInfo: {
+                    blocks: rpcData.result.blocks,
+                    chain: rpcData.result.chain,
+                    version: rpcData.result.version,
+                    difficulty: rpcData.result.difficulty
+                }
             });
 
         } catch (err) {
