@@ -226,6 +226,55 @@ export default function RPCConfigManager({ account, onClose }) {
         }
     };
 
+    const connectToCoinbin = async () => {
+        setSaving(true);
+        toast.info('Connecting to Coinbin ROD Core...');
+
+        const coinbinConfig = {
+            host: 'coinbin.info',
+            port: '9650',
+            username: 'rodcoinrpc',
+            password: 'rodcoinrpc'
+        };
+
+        try {
+            const rpcAuth = btoa(`${coinbinConfig.username}:${coinbinConfig.password}`);
+            const response = await fetch(`http://${coinbinConfig.host}:${coinbinConfig.port}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${rpcAuth}`
+                },
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: 'coinbin_test',
+                    method: 'getblockchaininfo',
+                    params: []
+                }),
+                signal: AbortSignal.timeout(5000)
+            });
+
+            const data = await response.json();
+            if (!data.error && data.result) {
+                setFormData({
+                    name: 'Coinbin ROD Core',
+                    host: coinbinConfig.host,
+                    port: coinbinConfig.port,
+                    username: coinbinConfig.username,
+                    password: coinbinConfig.password
+                });
+                toast.success('Coinbin node verified! Click "Add Configuration" to save.');
+                setShowAddForm(true);
+            } else {
+                toast.error('Failed to connect to Coinbin node');
+            }
+        } catch (err) {
+            toast.error('Coinbin connection timeout. Check your internet connection.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const autoDetectLocal = async () => {
         setSaving(true);
         toast.info('Detecting local ROD Core wallet...');
@@ -428,6 +477,18 @@ export default function RPCConfigManager({ account, onClose }) {
                                 <Activity className="w-4 h-4 mr-2" />
                             )}
                             Auto-Detect
+                        </Button>
+                        <Button
+                            onClick={connectToCoinbin}
+                            disabled={saving}
+                            className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                        >
+                            {saving ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Server className="w-4 h-4 mr-2" />
+                            )}
+                            Coinbin Node
                         </Button>
                         <Button
                             onClick={() => document.getElementById('config-file-input').click()}
