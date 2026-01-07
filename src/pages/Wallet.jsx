@@ -19,8 +19,15 @@ export default function Wallet() {
                     const parsed = JSON.parse(savedSession);
                     // Check if session is still valid (within 7 days)
                     if (parsed.timestamp && Date.now() - parsed.timestamp < 604800000) {
-                        // Fetch full account data
-                        const accounts = await base44.entities.WalletAccount.filter({ id: parsed.id });
+                        // Fetch full account data - try by email first, then by id
+                        let accounts = parsed.email 
+                            ? await base44.entities.WalletAccount.filter({ email: parsed.email })
+                            : [];
+                        
+                        if (accounts.length === 0) {
+                            accounts = await base44.entities.WalletAccount.filter({ id: parsed.id });
+                        }
+                        
                         if (accounts.length > 0) {
                             setAccount(accounts[0]);
                         } else {
