@@ -35,36 +35,6 @@ Deno.serve(async (req) => {
             });
         }
 
-        const config = configs[0];
-
-        // Build RPC URL - ensure it ends with / for RPC endpoints
-        const protocol = config.use_ssl ? 'https' : 'http';
-        let rpcUrl = !config.port || config.port === ''
-            ? `${protocol}://${config.host}`
-            : `${protocol}://${config.host}:${config.port}`;
-        
-        // Ensure trailing slash for RPC endpoints
-        if (!rpcUrl.endsWith('/')) {
-            rpcUrl += '/';
-        }
-
-        // Prepare headers
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        // Always add Basic auth for RPC connections
-        if (config.connection_type === 'rpc') {
-            if (config.username && config.password) {
-                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
-            }
-        } else if (config.connection_type === 'api' && config.api_key) {
-            headers['X-API-Key'] = config.api_key;
-        }
-
-        console.log('Attempting import with URL:', rpcUrl);
-        console.log('Headers:', Object.keys(headers));
-
         // Collect all addresses to import
         const addressesToImport = [
             { address: account.wallet_address, label: 'Primary Address' }
@@ -81,39 +51,22 @@ Deno.serve(async (req) => {
 
         const results = [];
 
-        // Import each address
+        // Import each address using the RPC proxy (which handles auth and routing correctly)
         for (const item of addressesToImport) {
             try {
-                const importResponse = await fetch(rpcUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        jsonrpc: '1.0',
-                        id: `import-${item.address}`,
-                        method: 'importaddress',
-                        params: [item.address, item.label, false]
-                    }),
-                    signal: AbortSignal.timeout(10000)
+                // Call rpcProxy function to handle the RPC request properly
+                const proxyResponse = await base44.functions.invoke('rpcProxy', {
+                    jsonrpc: '1.0',
+                    id: `import-${item.address}`,
+                    method: 'importaddress',
+                    params: [item.address, item.label, false]
                 });
 
-                // Check if response is OK
-                if (!importResponse.ok) {
-                    const errorText = await importResponse.text();
+                if (proxyResponse.data.error) {
                     results.push({
                         address: item.address,
                         success: false,
-                        error: `HTTP ${importResponse.status}: ${errorText}`
-                    });
-                    continue;
-                }
-
-                const importData = await importResponse.json();
-
-                if (importData.error) {
-                    results.push({
-                        address: item.address,
-                        success: false,
-                        error: importData.error.message
+                        error: proxyResponse.data.error.message || proxyResponse.data.error
                     });
                 } else {
                     results.push({
