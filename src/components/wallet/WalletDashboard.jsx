@@ -500,6 +500,11 @@ export default function WalletDashboard({ account, onLogout }) {
                                         {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
                                         <span className="text-xl text-slate-400 ml-2">ROD</span>
                                     </h2>
+                                    {rodPrice && (
+                                        <div className="text-2xl font-semibold text-green-400 mb-2">
+                                            ≈ ${(balance.confirmed * rodPrice).toFixed(2)} USD
+                                        </div>
+                                    )}
                                     {balance.unconfirmed > 0 && (
                                         <div className="flex items-center gap-2 text-sm text-amber-400">
                                             <Clock className="w-4 h-4" />
