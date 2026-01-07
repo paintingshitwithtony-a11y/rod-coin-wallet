@@ -85,6 +85,17 @@ Deno.serve(async (req) => {
                     signal: AbortSignal.timeout(10000)
                 });
 
+                // Check if response is OK
+                if (!importResponse.ok) {
+                    const errorText = await importResponse.text();
+                    results.push({
+                        address: item.address,
+                        success: false,
+                        error: `HTTP ${importResponse.status}: ${errorText}`
+                    });
+                    continue;
+                }
+
                 const importData = await importResponse.json();
 
                 if (importData.error) {
