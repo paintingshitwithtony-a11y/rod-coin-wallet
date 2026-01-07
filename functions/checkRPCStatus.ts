@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
         // Build RPC URL
         const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = config.connection_type === 'api' && !config.port 
+        const rpcUrl = !config.port || config.port === ''
             ? `${protocol}://${config.host}`
             : `${protocol}://${config.host}:${config.port}`;
 
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
         if (config.connection_type === 'api' && config.api_key) {
             headers['X-API-Key'] = config.api_key;
-        } else if (config.connection_type === 'rpc') {
+        } else if (config.connection_type === 'rpc' && config.username && config.password) {
             headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
         
