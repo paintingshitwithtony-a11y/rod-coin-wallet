@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson, Link
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -44,6 +44,7 @@ export default function RPCConfigManager({ account, onClose }) {
     const [showCommandHelp, setShowCommandHelp] = useState(false);
     const [importing, setImporting] = useState(false);
     const [showScanConfig, setShowScanConfig] = useState(false);
+    const [showEndpointInfo, setShowEndpointInfo] = useState(false);
     const [scanConfig, setScanConfig] = useState({
         ports: '9650, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
@@ -647,6 +648,14 @@ export default function RPCConfigManager({ account, onClose }) {
                         >
                             <Terminal className="w-4 h-4" />
                         </Button>
+                        <Button
+                            onClick={() => setShowEndpointInfo(!showEndpointInfo)}
+                            variant="outline"
+                            className="border-green-600 text-green-400 hover:bg-green-600/10"
+                        >
+                            <Link className="w-4 h-4 mr-2" />
+                            RPC Endpoint
+                        </Button>
                     </div>
 
                     {/* Scan configuration */}
@@ -727,6 +736,130 @@ export default function RPCConfigManager({ account, onClose }) {
                                     Start Scan
                                 </Button>
                             </div>
+                        </motion.div>
+                    )}
+
+                    {/* RPC Endpoint Info */}
+                    {showEndpointInfo && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-gradient-to-br from-green-900/20 to-blue-900/20 border border-green-500/30 space-y-3"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Link className="w-5 h-5 text-green-400" />
+                                <h4 className="text-white font-medium">RPC Endpoint URL</h4>
+                            </div>
+
+                            <Alert className="bg-green-500/10 border-green-500/30">
+                                <AlertCircle className="h-4 w-4 text-green-400" />
+                                <AlertDescription className="text-green-300/80 text-sm">
+                                    Use this endpoint to connect to your wallet via RPC. Authentication is handled automatically using your session.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-2">
+                                <Label className="text-slate-300 text-sm">Endpoint URL</Label>
+                                <div className="relative group">
+                                    <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm break-all border border-green-500/20">
+                                        {window.location.origin}/functions/rpcProxy
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/functions/rpcProxy`);
+                                            toast.success('Endpoint URL copied');
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-sm text-slate-300 font-medium">Example: cURL Request</p>
+                                <div className="relative group">
+                                    <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+{`curl -X POST ${window.location.origin}/functions/rpcProxy \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \\
+  -d '{
+    "jsonrpc": "1.0",
+    "id": "test",
+    "method": "getblockchaininfo",
+    "params": []
+  }'`}
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`curl -X POST ${window.location.origin}/functions/rpcProxy \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \\\n  -d '{\n    "jsonrpc": "1.0",\n    "id": "test",\n    "method": "getblockchaininfo",\n    "params": []\n  }'`);
+                                            toast.success('Example copied');
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-xs">
+                                    <strong>How it works:</strong>
+                                    <ul className="list-disc list-inside mt-2 space-y-1">
+                                        <li>The endpoint forwards your RPC requests to your active configuration</li>
+                                        <li>Authentication is handled automatically using your logged-in session</li>
+                                        <li>Supports all standard ROD Core RPC methods</li>
+                                        <li>Works with RPC, Electrum, API, and cURL connection types</li>
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-2">
+                                <p className="text-sm text-slate-300 font-medium">Example: JavaScript/Node.js</p>
+                                <div className="relative group">
+                                    <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+{`const response = await fetch('${window.location.origin}/functions/rpcProxy', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_SESSION_TOKEN'
+  },
+  body: JSON.stringify({
+    jsonrpc: '1.0',
+    id: 'test',
+    method: 'getblockchaininfo',
+    params: []
+  })
+});
+
+const data = await response.json();
+console.log(data.result);`}
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`const response = await fetch('${window.location.origin}/functions/rpcProxy', {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer YOUR_SESSION_TOKEN'\n  },\n  body: JSON.stringify({\n    jsonrpc: '1.0',\n    id: 'test',\n    method: 'getblockchaininfo',\n    params: []\n  })\n});\n\nconst data = await response.json();\nconsole.log(data.result);`);
+                                            toast.success('Example copied');
+                                        }}
+                                    >
+                                        <Copy className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <Alert className="bg-amber-500/10 border-amber-500/30">
+                                <AlertCircle className="h-4 w-4 text-amber-400" />
+                                <AlertDescription className="text-amber-300/80 text-xs">
+                                    <strong>Note:</strong> Replace <code className="text-amber-400">YOUR_SESSION_TOKEN</code> with your actual session token. You can find it in your browser's localStorage under the key <code className="text-amber-400">rod_wallet_session</code>.
+                                </AlertDescription>
+                            </Alert>
                         </motion.div>
                     )}
 
