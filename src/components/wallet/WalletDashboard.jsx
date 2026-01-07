@@ -52,6 +52,7 @@ export default function WalletDashboard({ account, onLogout }) {
     const [isReconnecting, setIsReconnecting] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
+    const [selectedWalletFilter, setSelectedWalletFilter] = useState('all');
 
     useEffect(() => {
         const checkMobile = () => {
@@ -876,8 +877,25 @@ export default function WalletDashboard({ account, onLogout }) {
                                     View All
                                 </Button>
                             </CardHeader>
-                            <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
-                                {transactions.slice(0, 10).map((tx, index) => (
+                            <CardContent className="space-y-3">
+                                <Select value={selectedWalletFilter} onValueChange={setSelectedWalletFilter}>
+                                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700">
+                                        <SelectItem value="all">All Wallets</SelectItem>
+                                        {addresses.map((addr) => (
+                                            <SelectItem key={addr.id} value={addr.address}>
+                                                {addr.label || addr.address.slice(0, 12) + '...'}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                                {transactions
+                                    .filter(tx => selectedWalletFilter === 'all' || tx.address.includes(selectedWalletFilter.slice(0, 8)) || tx.address.includes(selectedWalletFilter.slice(-6)))
+                                    .slice(0, 10).map((tx, index) => (
                                     <motion.div
                                         key={tx.id}
                                         initial={{ opacity: 0, x: -20 }}
@@ -912,10 +930,11 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 {tx.confirmations} confirmations
                                             </p>
                                         </div>
-                                    </motion.div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                                        </motion.div>
+                                        ))}
+                                        </div>
+                                        </CardContent>
+                                        </Card>
                         </div>
 
                         {/* Market Data Widget */}
