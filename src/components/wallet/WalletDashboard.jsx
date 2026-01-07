@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-    LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users
+    LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -363,6 +363,70 @@ export default function WalletDashboard({ account, onLogout }) {
         setCopiedAddress(address);
         toast.success('Address copied');
         setTimeout(() => setCopiedAddress(null), 2000);
+    };
+
+    const makePrimary = async (selectedAddress) => {
+        if (selectedAddress.address === account.wallet_address) {
+            toast.info('This is already the primary address');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            
+            // Get current account data
+            const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (currentAccount.length === 0) return;
+
+            const currentPrimary = {
+                address: account.wallet_address,
+                public_key_hash: account.public_key_hash,
+                label: 'Primary Address',
+                created_at: account.created_date
+            };
+
+            // Remove selected address from additional_addresses and add old primary
+            const updatedAdditional = (currentAccount[0].additional_addresses || [])
+                .filter(addr => addr.address !== selectedAddress.address);
+            updatedAdditional.unshift(currentPrimary);
+
+            // Update account with new primary
+            await base44.entities.WalletAccount.update(account.id, {
+                wallet_address: selectedAddress.address,
+                public_key_hash: selectedAddress.publicKeyHash || selectedAddress.public_key_hash,
+                additional_addresses: updatedAdditional
+            });
+
+            toast.success('Primary address updated!');
+            
+            // Reload addresses
+            const updatedAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (updatedAccounts.length > 0) {
+                const mainAddress = {
+                    id: 'main',
+                    address: updatedAccounts[0].wallet_address,
+                    label: 'Primary Address',
+                    createdAt: updatedAccounts[0].created_date,
+                    isValid: true
+                };
+                
+                const additionalAddresses = (updatedAccounts[0].additional_addresses || []).map((addr, i) => ({
+                    id: `addr-${i}`,
+                    address: addr.address,
+                    label: addr.label || `Address ${i + 2}`,
+                    createdAt: addr.created_at,
+                    isValid: true,
+                    importStatus: 'imported'
+                }));
+
+                setAddresses([mainAddress, ...additionalAddresses]);
+            }
+        } catch (err) {
+            console.error('Failed to update primary address:', err);
+            toast.error('Failed to update primary address');
+        } finally {
+            setLoading(false);
+        }
     };
 
 
@@ -731,6 +795,17 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 </p>
                                             </div>
                                             <div className="flex gap-1 shrink-0">
+                                                {addr.address !== account.wallet_address && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => makePrimary(addr)}
+                                                        className="text-slate-400 hover:text-amber-400"
+                                                        title="Make Primary"
+                                                    >
+                                                        <Star className="w-4 h-4" />
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
