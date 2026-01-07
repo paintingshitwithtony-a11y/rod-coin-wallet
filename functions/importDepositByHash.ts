@@ -65,18 +65,33 @@ Deno.serve(async (req) => {
                 jsonrpc: '1.0',
                 id: 'getTx',
                 method: 'gettransaction',
-                params: [txid]
-            })
+                params: [txid, true]
+            }),
+            signal: AbortSignal.timeout(15000)
         });
 
         if (!txResponse.ok) {
-            return Response.json({ error: 'Failed to fetch transaction from node' }, { status: 500 });
+            const errorText = await txResponse.text();
+            console.error('RPC Error:', errorText);
+            return Response.json({ 
+                error: `Failed to fetch transaction: ${errorText.slice(0, 100)}` 
+            }, { status: 500 });
         }
 
         const txData = await txResponse.json();
 
         if (txData.error) {
-            return Response.json({ error: txData.error.message }, { status: 400 });
+            // Check if error is because transaction not in wallet
+            if (txData.error.message && txData.error.message.includes('Invalid or non-wallet transaction id')) {
+                return Response.json({ 
+                    error: 'Transaction not found in wallet. Make sure your addresses are imported and the transaction is confirmed on the blockchain.',
+                    details: txData.error.message
+                }, { status: 400 });
+            }
+            return Response.json({ 
+                error: txData.error.message || 'RPC error',
+                code: txData.error.code
+            }, { status: 400 });
         }
 
         const tx = txData.result;
