@@ -130,9 +130,19 @@ export default function WalletDashboard({ account, onLogout }) {
             if (response.data.success) {
                 if (response.data.imported > 0) {
                     console.log(`✓ Imported ${response.data.imported}/${response.data.total} addresses into node`);
-                } else if (response.data.errors && response.data.errors.length > 0) {
-                    console.error('Import errors:', response.data.errors);
-                    toast.error(`Failed to import addresses: ${response.data.errors[0]}`);
+                } else {
+                    // Log detailed results to see why import failed
+                    console.warn(`⚠ No addresses imported (0/${response.data.total})`);
+                    if (response.data.results) {
+                        response.data.results.forEach((result, idx) => {
+                            if (!result.success) {
+                                console.error(`Address ${idx + 1} failed:`, result.address, '→', result.error);
+                            }
+                        });
+                    }
+                    if (response.data.message) {
+                        console.log('Message:', response.data.message);
+                    }
                 }
             }
         } catch (err) {
