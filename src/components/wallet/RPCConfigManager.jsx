@@ -1161,25 +1161,133 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                     </TabsList>
 
                                     <TabsContent value="direct" className="space-y-3 mt-3">
-                                        <p className="text-sm text-slate-300">Connect directly to GetBlock.io (recommended)</p>
-                                        <Button
-                                            onClick={async () => {
-                                                setSaving(true);
-                                                try {
-                                                    const newConfig = await base44.entities.RPCConfiguration.create({
-                                                        account_id: account.id,
-                                                        name: 'GetBlock.io ROD',
-                                                        connection_type: 'api',
-                                                        host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
-                                                        port: '',
-                                                        username: '',
-                                                        password: '',
-                                                        api_key: '',
-                                                        curl_command: '',
-                                                        use_ssl: true,
-                                                        is_active: configs.length === 0,
-                                                        connection_status: 'untested'
-                                                    });
+                                        <p className="text-sm text-slate-300 mb-3">Quick-connect to popular gateways:</p>
+
+                                        <div className="space-y-2">
+                                            <Button
+                                                onClick={async () => {
+                                                    setSaving(true);
+                                                    try {
+                                                        const newConfig = await base44.entities.RPCConfiguration.create({
+                                                            account_id: account.id,
+                                                            name: 'Tatum Bitcoin Mainnet',
+                                                            connection_type: 'api',
+                                                            host: 'bitcoin-mainnet.gateway.tatum.io',
+                                                            port: '',
+                                                            username: '',
+                                                            password: '',
+                                                            api_key: '',
+                                                            curl_command: '',
+                                                            use_ssl: true,
+                                                            is_active: configs.length === 0,
+                                                            connection_status: 'untested'
+                                                        });
+
+                                                        if (configs.length === 0) {
+                                                            await base44.entities.WalletAccount.update(account.id, {
+                                                                rpc_host: 'bitcoin-mainnet.gateway.tatum.io',
+                                                                rpc_port: '',
+                                                                rpc_username: '',
+                                                                rpc_password: ''
+                                                            });
+                                                        }
+
+                                                        toast.success('Tatum Bitcoin gateway added');
+                                                        await loadConfigurations();
+                                                        setTimeout(() => testConnection(newConfig), 500);
+                                                    } catch (err) {
+                                                        toast.error('Failed to add configuration');
+                                                    } finally {
+                                                        setSaving(false);
+                                                    }
+                                                }}
+                                                disabled={saving}
+                                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                            >
+                                                {saving ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Connecting...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Plug className="w-4 h-4 mr-2" />
+                                                        Tatum Bitcoin Mainnet
+                                                    </>
+                                                )}
+                                            </Button>
+
+                                            <Button
+                                                onClick={async () => {
+                                                    setSaving(true);
+                                                    try {
+                                                        const newConfig = await base44.entities.RPCConfiguration.create({
+                                                            account_id: account.id,
+                                                            name: 'Tatum Powerful Gateway',
+                                                            connection_type: 'api',
+                                                            host: 'my-powerful-gateway-7576da75.gateway.tatum.io',
+                                                            port: '',
+                                                            username: '',
+                                                            password: '',
+                                                            api_key: '',
+                                                            curl_command: '',
+                                                            use_ssl: true,
+                                                            is_active: configs.length === 0,
+                                                            connection_status: 'untested'
+                                                        });
+
+                                                        if (configs.length === 0) {
+                                                            await base44.entities.WalletAccount.update(account.id, {
+                                                                rpc_host: 'my-powerful-gateway-7576da75.gateway.tatum.io',
+                                                                rpc_port: '',
+                                                                rpc_username: '',
+                                                                rpc_password: ''
+                                                            });
+                                                        }
+
+                                                        toast.success('Tatum Powerful Gateway added');
+                                                        await loadConfigurations();
+                                                        setTimeout(() => testConnection(newConfig), 500);
+                                                    } catch (err) {
+                                                        toast.error('Failed to add configuration');
+                                                    } finally {
+                                                        setSaving(false);
+                                                    }
+                                                }}
+                                                disabled={saving}
+                                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                            >
+                                                {saving ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Connecting...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Plug className="w-4 h-4 mr-2" />
+                                                        Tatum Powerful Gateway
+                                                    </>
+                                                )}
+                                            </Button>
+
+                                            <Button
+                                                onClick={async () => {
+                                                    setSaving(true);
+                                                    try {
+                                                        const newConfig = await base44.entities.RPCConfiguration.create({
+                                                            account_id: account.id,
+                                                            name: 'GetBlock.io ROD',
+                                                            connection_type: 'api',
+                                                            host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
+                                                            port: '',
+                                                            username: '',
+                                                            password: '',
+                                                            api_key: '',
+                                                            curl_command: '',
+                                                            use_ssl: true,
+                                                            is_active: configs.length === 0,
+                                                            connection_status: 'untested'
+                                                        });
 
                                                     if (configs.length === 0) {
                                                         await base44.entities.WalletAccount.update(account.id, {
@@ -1190,30 +1298,31 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                         });
                                                     }
 
-                                                    toast.success('GetBlock.io configuration added');
-                                                    await loadConfigurations();
-                                                    setTimeout(() => testConnection(newConfig), 500);
-                                                } catch (err) {
-                                                    toast.error('Failed to add GetBlock.io configuration');
-                                                } finally {
-                                                    setSaving(false);
-                                                }
-                                            }}
-                                            disabled={saving}
-                                            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-                                        >
-                                            {saving ? (
-                                                <>
-                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                    Connecting...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Plug className="w-4 h-4 mr-2" />
-                                                    Connect Directly
-                                                </>
-                                            )}
-                                        </Button>
+                                                        toast.success('GetBlock.io configuration added');
+                                                        await loadConfigurations();
+                                                        setTimeout(() => testConnection(newConfig), 500);
+                                                    } catch (err) {
+                                                        toast.error('Failed to add GetBlock.io configuration');
+                                                    } finally {
+                                                        setSaving(false);
+                                                    }
+                                                }}
+                                                disabled={saving}
+                                                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                                            >
+                                                {saving ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Connecting...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Plug className="w-4 h-4 mr-2" />
+                                                        GetBlock.io ROD
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
                                     </TabsContent>
 
                                     <TabsContent value="tunnel" className="space-y-3 mt-3">
