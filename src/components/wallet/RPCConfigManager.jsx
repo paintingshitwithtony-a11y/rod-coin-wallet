@@ -89,7 +89,9 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         
         try {
             const protocol = config.use_ssl ? 'https' : 'http';
-            const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+            const rpcUrl = config.port 
+                ? `${protocol}://${config.host}:${config.port}`
+                : `${protocol}://${config.host}`;
             
             const headers = {
                 'Content-Type': 'application/json'
@@ -108,7 +110,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 }
             } else if (config.connection_type === 'api' && config.api_key) {
                 headers['X-API-Key'] = config.api_key;
-            } else if (config.connection_type === 'rpc') {
+            } else if (config.connection_type === 'rpc' && config.username && config.password) {
                 headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
             }
             
