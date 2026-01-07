@@ -463,23 +463,23 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     };
 
     const handleSaveConfig = async () => {
-        if (!formData.name || !formData.host || !formData.port) {
+        if (!formData.name || !formData.host) {
             toast.error('Please fill in required fields');
             return;
         }
-        
+
+        // Port is optional for API connections (can be included in host)
+        if (formData.connection_type !== 'api' && !formData.port) {
+            toast.error('Port is required');
+            return;
+        }
+
         // For RPC, require username and password
         if (formData.connection_type === 'rpc' && (!formData.username || !formData.password)) {
             toast.error('Username and password required for RPC connection');
             return;
         }
-        
-        // For API, require API key
-        if (formData.connection_type === 'api' && !formData.api_key) {
-            toast.error('API key required for API connection');
-            return;
-        }
-        
+
         // For cURL, require cURL command
         if (formData.connection_type === 'curl' && !formData.curl_command) {
             toast.error('cURL command required for cURL connection');
@@ -935,10 +935,39 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                     <strong>Note:</strong> FreeRPC.com may have rate limits on free plans. Check their documentation for current limits and pricing.
                                 </AlertDescription>
                             </Alert>
-                        </motion.div>
-                    )}
+                            </motion.div>
+                            )}
 
-                    {/* RPC Endpoint Info */}
+                            {/* GetBlock.io Quick Setup */}
+                            <div className="flex gap-2 flex-wrap">
+                            <Button
+                            onClick={() => {
+                                setFormData({
+                                    name: 'GetBlock.io ROD',
+                                    connection_type: 'api',
+                                    host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
+                                    port: '',
+                                    username: '',
+                                    password: '',
+                                    api_key: '',
+                                    curl_command: '',
+                                    use_ssl: true
+                                });
+                                handleSaveConfig();
+                            }}
+                            disabled={saving}
+                            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                            >
+                            {saving ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Plug className="w-4 h-4 mr-2" />
+                            )}
+                            Connect to GetBlock.io
+                            </Button>
+                            </div>
+
+                            {/* RPC Endpoint Info */}
                     {showEndpointInfo && (
                         <motion.div
                             initial={{ opacity: 0, height: 0 }}

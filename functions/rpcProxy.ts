@@ -38,7 +38,10 @@ Deno.serve(async (req) => {
 
         // Build RPC URL
         const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+        // For API connections, port may be omitted (included in host or using default 443/80)
+        const rpcUrl = config.connection_type === 'api' && !config.port 
+            ? `${protocol}://${config.host}`
+            : `${protocol}://${config.host}:${config.port}`;
 
         // Prepare headers
         const headers = {
