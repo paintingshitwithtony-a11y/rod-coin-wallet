@@ -1535,6 +1535,49 @@ rpcallowip=127.0.0.1`}
                                 </Tabs>
                             
                             <div className="space-y-2">
+                                <Label className="text-slate-300">Quick Setup - Paste Endpoint URL (Optional)</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="https://go.getblock.io:443/abc123 or http://localhost:9650"
+                                        className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                        onPaste={(e) => {
+                                            const url = e.clipboardData.getData('text');
+                                            try {
+                                                const parsed = new URL(url);
+                                                const isHttps = parsed.protocol === 'https:';
+                                                const port = parsed.port || (isHttps ? '443' : '80');
+                                                const host = parsed.hostname + parsed.pathname.replace(/\/$/, '');
+                                                
+                                                setFormData({
+                                                    ...formData,
+                                                    host: host,
+                                                    port: port,
+                                                    use_ssl: isHttps,
+                                                    name: formData.name || `${parsed.hostname} Connection`
+                                                });
+                                                
+                                                // Parse basic auth if present
+                                                if (parsed.username || parsed.password) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        username: parsed.username,
+                                                        password: parsed.password,
+                                                        connection_type: 'rpc'
+                                                    }));
+                                                }
+                                                
+                                                toast.success('URL parsed successfully');
+                                                e.target.value = '';
+                                            } catch (err) {
+                                                toast.error('Invalid URL format');
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-500">Paste a full URL to auto-fill host, port, and SSL settings</p>
+                            </div>
+
+                            <div className="space-y-2">
                                 <Label className="text-slate-300">Configuration Name</Label>
                                 <Input
                                     value={formData.name}
