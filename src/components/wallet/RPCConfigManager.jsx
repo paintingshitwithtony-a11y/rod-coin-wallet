@@ -954,7 +954,7 @@ rpcallowip=127.0.0.1`}
                                 <Button onClick={() => {
                                     setShowAddForm(false);
                                     setEditingConfig(null);
-                                    setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', use_ssl: false });
+                                    setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', use_ssl: false });
                                 }} variant="outline" className="border-slate-600">
                                     Cancel
                                 </Button>
