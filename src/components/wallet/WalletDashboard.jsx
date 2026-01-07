@@ -710,12 +710,12 @@ export default function WalletDashboard({ account, onLogout }) {
                         <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-white text-lg">Recent Transactions</CardTitle>
-                                <Button variant="ghost" size="sm" className="text-slate-400">
+                                <Button variant="ghost" size="sm" className="text-slate-400" onClick={() => setActiveTab('history')}>
                                     View All
                                 </Button>
                             </CardHeader>
-                            <CardContent className="space-y-3">
-                                {transactions.map((tx, index) => (
+                            <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
+                                {transactions.slice(0, 10).map((tx, index) => (
                                     <motion.div
                                         key={tx.id}
                                         initial={{ opacity: 0, x: -20 }}
