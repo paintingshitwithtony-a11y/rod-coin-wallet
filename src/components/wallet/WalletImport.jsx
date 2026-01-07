@@ -114,6 +114,17 @@ export default function WalletImport({ account, onWalletImported }) {
                 additional_addresses: additionalAddresses
             });
 
+            // Import address into ROD Core node
+            try {
+                await base44.functions.invoke('importAddress', {
+                    address: derivedAddress,
+                    label: label.trim()
+                });
+            } catch (importError) {
+                console.error('Failed to import address into node:', importError);
+                toast.warning('Wallet imported but not added to node');
+            }
+
             toast.success(`Wallet "${label}" imported from seed phrase!`);
             
             // Reset form
@@ -187,6 +198,17 @@ export default function WalletImport({ account, onWalletImported }) {
             await base44.entities.WalletAccount.update(account.id, {
                 additional_addresses: additionalAddresses
             });
+
+            // Import address into ROD Core node
+            try {
+                await base44.functions.invoke('importAddress', {
+                    address: address,
+                    label: label.trim()
+                });
+            } catch (importError) {
+                console.error('Failed to import address into node:', importError);
+                toast.warning('Wallet imported but not added to node');
+            }
 
             toast.success(`Wallet "${label}" imported successfully!`);
             

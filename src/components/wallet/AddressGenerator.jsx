@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateNewRODAddress, validateRODAddress, generatePrivateKey } from './Base58';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 export default function AddressGenerator({ onAddressGenerated }) {
     const [addresses, setAddresses] = useState([]);
@@ -37,6 +38,17 @@ export default function AddressGenerator({ onAddressGenerated }) {
             };
             
             setAddresses(prev => [newAddress, ...prev]);
+            
+            // Import address into ROD Core node so it can track transactions
+            try {
+                await base44.functions.invoke('importAddress', {
+                    address,
+                    label: newAddress.label
+                });
+            } catch (importError) {
+                console.error('Failed to import address into node:', importError);
+                toast.warning('Address generated but not imported into node');
+            }
             
             if (onAddressGenerated) {
                 onAddressGenerated(newAddress);
