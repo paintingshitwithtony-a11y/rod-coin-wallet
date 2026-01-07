@@ -674,6 +674,43 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                     {/* Auto-detect button */}
                     <div className="flex gap-2 flex-wrap">
                         <Button
+                            onClick={async () => {
+                                setSaving(true);
+                                try {
+                                    const response = await base44.functions.invoke('setupRODNodeFromSecrets', {});
+                                    
+                                    if (response.data.success) {
+                                        toast.success('ROD Core node configured from secrets');
+                                        await loadConfigurations();
+                                        
+                                        // Auto-test the new connection
+                                        const newConfigs = await base44.entities.RPCConfiguration.filter({
+                                            account_id: account.id,
+                                            name: 'ROD Core (from secrets)'
+                                        });
+                                        if (newConfigs.length > 0) {
+                                            setTimeout(() => testConnection(newConfigs[0]), 500);
+                                        }
+                                    } else {
+                                        toast.error(response.data.message || 'Failed to configure from secrets');
+                                    }
+                                } catch (err) {
+                                    toast.error('No ROD RPC secrets found');
+                                } finally {
+                                    setSaving(false);
+                                }
+                            }}
+                            disabled={saving}
+                            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                        >
+                            {saving ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Server className="w-4 h-4 mr-2" />
+                            )}
+                            Use ROD Secrets
+                        </Button>
+                        <Button
                             onClick={() => setShowScanConfig(!showScanConfig)}
                             disabled={saving}
                             className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
