@@ -138,9 +138,14 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                     }
                 });
                 toast.success(`Connected to ${config.name}!`);
-            }
-            
-            await loadConfigurations();
+
+                // Trigger wallet refresh on successful connection
+                if (onConnectionSuccess) {
+                    onConnectionSuccess();
+                }
+                }
+
+                await loadConfigurations();
         } catch (err) {
             await base44.entities.RPCConfiguration.update(config.id, {
                 connection_status: 'disconnected',
