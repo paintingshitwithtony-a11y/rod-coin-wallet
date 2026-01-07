@@ -798,13 +798,13 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                     }`}
                                                 >
                                                     <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-3 flex-1">
                                                             {result.open ? (
                                                                 <CheckCircle2 className="w-5 h-5 text-green-400" />
                                                             ) : (
                                                                 <AlertCircle className="w-5 h-5 text-red-400" />
                                                             )}
-                                                            <div>
+                                                            <div className="flex-1">
                                                                 <p className="text-white font-mono text-sm">
                                                                     {result.host}:{result.port}
                                                                 </p>
@@ -813,9 +813,44 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <Badge className={result.open ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
-                                                            {result.open ? 'OPEN' : 'CLOSED'}
-                                                        </Badge>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge className={result.open ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
+                                                                {result.open ? 'OPEN' : 'CLOSED'}
+                                                            </Badge>
+                                                            {!result.open && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={async () => {
+                                                                        const btn = document.activeElement;
+                                                                        btn.disabled = true;
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('checkPort', {
+                                                                                host: result.host,
+                                                                                port: result.port,
+                                                                                openPort: true
+                                                                            });
+                                                                            
+                                                                            if (response.data.firewallModified) {
+                                                                                toast.success(`Port ${result.port} opened successfully`);
+                                                                                // Update the result
+                                                                                setPortCheckResults(prev => prev.map((r, i) => 
+                                                                                    i === idx ? response.data : r
+                                                                                ));
+                                                                            } else {
+                                                                                toast.error(response.data.message);
+                                                                            }
+                                                                        } catch (err) {
+                                                                            toast.error('Failed to open port');
+                                                                        } finally {
+                                                                            btn.disabled = false;
+                                                                        }
+                                                                    }}
+                                                                    className="bg-amber-600 hover:bg-amber-700 h-7 text-xs"
+                                                                >
+                                                                    Open Port
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
