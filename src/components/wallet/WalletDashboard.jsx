@@ -490,7 +490,6 @@ export default function WalletDashboard({ account, onLogout }) {
                                     )}
                                     <Button
                                         variant="outline"
-                                        size="sm"
                                         onClick={async () => {
                                             setLoading(true);
                                             try {
@@ -508,10 +507,10 @@ export default function WalletDashboard({ account, onLogout }) {
                                             }
                                         }}
                                         disabled={loading}
-                                        className="text-amber-400 hover:text-amber-300 border-amber-500/50 mt-2"
+                                        className="text-amber-400 hover:text-amber-300 border-amber-500/50 mt-2 h-6 px-2 text-xs"
                                         title="Remove duplicate transactions and recalculate balance"
                                     >
-                                        {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                        {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
                                         Fix Balance
                                     </Button>
                                 </div>
