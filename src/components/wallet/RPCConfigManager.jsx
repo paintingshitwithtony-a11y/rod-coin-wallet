@@ -574,7 +574,7 @@ export default function RPCConfigManager({ account, onClose }) {
 
     return (
         <Dialog open onOpenChange={onClose}>
-            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-5xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <Server className="w-6 h-6 text-purple-400" />
