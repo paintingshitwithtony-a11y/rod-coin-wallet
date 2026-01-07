@@ -28,8 +28,10 @@ Deno.serve(async (req) => {
 
         if (configs.length === 0) {
             return Response.json({ 
-                error: 'No active RPC configuration',
-                success: false
+                success: true,
+                imported: 0,
+                total: 0,
+                message: 'No active RPC configuration'
             });
         }
 
