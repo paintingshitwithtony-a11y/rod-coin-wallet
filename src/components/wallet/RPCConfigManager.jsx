@@ -35,6 +35,7 @@ export default function RPCConfigManager({ account, onClose }) {
         port: '9650',
         username: '',
         password: '',
+        api_key: '',
         use_ssl: false
     });
     const [saving, setSaving] = useState(false);
@@ -78,15 +79,23 @@ export default function RPCConfigManager({ account, onClose }) {
         setTesting(prev => ({ ...prev, [config.id]: true }));
         
         try {
-            const rpcUrl = `http://${config.host}:${config.port}`;
-            const rpcAuth = btoa(`${config.username}:${config.password}`);
+            const protocol = config.use_ssl ? 'https' : 'http';
+            const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            // Add authentication based on connection type
+            if (config.connection_type === 'api' && config.api_key) {
+                headers['X-API-Key'] = config.api_key;
+            } else if (config.connection_type === 'rpc') {
+                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+            }
             
             const response = await fetch(rpcUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${rpcAuth}`
-                },
+                headers,
                 body: JSON.stringify({
                     jsonrpc: '1.0',
                     id: 'test',
@@ -239,6 +248,7 @@ export default function RPCConfigManager({ account, onClose }) {
                                 port: config.port,
                                 username: config.username || '',
                                 password: config.password || '',
+                                api_key: config.api_key || '',
                                 use_ssl: config.use_ssl || false,
                                 is_active: false,
                                 connection_status: 'untested'
@@ -266,6 +276,7 @@ export default function RPCConfigManager({ account, onClose }) {
                 port: parsed.port,
                 username: parsed.username,
                 password: parsed.password,
+                api_key: '',
                 use_ssl: false
             });
 
@@ -296,6 +307,7 @@ export default function RPCConfigManager({ account, onClose }) {
             port: config.port,
             username: config.username || '',
             password: config.password || '',
+            api_key: config.api_key || '',
             use_ssl: config.use_ssl || false
         }));
 
@@ -416,6 +428,7 @@ export default function RPCConfigManager({ account, onClose }) {
             port: config.port,
             username: config.username || '',
             password: config.password || '',
+            api_key: config.api_key || '',
             use_ssl: config.use_ssl || false
         });
         setShowAddForm(true);
@@ -432,6 +445,12 @@ export default function RPCConfigManager({ account, onClose }) {
             toast.error('Username and password required for RPC connection');
             return;
         }
+        
+        // For API, require API key
+        if (formData.connection_type === 'api' && !formData.api_key) {
+            toast.error('API key required for API connection');
+            return;
+        }
 
         setSaving(true);
         try {
@@ -444,6 +463,7 @@ export default function RPCConfigManager({ account, onClose }) {
                     port: formData.port,
                     username: formData.username || '',
                     password: formData.password || '',
+                    api_key: formData.api_key || '',
                     use_ssl: formData.use_ssl,
                     connection_status: 'untested'
                 });
@@ -469,6 +489,7 @@ export default function RPCConfigManager({ account, onClose }) {
                     port: formData.port,
                     username: formData.username || '',
                     password: formData.password || '',
+                    api_key: formData.api_key || '',
                     use_ssl: formData.use_ssl,
                     is_active: configs.length === 0,
                     connection_status: 'untested'
@@ -489,7 +510,7 @@ export default function RPCConfigManager({ account, onClose }) {
                 setTimeout(() => testConnection(newConfig), 500);
             }
 
-            setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', use_ssl: false });
+            setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', use_ssl: false });
             setEditingConfig(null);
             setShowAddForm(false);
             await loadConfigurations();
@@ -586,7 +607,7 @@ export default function RPCConfigManager({ account, onClose }) {
                         <Button
                             onClick={() => {
                                 setEditingConfig(null);
-                                setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', use_ssl: false });
+                                setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', use_ssl: false });
                                 setShowAddForm(!showAddForm);
                             }}
                             variant="outline"
@@ -802,11 +823,12 @@ rpcallowip=127.0.0.1`}
                             </h4>
                             
                             <Tabs value={formData.connection_type} onValueChange={(val) => setFormData({ ...formData, connection_type: val })}>
-                                <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+                                <TabsList className="grid w-full grid-cols-3 bg-slate-800">
                                     <TabsTrigger value="rpc">Full Node (RPC)</TabsTrigger>
                                     <TabsTrigger value="electrum">Electrum Server</TabsTrigger>
+                                    <TabsTrigger value="api">API Key</TabsTrigger>
                                 </TabsList>
-                                
+
                                 <TabsContent value="rpc" className="space-y-3 mt-3">
                                     <Alert className="bg-blue-500/10 border-blue-500/30">
                                         <AlertCircle className="h-4 w-4 text-blue-400" />
@@ -815,12 +837,21 @@ rpcallowip=127.0.0.1`}
                                         </AlertDescription>
                                     </Alert>
                                 </TabsContent>
-                                
+
                                 <TabsContent value="electrum" className="space-y-3 mt-3">
                                     <Alert className="bg-purple-500/10 border-purple-500/30">
                                         <AlertCircle className="h-4 w-4 text-purple-400" />
                                         <AlertDescription className="text-purple-300/80 text-xs">
                                             Connect to an Electrum server (lightweight, no full node required)
+                                        </AlertDescription>
+                                    </Alert>
+                                </TabsContent>
+
+                                <TabsContent value="api" className="space-y-3 mt-3">
+                                    <Alert className="bg-green-500/10 border-green-500/30">
+                                        <AlertCircle className="h-4 w-4 text-green-400" />
+                                        <AlertDescription className="text-green-300/80 text-xs">
+                                            Connect to ROD mainnet using your API key (simplest option)
                                         </AlertDescription>
                                     </Alert>
                                 </TabsContent>
@@ -831,7 +862,11 @@ rpcallowip=127.0.0.1`}
                                 <Input
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder={formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 'e.g., Local Node, Mining Pool'}
+                                    placeholder={
+                                        formData.connection_type === 'api' ? 'e.g., ROD Mainnet API' :
+                                        formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 
+                                        'e.g., Local Node, Mining Pool'
+                                    }
                                     className="bg-slate-900 border-slate-600"
                                 />
                             </div>
@@ -841,7 +876,11 @@ rpcallowip=127.0.0.1`}
                                     <Input
                                         value={formData.host}
                                         onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                                        placeholder={formData.connection_type === 'electrum' ? 'electrum.example.com' : 'localhost'}
+                                        placeholder={
+                                            formData.connection_type === 'api' ? 'api.rod-mainnet.com' :
+                                            formData.connection_type === 'electrum' ? 'electrum.example.com' : 
+                                            'localhost'
+                                        }
                                         className="bg-slate-900 border-slate-600"
                                     />
                                 </div>
@@ -850,19 +889,36 @@ rpcallowip=127.0.0.1`}
                                     <Input
                                         value={formData.port}
                                         onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                                        placeholder={formData.connection_type === 'electrum' ? '50002' : '9650'}
+                                        placeholder={
+                                            formData.connection_type === 'api' ? '443' :
+                                            formData.connection_type === 'electrum' ? '50002' : 
+                                            '9650'
+                                        }
                                         className="bg-slate-900 border-slate-600"
                                     />
                                 </div>
-                            </div>
+                                </div>
                             
-                            {formData.connection_type === 'electrum' && (
+                            {(formData.connection_type === 'electrum' || formData.connection_type === 'api') && (
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
                                     <Label className="text-slate-300">Use SSL/TLS</Label>
                                     <Switch
                                         checked={formData.use_ssl}
                                         onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked })}
                                     />
+                                </div>
+                            )}
+                            {formData.connection_type === 'api' && (
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">API Key</Label>
+                                    <Input
+                                        type="password"
+                                        value={formData.api_key}
+                                        onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                                        placeholder="Enter your ROD mainnet API key"
+                                        className="bg-slate-900 border-slate-600"
+                                    />
+                                    <p className="text-xs text-slate-500">Your API key will be encrypted and stored securely</p>
                                 </div>
                             )}
                             {formData.connection_type === 'rpc' && (
@@ -939,6 +995,11 @@ rpcallowip=127.0.0.1`}
                                                     {config.connection_type === 'electrum' && (
                                                         <Badge variant="outline" className="text-xs border-purple-500/50 text-purple-400">
                                                             Electrum
+                                                        </Badge>
+                                                    )}
+                                                    {config.connection_type === 'api' && (
+                                                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">
+                                                            API
                                                         </Badge>
                                                     )}
                                                     {config.is_active && (
