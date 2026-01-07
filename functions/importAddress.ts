@@ -72,6 +72,27 @@ Deno.serve(async (req) => {
             signal: AbortSignal.timeout(10000)
         });
 
+        // Check HTTP status first
+        if (!importResponse.ok) {
+            const errorText = await importResponse.text();
+            console.error('Import HTTP error:', importResponse.status, errorText);
+            
+            // If method not allowed, the node doesn't support importaddress
+            if (importResponse.status === 405) {
+                return Response.json({
+                    success: true,
+                    message: 'Address saved (node does not support watch-only addresses)',
+                    watchOnlyNotSupported: true,
+                    address
+                });
+            }
+            
+            return Response.json({
+                error: `HTTP ${importResponse.status}: ${errorText.slice(0, 200)}`,
+                success: false
+            }, { status: 400 });
+        }
+
         const importData = await importResponse.json();
 
         if (importData.error) {
