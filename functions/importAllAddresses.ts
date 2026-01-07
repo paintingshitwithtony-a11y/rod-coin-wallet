@@ -121,16 +121,30 @@ Deno.serve(async (req) => {
         }
 
         const successCount = results.filter(r => r.success).length;
+        const failedResults = results.filter(r => !r.success);
 
         // Log detailed results for debugging
-        console.log('Import results:', JSON.stringify(results, null, 2));
+        console.log('Import Summary:', {
+            total: addressesToImport.length,
+            imported: successCount,
+            failed: failedResults.length
+        });
+        
+        if (failedResults.length > 0) {
+            console.log('Failed imports:');
+            failedResults.forEach(r => {
+                console.log(`  ${r.address}: ${r.error}`);
+            });
+        }
         
         return Response.json({
-            success: true,
+            success: successCount > 0 || addressesToImport.length === 0,
             imported: successCount,
             total: addressesToImport.length,
             results,
-            errors: results.filter(r => !r.success).map(r => r.error)
+            message: successCount === 0 && failedResults.length > 0 
+                ? `Import failed: ${failedResults[0].error}` 
+                : null
         });
 
     } catch (error) {

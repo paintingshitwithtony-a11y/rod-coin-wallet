@@ -125,25 +125,13 @@ export default function WalletDashboard({ account, onLogout }) {
     const importAllAddresses = async () => {
         try {
             const response = await base44.functions.invoke('importAllAddresses', {});
-            console.log('Import response:', response.data);
             
-            if (response.data.success) {
-                if (response.data.imported > 0) {
-                    console.log(`✓ Imported ${response.data.imported}/${response.data.total} addresses into node`);
-                } else {
-                    // Log detailed results to see why import failed
-                    console.warn(`⚠ No addresses imported (0/${response.data.total})`);
-                    if (response.data.results) {
-                        response.data.results.forEach((result, idx) => {
-                            if (!result.success) {
-                                console.error(`Address ${idx + 1} failed:`, result.address, '→', result.error);
-                            }
-                        });
-                    }
-                    if (response.data.message) {
-                        console.log('Message:', response.data.message);
-                    }
-                }
+            if (response.data.imported > 0) {
+                toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
+            } else if (response.data.total === 0) {
+                // No addresses to import yet
+            } else if (response.data.message) {
+                toast.warning(response.data.message, { duration: 5000 });
             }
         } catch (err) {
             console.error('Import failed:', err);
