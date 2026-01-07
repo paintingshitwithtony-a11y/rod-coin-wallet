@@ -19,6 +19,7 @@ import AddressBook from './AddressBook';
 import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
+import TransactionHistory from './TransactionHistory';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -483,6 +484,9 @@ export default function WalletDashboard({ account, onLogout }) {
                     <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600">
                         Overview
                     </TabsTrigger>
+                    <TabsTrigger value="history" className="data-[state=active]:bg-purple-600">
+                        History
+                    </TabsTrigger>
                     <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
                         Generate
                     </TabsTrigger>
@@ -499,6 +503,10 @@ export default function WalletDashboard({ account, onLogout }) {
                         Contacts
                     </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="history" className="mt-6">
+                    <TransactionHistory account={account} />
+                </TabsContent>
 
                 <TabsContent value="overview" className="mt-6">
                     <div className="space-y-6">
