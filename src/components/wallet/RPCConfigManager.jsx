@@ -88,61 +88,32 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         setTesting(prev => ({ ...prev, [config.id]: true }));
         
         try {
-            const protocol = config.use_ssl ? 'https' : 'http';
-            const rpcUrl = config.port 
-                ? `${protocol}://${config.host}:${config.port}`
-                : `${protocol}://${config.host}`;
+            // First, set this config as active temporarily for testing
+            const originalActive = configs.find(c => c.is_active);
             
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-            
-            // Add authentication based on connection type
-            if (config.connection_type === 'curl') {
-                // Parse cURL command to extract headers and URL
-                const curlMatch = config.curl_command.match(/curl\s+(?:-X\s+POST\s+)?(?:-H\s+['"]([^'"]+)['"]\s+)*['"]?([^'"]+)['"]?/);
-                if (curlMatch) {
-                    const headerMatches = config.curl_command.matchAll(/-H\s+['"]([^'"]+)['"]/g);
-                    for (const match of headerMatches) {
-                        const [key, value] = match[1].split(':').map(s => s.trim());
-                        if (key && value) headers[key] = value;
-                    }
-                }
-            } else if (config.connection_type === 'api' && config.api_key) {
-                headers['X-API-Key'] = config.api_key;
-            } else if (config.connection_type === 'rpc' && config.username && config.password) {
-                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
-            }
-            
-            const response = await fetch(rpcUrl, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: 'test',
-                    method: 'getblockchaininfo',
-                    params: []
-                }),
-                signal: AbortSignal.timeout(5000)
+            // Temporarily activate the config we're testing
+            await base44.entities.RPCConfiguration.update(config.id, {
+                is_active: true
             });
-
-            const data = await response.json();
-
-            if (data.error) {
+            
+            // Use backend to test connection (avoids CORS issues)
+            const response = await base44.functions.invoke('checkRPCStatus', {});
+            
+            // Restore original active config
+            if (originalActive && originalActive.id !== config.id) {
                 await base44.entities.RPCConfiguration.update(config.id, {
-                    connection_status: 'error',
-                    last_connected: null
+                    is_active: false
                 });
-                toast.error(`Connection failed: ${data.error.message}`);
-            } else {
+                await base44.entities.RPCConfiguration.update(originalActive.id, {
+                    is_active: true
+                });
+            }
+
+            if (response.data.connected) {
                 await base44.entities.RPCConfiguration.update(config.id, {
                     connection_status: 'connected',
                     last_connected: new Date().toISOString(),
-                    node_info: {
-                        blocks: data.result.blocks,
-                        chain: data.result.chain,
-                        version: data.result.version
-                    }
+                    node_info: response.data.nodeInfo || {}
                 });
                 toast.success(`Connected to ${config.name}!`);
 
@@ -150,15 +121,21 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 if (onConnectionSuccess) {
                     onConnectionSuccess();
                 }
-                }
+            } else {
+                await base44.entities.RPCConfiguration.update(config.id, {
+                    connection_status: 'error',
+                    last_connected: null
+                });
+                toast.error(`Connection failed: ${response.data.error || 'Unknown error'}`);
+            }
 
-                await loadConfigurations();
+            await loadConfigurations();
         } catch (err) {
             await base44.entities.RPCConfiguration.update(config.id, {
                 connection_status: 'disconnected',
                 last_connected: null
             });
-            toast.error(`Connection timeout: ${config.name}`);
+            toast.error(`Connection failed: ${err.message}`);
             await loadConfigurations();
         } finally {
             setTesting(prev => ({ ...prev, [config.id]: false }));
@@ -496,50 +473,8 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
             return false;
         }
 
-        // Test the connection before saving
-        toast.info('Testing connection...');
-        
-        try {
-            const protocol = formData.use_ssl ? 'https' : 'http';
-            const rpcUrl = formData.port 
-                ? `${protocol}://${formData.host}:${formData.port}`
-                : `${protocol}://${formData.host}`;
-            
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-            
-            if (formData.connection_type === 'api' && formData.api_key) {
-                headers['X-API-Key'] = formData.api_key;
-            } else if (formData.connection_type === 'rpc' && formData.username && formData.password) {
-                headers['Authorization'] = `Basic ${btoa(`${formData.username}:${formData.password}`)}`;
-            }
-            
-            const response = await fetch(rpcUrl, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: 'validation',
-                    method: 'getblockchaininfo',
-                    params: []
-                }),
-                signal: AbortSignal.timeout(10000)
-            });
-
-            const data = await response.json();
-
-            if (data.error) {
-                toast.error(`Connection test failed: ${data.error.message}`);
-                return false;
-            }
-            
-            toast.success('Connection validated successfully!');
-            return true;
-        } catch (err) {
-            toast.error(`Connection test failed: ${err.message}`);
-            return false;
-        }
+        toast.success('Configuration validated - will test after saving');
+        return true;
     };
 
     const handleSaveConfig = async () => {
