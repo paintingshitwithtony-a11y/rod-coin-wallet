@@ -313,6 +313,24 @@ export default function WalletDashboard({ account, onLogout }) {
             imported: true
         };
         setAddresses(prev => [newAddress, ...prev]);
+        
+        // Save to account's additional_addresses
+        try {
+            const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (currentAccount.length > 0) {
+                const existingAddresses = currentAccount[0].additional_addresses || [];
+                await base44.entities.WalletAccount.update(account.id, {
+                    additional_addresses: [...existingAddresses, {
+                        address: importedWallet.address,
+                        label: importedWallet.label,
+                        created_at: importedWallet.created_at
+                    }]
+                });
+            }
+        } catch (err) {
+            console.error('Failed to save imported address:', err);
+        }
+        
         await fetchWalletData();
     };
 
