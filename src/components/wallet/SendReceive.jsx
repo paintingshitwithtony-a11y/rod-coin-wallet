@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
     ArrowUpRight, ArrowDownLeft, Copy, CheckCircle2, 
-    AlertCircle, QrCode, Send, Loader2, Wallet, BookUser
+    AlertCircle, QrCode, Send, Loader2, Wallet, BookUser, Hash
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { validateRODAddress } from './Base58';
@@ -34,6 +34,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [showMFA, setShowMFA] = useState(false);
     const [mfaVerified, setMfaVerified] = useState(false);
+    const [txidInput, setTxidInput] = useState('');
+    const [importingTxid, setImportingTxid] = useState(false);
 
     useEffect(() => {
         if (mode === 'send' && account) {
@@ -167,44 +169,35 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleReceive = async () => {
-        const amountNum = parseFloat(receiveAmount);
-        if (isNaN(amountNum) || amountNum <= 0) {
-            toast.error('Please enter a valid amount');
+    const handleImportByTxid = async () => {
+        if (!txidInput || txidInput.length < 64) {
+            toast.error('Please enter a valid transaction hash');
             return;
         }
 
-        setReceiving(true);
+        setImportingTxid(true);
         try {
-            await base44.entities.Transaction.create({
-                account_id: account.id,
-                type: 'receive',
-                amount: amountNum,
-                fee: 0,
-                address: selectedAddress || addresses[0]?.address,
-                memo: '',
-                confirmations: 6,
-                status: 'confirmed'
+            const response = await base44.functions.invoke('importDepositByHash', {
+                txid: txidInput
             });
-            
-            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
-            if (accounts.length > 0) {
-                const newBalance = (accounts[0].balance || 0) + amountNum;
-                await base44.entities.WalletAccount.update(account.id, {
-                    balance: newBalance
-                });
+
+            if (response.data.error) {
+                toast.error(response.data.error);
+                return;
             }
-            
-            toast.success(`Received ${amountNum} ROD!`);
-            setReceiveAmount('');
-            
+
+            toast.success(`Imported ${response.data.amount} ROD!`, {
+                description: `${response.data.confirmations} confirmations`
+            });
+            setTxidInput('');
+
             if (onTransactionComplete) {
                 onTransactionComplete();
             }
         } catch (error) {
-            toast.error('Failed to record transaction');
+            toast.error('Failed to import transaction');
         } finally {
-            setReceiving(false);
+            setImportingTxid(false);
         }
     };
 
@@ -509,6 +502,43 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             Only send ROD (SpaceXpanse ROD Coin) to this address. Sending other cryptocurrencies may result in permanent loss.
                         </AlertDescription>
                     </Alert>
+
+                    {/* Manual Import by Transaction Hash */}
+                    <div className="mt-6 p-4 rounded-lg bg-slate-800/30 border border-slate-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Hash className="w-5 h-5 text-purple-400" />
+                            <p className="text-sm font-medium text-white">Manual Import</p>
+                        </div>
+                        <p className="text-xs text-slate-400 mb-3">
+                            Already sent coins? Import a deposit manually using the transaction hash (TxID).
+                        </p>
+                        <div className="space-y-2">
+                            <Input
+                                value={txidInput}
+                                onChange={(e) => setTxidInput(e.target.value)}
+                                placeholder="Paste transaction hash (64 characters)"
+                                className="bg-slate-900/50 border-slate-600 text-white font-mono text-xs"
+                            />
+                            <Button
+                                onClick={handleImportByTxid}
+                                disabled={!txidInput || importingTxid}
+                                className="w-full bg-purple-600 hover:bg-purple-700"
+                                size="sm"
+                            >
+                                {importingTxid ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Importing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Hash className="w-4 h-4 mr-2" />
+                                        Import Deposit
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </motion.div>
