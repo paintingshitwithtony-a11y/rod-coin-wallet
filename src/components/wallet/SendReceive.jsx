@@ -351,15 +351,6 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             </div>
                         )}
 
-                        {account?.additional_addresses?.some(a => a.watch_only) && (
-                            <Alert className="bg-amber-500/10 border-amber-500/30">
-                                <AlertCircle className="h-4 w-4 text-amber-400" />
-                                <AlertDescription className="text-amber-300/80 text-xs">
-                                    Watch-only addresses cannot send transactions. Only full addresses can send ROD.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-
                         <Button
                             onClick={handleSendClick}
                             disabled={!addressValid || !amount || sending}

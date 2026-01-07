@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
@@ -21,7 +20,6 @@ import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
 import TransactionHistory from './TransactionHistory';
-import AddressManager from './AddressManager';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -53,7 +51,6 @@ export default function WalletDashboard({ account, onLogout }) {
     const [isReconnecting, setIsReconnecting] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
-    const [selectedWalletFilter, setSelectedWalletFilter] = useState('all');
 
     useEffect(() => {
         const checkMobile = () => {
@@ -65,81 +62,28 @@ export default function WalletDashboard({ account, onLogout }) {
     }, []);
 
     useEffect(() => {
-        // Load addresses from account and cleanup duplicates
-        const loadAddresses = async () => {
-            if (account) {
-                // Cleanup duplicates in database first
-                try {
-                    await base44.functions.invoke('cleanupDuplicateAddresses', {});
-                    
-                    // Reload account to get fresh data after cleanup
-                    const updatedAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
-                    const currentAccount = updatedAccounts.length > 0 ? updatedAccounts[0] : account;
+        // Load addresses from account
+        if (account) {
+            const mainAddress = {
+                id: 'main',
+                address: account.wallet_address,
+                label: 'Primary Address',
+                createdAt: account.created_date,
+                isValid: true
+            };
+            
+            const additionalAddresses = (account.additional_addresses || []).map((addr, i) => ({
+                id: `addr-${i}`,
+                address: addr.address,
+                label: addr.label || `Address ${i + 2}`,
+                createdAt: addr.created_at,
+                isValid: true,
+                importStatus: 'imported'
+            }));
 
-                    const mainAddress = {
-                        id: 'main',
-                        address: currentAccount.wallet_address,
-                        label: 'Primary Address',
-                        createdAt: currentAccount.created_date,
-                        isValid: true,
-                        importStatus: 'pending'
-                    };
-                    
-                    const additionalAddresses = (currentAccount.additional_addresses || [])
-                        .filter(addr => addr.address !== currentAccount.wallet_address)
-                        .map((addr, i) => ({
-                            id: `addr-${i}`,
-                            address: addr.address,
-                            label: addr.label || `Address ${i + 2}`,
-                            createdAt: addr.created_at,
-                            isValid: true,
-                            importStatus: 'pending'
-                        }));
-
-                    // Deduplicate by address to ensure no duplicates
-                    const allAddresses = [mainAddress, ...additionalAddresses];
-                    const uniqueAddresses = allAddresses.filter((addr, index, self) => 
-                        index === self.findIndex(a => a.address === addr.address)
-                    );
-                    
-                    setAddresses(uniqueAddresses);
-                    setBalance({ confirmed: currentAccount.balance || 0, unconfirmed: 0 });
-                } catch (err) {
-                    console.error('Cleanup failed:', err);
-                    // Fallback to original account data
-                    const mainAddress = {
-                        id: 'main',
-                        address: account.wallet_address,
-                        label: 'Primary Address',
-                        createdAt: account.created_date,
-                        isValid: true,
-                        importStatus: 'pending'
-                    };
-                    
-                    const additionalAddresses = (account.additional_addresses || [])
-                        .filter(addr => addr.address !== account.wallet_address)
-                        .map((addr, i) => ({
-                            id: `addr-${i}`,
-                            address: addr.address,
-                            label: addr.label || `Address ${i + 2}`,
-                            createdAt: addr.created_at,
-                            isValid: true,
-                            importStatus: 'pending'
-                        }));
-
-                    // Deduplicate by address to ensure no duplicates
-                    const allAddresses = [mainAddress, ...additionalAddresses];
-                    const uniqueAddresses = allAddresses.filter((addr, index, self) => 
-                        index === self.findIndex(a => a.address === addr.address)
-                    );
-                    
-                    setAddresses(uniqueAddresses);
-                    setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
-                }
+            setAddresses([mainAddress, ...additionalAddresses]);
+            setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
             }
-        };
-        
-        loadAddresses();
         importAllAddresses();
         fetchWalletData();
         fetchRODPrice();
@@ -212,11 +156,11 @@ export default function WalletDashboard({ account, onLogout }) {
         try {
             const response = await base44.functions.invoke('importAllAddresses', {});
 
-            if (response.data.imported > 0 || response.data.alreadyImported > 0) {
-                if (showToast && response.data.imported > 0) {
+            if (response.data.imported > 0) {
+                if (showToast) {
                     toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
                 }
-                // Update addresses with import status - mark as imported
+                // Update addresses with import status
                 setAddresses(prev => prev.map(addr => ({
                     ...addr,
                     importStatus: 'imported'
@@ -228,11 +172,6 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             console.error('Background import check failed:', err);
-            // Mark addresses as failed to import
-            setAddresses(prev => prev.map(addr => ({
-                ...addr,
-                importStatus: 'failed'
-            })));
         }
     };
 
@@ -359,32 +298,21 @@ export default function WalletDashboard({ account, onLogout }) {
     };
 
     const handleAddressGenerated = async (newAddress) => {
-        // Save to account's additional_addresses first
+        setAddresses(prev => [newAddress, ...prev]);
+        
+        // Save to account's additional_addresses
         try {
             const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
             if (currentAccount.length > 0) {
                 const existingAddresses = currentAccount[0].additional_addresses || [];
-                
-                // Check if address already exists or is the primary address
-                const alreadyExists = existingAddresses.some(addr => addr.address === newAddress.address);
-                const isPrimary = newAddress.address === currentAccount[0].wallet_address;
-                
-                if (!alreadyExists && !isPrimary) {
-                    await base44.entities.WalletAccount.update(account.id, {
-                        additional_addresses: [...existingAddresses, {
-                            address: newAddress.address,
-                            public_key_hash: newAddress.publicKeyHash,
-                            label: newAddress.label,
-                            created_at: newAddress.createdAt
-                        }]
-                    });
-                    
-                    // Add to state with pending import status
-                    setAddresses(prev => [{
-                        ...newAddress,
-                        importStatus: 'pending'
-                    }, ...prev]);
-                }
+                await base44.entities.WalletAccount.update(account.id, {
+                    additional_addresses: [...existingAddresses, {
+                        address: newAddress.address,
+                        public_key_hash: newAddress.publicKeyHash,
+                        label: newAddress.label,
+                        created_at: newAddress.createdAt
+                    }]
+                });
             }
         } catch (err) {
             console.error('Failed to save address:', err);
@@ -400,43 +328,28 @@ export default function WalletDashboard({ account, onLogout }) {
     };
 
     const handleWalletImported = async (importedWallet) => {
-        // Save to account's additional_addresses first
+        const newAddress = {
+            id: `imported-${Date.now()}`,
+            address: importedWallet.address,
+            label: importedWallet.label,
+            createdAt: importedWallet.created_at,
+            isValid: true,
+            imported: true
+        };
+        setAddresses(prev => [newAddress, ...prev]);
+        
+        // Save to account's additional_addresses
         try {
             const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
             if (currentAccount.length > 0) {
                 const existingAddresses = currentAccount[0].additional_addresses || [];
-                
-                // Check if address already exists or is the primary address
-                const alreadyExists = existingAddresses.some(addr => addr.address === importedWallet.address);
-                const isPrimary = importedWallet.address === currentAccount[0].wallet_address;
-                
-                if (!alreadyExists && !isPrimary) {
-                    await base44.entities.WalletAccount.update(account.id, {
-                        additional_addresses: [...existingAddresses, {
-                            address: importedWallet.address,
-                            label: importedWallet.label,
-                            created_at: importedWallet.created_at
-                        }]
-                    });
-                    
-                    // Add to state with pending import status
-                    const newAddress = {
-                        id: `imported-${Date.now()}`,
+                await base44.entities.WalletAccount.update(account.id, {
+                    additional_addresses: [...existingAddresses, {
                         address: importedWallet.address,
                         label: importedWallet.label,
-                        createdAt: importedWallet.created_at,
-                        isValid: true,
-                        importStatus: 'pending'
-                    };
-                    setAddresses(prev => [newAddress, ...prev]);
-                    
-                    // Try to import immediately
-                    setTimeout(() => {
-                        if (rpcConnected) {
-                            importAllAddresses(true);
-                        }
-                    }, 1000);
-                }
+                        created_at: importedWallet.created_at
+                    }]
+                });
             }
         } catch (err) {
             console.error('Failed to save imported address:', err);
@@ -497,24 +410,16 @@ export default function WalletDashboard({ account, onLogout }) {
                     isValid: true
                 };
                 
-                const additionalAddresses = (updatedAccounts[0].additional_addresses || [])
-                    .filter(addr => addr.address !== updatedAccounts[0].wallet_address)
-                    .map((addr, i) => ({
-                        id: `addr-${i}`,
-                        address: addr.address,
-                        label: addr.label || `Address ${i + 2}`,
-                        createdAt: addr.created_at,
-                        isValid: true,
-                        importStatus: 'imported'
-                    }));
+                const additionalAddresses = (updatedAccounts[0].additional_addresses || []).map((addr, i) => ({
+                    id: `addr-${i}`,
+                    address: addr.address,
+                    label: addr.label || `Address ${i + 2}`,
+                    createdAt: addr.created_at,
+                    isValid: true,
+                    importStatus: 'imported'
+                }));
 
-                // Deduplicate by address
-                const allAddresses = [mainAddress, ...additionalAddresses];
-                const uniqueAddresses = allAddresses.filter((addr, index, self) => 
-                    index === self.findIndex(a => a.address === addr.address)
-                );
-                
-                setAddresses(uniqueAddresses);
+                setAddresses([mainAddress, ...additionalAddresses]);
             }
         } catch (err) {
             console.error('Failed to update primary address:', err);
@@ -879,14 +784,9 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     <p className="text-sm font-medium text-white truncate">
                                                         {addr.label}
                                                     </p>
-                                                    {addr.importStatus === 'imported' && rpcConnected && (
+                                                    {addr.importStatus === 'imported' && (
                                                         <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
-                                                            ✓ RPC
-                                                        </Badge>
-                                                    )}
-                                                    {addr.importStatus === 'pending' && rpcConnected && (
-                                                        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50 text-xs">
-                                                            Pending
+                                                            Imported
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -942,25 +842,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                     View All
                                 </Button>
                             </CardHeader>
-                            <CardContent className="space-y-3">
-                                <Select value={selectedWalletFilter} onValueChange={setSelectedWalletFilter}>
-                                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-800 border-slate-700">
-                                        <SelectItem value="all">All Wallets</SelectItem>
-                                        {addresses.map((addr) => (
-                                            <SelectItem key={addr.id} value={addr.address}>
-                                                {addr.label || addr.address.slice(0, 12) + '...'}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                                {transactions
-                                    .filter(tx => selectedWalletFilter === 'all' || tx.address.includes(selectedWalletFilter.slice(0, 8)) || tx.address.includes(selectedWalletFilter.slice(-6)))
-                                    .slice(0, 10).map((tx, index) => (
+                            <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
+                                {transactions.slice(0, 10).map((tx, index) => (
                                     <motion.div
                                         key={tx.id}
                                         initial={{ opacity: 0, x: -20 }}
@@ -995,11 +878,10 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 {tx.confirmations} confirmations
                                             </p>
                                         </div>
-                                        </motion.div>
-                                        ))}
-                                        </div>
-                                        </CardContent>
-                                        </Card>
+                                    </motion.div>
+                                ))}
+                            </CardContent>
+                        </Card>
                         </div>
 
                         {/* Market Data Widget */}
@@ -1069,46 +951,6 @@ export default function WalletDashboard({ account, onLogout }) {
                 </TabsContent>
                 </Tabs>
 
-                {/* Address Management Section */}
-                {!isMobile && (
-                <div className="mt-6">
-                    <AddressManager 
-                        account={account}
-                        addresses={addresses}
-                        onUpdate={async () => {
-                            const updatedAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
-                            if (updatedAccounts.length > 0) {
-                                const mainAddress = {
-                                    id: 'main',
-                                    address: updatedAccounts[0].wallet_address,
-                                    label: 'Primary Address',
-                                    createdAt: updatedAccounts[0].created_date,
-                                    isValid: true,
-                                    importStatus: 'pending'
-                                };
-
-                                const additionalAddresses = (updatedAccounts[0].additional_addresses || [])
-                                    .filter(addr => addr.address !== updatedAccounts[0].wallet_address)
-                                    .map((addr, i) => ({
-                                        id: `addr-${i}`,
-                                        address: addr.address,
-                                        label: addr.label || `Address ${i + 2}`,
-                                        createdAt: addr.created_at,
-                                        isValid: true,
-                                        importStatus: 'pending'
-                                    }));
-
-                                setAddresses([mainAddress, ...additionalAddresses]);
-                            }
-                        }}
-                    />
-                </div>
-                )}
-
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                {/* Dummy tabs wrapper to fix nesting */}
-                </Tabs>
-
             {/* RPC Manager Modal */}
             {showRPCManager && (
                 <RPCConfigManager 
@@ -1144,17 +986,15 @@ export default function WalletDashboard({ account, onLogout }) {
                                     isValid: true
                                 };
 
-                                const additionalAddresses = (accs[0].additional_addresses || [])
-                                    .filter(addr => addr.address !== accs[0].wallet_address)
-                                    .map((addr, i) => ({
-                                        id: `addr-${i}`,
-                                        address: addr.address,
-                                        label: addr.label || `Address ${i + 2}`,
-                                        createdAt: addr.created_at,
-                                        isValid: true,
-                                        seed_phrase: addr.seed_phrase,
-                                        importStatus: 'imported'
-                                    }));
+                                const additionalAddresses = (accs[0].additional_addresses || []).map((addr, i) => ({
+                                    id: `addr-${i}`,
+                                    address: addr.address,
+                                    label: addr.label || `Address ${i + 2}`,
+                                    createdAt: addr.created_at,
+                                    isValid: true,
+                                    seed_phrase: addr.seed_phrase,
+                                    importStatus: 'imported'
+                                }));
 
                                 setAddresses([mainAddress, ...additionalAddresses]);
                             }
