@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 
                         // Update account balance
                         const currentBalance = account.balance || 0;
-                        await base44.entities.WalletAccount.update(account.id, {
+                        await base44.asServiceRole.entities.WalletAccount.update(account.id, {
                             balance: currentBalance + detail.amount
                         });
                     }
