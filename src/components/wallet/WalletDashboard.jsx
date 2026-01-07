@@ -315,9 +315,11 @@ export default function WalletDashboard({ account, onLogout }) {
             if (currentAccount.length > 0) {
                 const existingAddresses = currentAccount[0].additional_addresses || [];
                 
-                // Check if address already exists to prevent duplicates
+                // Check if address already exists or is the primary address
                 const alreadyExists = existingAddresses.some(addr => addr.address === newAddress.address);
-                if (!alreadyExists) {
+                const isPrimary = newAddress.address === currentAccount[0].wallet_address;
+                
+                if (!alreadyExists && !isPrimary) {
                     await base44.entities.WalletAccount.update(account.id, {
                         additional_addresses: [...existingAddresses, {
                             address: newAddress.address,
@@ -354,9 +356,11 @@ export default function WalletDashboard({ account, onLogout }) {
             if (currentAccount.length > 0) {
                 const existingAddresses = currentAccount[0].additional_addresses || [];
                 
-                // Check if address already exists to prevent duplicates
+                // Check if address already exists or is the primary address
                 const alreadyExists = existingAddresses.some(addr => addr.address === importedWallet.address);
-                if (!alreadyExists) {
+                const isPrimary = importedWallet.address === currentAccount[0].wallet_address;
+                
+                if (!alreadyExists && !isPrimary) {
                     await base44.entities.WalletAccount.update(account.id, {
                         additional_addresses: [...existingAddresses, {
                             address: importedWallet.address,
