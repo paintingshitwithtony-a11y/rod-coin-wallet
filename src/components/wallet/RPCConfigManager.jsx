@@ -876,7 +876,7 @@ rpcallowip=127.0.0.1`}
                                     <Alert className="bg-green-500/10 border-green-500/30">
                                         <AlertCircle className="h-4 w-4 text-green-400" />
                                         <AlertDescription className="text-green-300/80 text-xs">
-                                            Connect to ROD mainnet using your API key (simplest option)
+                                            Connect to ROD mainnet using your API key (simplest option). The connection will be routed through a secure proxy endpoint.
                                         </AlertDescription>
                                     </Alert>
                                 </TabsContent>
@@ -956,17 +956,25 @@ rpcallowip=127.0.0.1`}
                                 </div>
                             )}
                             {formData.connection_type === 'api' && (
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">API Key</Label>
-                                    <Input
-                                        type="password"
-                                        value={formData.api_key}
-                                        onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                                        placeholder="Enter your ROD mainnet API key"
-                                        className="bg-slate-900 border-slate-600"
-                                    />
-                                    <p className="text-xs text-slate-500">Your API key will be encrypted and stored securely</p>
-                                </div>
+                                <>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300">API Key</Label>
+                                        <Input
+                                            type="password"
+                                            value={formData.api_key}
+                                            onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                                            placeholder="Enter your ROD mainnet API key"
+                                            className="bg-slate-900 border-slate-600"
+                                        />
+                                        <p className="text-xs text-slate-500">Your API key will be encrypted and stored securely</p>
+                                    </div>
+                                    <Alert className="bg-blue-500/10 border-blue-500/30">
+                                        <AlertCircle className="h-4 w-4 text-blue-400" />
+                                        <AlertDescription className="text-blue-300/80 text-xs">
+                                            Connections will use the secure proxy endpoint: <code className="text-amber-400">/functions/rpcProxy</code>
+                                        </AlertDescription>
+                                    </Alert>
+                                </>
                             )}
                             {formData.connection_type === 'rpc' && (
                                 <div className="grid grid-cols-2 gap-3">
