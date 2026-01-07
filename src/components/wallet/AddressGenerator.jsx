@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
     Plus, Copy, CheckCircle2, RefreshCw, QrCode, 
-    Shield, Key, Sparkles, Download
+    Shield, Key, Sparkles, Download, Clock, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateNewRODAddress, validateRODAddress, generatePrivateKey } from './Base58';
@@ -34,27 +34,42 @@ export default function AddressGenerator({ onAddressGenerated }) {
                 privateKey,
                 isValid: validation.valid,
                 createdAt: new Date().toISOString(),
-                label: `Address ${addresses.length + 1}`
+                label: `Address ${addresses.length + 1}`,
+                importStatus: 'pending'
             };
-            
+
             setAddresses(prev => [newAddress, ...prev]);
-            
+
             // Import address into ROD Core node so it can track transactions
             try {
-                await base44.functions.invoke('importAddress', {
+                const result = await base44.functions.invoke('importAddress', {
                     address,
                     label: newAddress.label
                 });
+
+                if (result.data.success) {
+                    newAddress.importStatus = 'imported';
+                    setAddresses(prev => prev.map(a => 
+                        a.address === address ? { ...a, importStatus: 'imported' } : a
+                    ));
+                    toast.success('Address generated and imported to RPC node');
+                } else {
+                    newAddress.importStatus = 'failed';
+                    setAddresses(prev => prev.map(a => 
+                        a.address === address ? { ...a, importStatus: 'failed' } : a
+                    ));
+                    toast.warning('Address generated but not imported to RPC', {
+                        description: 'Will auto-import when RPC is connected'
+                    });
+                }
             } catch (importError) {
-                // Silently fail - address is saved, will import when RPC is configured
-                console.log('Address will import when RPC is configured');
+                newAddress.importStatus = 'pending';
+                toast.info('Address generated - will import when RPC is available');
             }
-            
+
             if (onAddressGenerated) {
                 onAddressGenerated(newAddress);
             }
-            
-            toast.success('New ROD address generated!');
         } catch (error) {
             toast.error('Failed to generate address');
         } finally {

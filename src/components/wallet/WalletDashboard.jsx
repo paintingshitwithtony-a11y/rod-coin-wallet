@@ -66,7 +66,8 @@ export default function WalletDashboard({ account, onLogout }) {
                 address: addr.address,
                 label: addr.label || `Address ${i + 2}`,
                 createdAt: addr.created_at,
-                isValid: true
+                isValid: true,
+                importStatus: 'imported'
             }));
 
             setAddresses([mainAddress, ...additionalAddresses]);
@@ -79,12 +80,16 @@ export default function WalletDashboard({ account, onLogout }) {
         checkForDeposits();
         checkRPCStatus();
 
-        // Auto-refresh balance and check deposits every 30 seconds
+        // Auto-refresh balance, check deposits, and import addresses every 30 seconds
         const interval = setInterval(() => {
             fetchWalletData();
             fetchNetworkHashrate();
             checkForDeposits();
             checkRPCStatus();
+            // Periodically attempt to import any pending addresses
+            if (rpcConnected) {
+                importAllAddresses();
+            }
         }, 30000);
 
         return () => clearInterval(interval);
@@ -123,19 +128,26 @@ export default function WalletDashboard({ account, onLogout }) {
         }
     };
 
-    const importAllAddresses = async () => {
+    const importAllAddresses = async (showToast = false) => {
         try {
             const response = await base44.functions.invoke('importAllAddresses', {});
-            
+
             if (response.data.imported > 0) {
-                toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
+                if (showToast) {
+                    toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
+                }
+                // Update addresses with import status
+                setAddresses(prev => prev.map(addr => ({
+                    ...addr,
+                    importStatus: 'imported'
+                })));
             } else if (response.data.total === 0) {
                 // No addresses to import yet
-            } else if (response.data.message) {
+            } else if (response.data.message && showToast) {
                 toast.warning(response.data.message, { duration: 5000 });
             }
         } catch (err) {
-            console.error('Import failed:', err);
+            console.error('Background import check failed:', err);
         }
     };
 
@@ -207,11 +219,14 @@ export default function WalletDashboard({ account, onLogout }) {
 
     const handleManualRefresh = async () => {
         setLoading(true);
-        toast.info('Checking for deposits...');
+        toast.info('Refreshing wallet...');
         try {
             await checkForDeposits();
             await fetchWalletData();
             await checkRPCStatus();
+            if (rpcConnected) {
+                await importAllAddresses(true);
+            }
             toast.success('Wallet refreshed');
         } catch (err) {
             console.error('Refresh failed:', err);
@@ -260,6 +275,12 @@ export default function WalletDashboard({ account, onLogout }) {
 
     const handleAddressGenerated = (newAddress) => {
         setAddresses(prev => [newAddress, ...prev]);
+        // Trigger import check after a short delay
+        setTimeout(() => {
+            if (rpcConnected) {
+                importAllAddresses();
+            }
+        }, 2000);
     };
 
     const handleWalletImported = async (importedWallet) => {
@@ -738,7 +759,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                     label: addr.label || `Address ${i + 2}`,
                                     createdAt: addr.created_at,
                                     isValid: true,
-                                    seed_phrase: addr.seed_phrase
+                                    seed_phrase: addr.seed_phrase,
+                                    importStatus: 'imported'
                                 }));
 
                                 setAddresses([mainAddress, ...additionalAddresses]);
