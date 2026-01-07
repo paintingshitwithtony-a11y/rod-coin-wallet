@@ -68,6 +68,7 @@ export default function WalletDashboard({ account, onLogout }) {
             setAddresses([mainAddress, ...additionalAddresses]);
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
             }
+        importAllAddresses();
         fetchWalletData();
         fetchRODPrice();
         fetchNetworkHashrate();
@@ -115,6 +116,17 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             // Silently fail - explorer may be unreachable
+        }
+    };
+
+    const importAllAddresses = async () => {
+        try {
+            const response = await base44.functions.invoke('importAllAddresses', {});
+            if (response.data.success) {
+                console.log(`Imported ${response.data.imported}/${response.data.total} addresses into node`);
+            }
+        } catch (err) {
+            console.error('Failed to import addresses:', err);
         }
     };
 
