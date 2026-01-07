@@ -57,6 +57,9 @@ export default function AuthScreen({ onAuth }) {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [generatedAddress, setGeneratedAddress] = useState(null);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetSent, setResetSent] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -232,6 +235,40 @@ export default function AuthScreen({ onAuth }) {
         }
     };
 
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            const accounts = await base44.entities.WalletAccount.filter({ 
+                email: resetEmail.toLowerCase() 
+            });
+
+            if (accounts.length === 0) {
+                setError('No account found with this email');
+                setLoading(false);
+                return;
+            }
+
+            // Send reset instructions via email
+            const response = await base44.functions.invoke('sendPasswordReset', {
+                email: resetEmail.toLowerCase()
+            });
+
+            if (response.data.success) {
+                setResetSent(true);
+                toast.success('Password reset instructions sent to your email');
+            } else {
+                setError('Failed to send reset email. Please try again.');
+            }
+        } catch (err) {
+            setError('Failed to process request. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -348,8 +385,17 @@ export default function AuthScreen({ onAuth }) {
                                             </>
                                         )}
                                     </Button>
-                                </form>
-                            </TabsContent>
+
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        onClick={() => setShowForgotPassword(true)}
+                                        className="w-full text-purple-400 hover:text-purple-300"
+                                    >
+                                        Forgot Password?
+                                    </Button>
+                                    </form>
+                                    </TabsContent>
                             
                             <TabsContent value="signup" className="space-y-4 mt-4">
                                 <form onSubmit={handleSignup} className="space-y-4">
@@ -440,6 +486,117 @@ export default function AuthScreen({ onAuth }) {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Forgot Password Modal */}
+            {showForgotPassword && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => {
+                        setShowForgotPassword(false);
+                        setResetSent(false);
+                        setResetEmail('');
+                        setError('');
+                    }}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-md"
+                    >
+                        <Card className="bg-slate-900/95 border-purple-500/30">
+                            <CardHeader>
+                                <CardTitle className="text-white">
+                                    {resetSent ? 'Check Your Email' : 'Reset Password'}
+                                </CardTitle>
+                                <CardDescription className="text-slate-400">
+                                    {resetSent 
+                                        ? 'Password reset instructions have been sent'
+                                        : 'Enter your email to receive reset instructions'}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {resetSent ? (
+                                    <div className="space-y-4">
+                                        <Alert className="bg-green-500/10 border-green-500/30">
+                                            <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                            <AlertDescription className="text-green-300/90">
+                                                We've sent password reset instructions to <strong>{resetEmail}</strong>. 
+                                                Please check your inbox and follow the instructions.
+                                            </AlertDescription>
+                                        </Alert>
+                                        <Button
+                                            onClick={() => {
+                                                setShowForgotPassword(false);
+                                                setResetSent(false);
+                                                setResetEmail('');
+                                            }}
+                                            className="w-full bg-purple-600 hover:bg-purple-700"
+                                        >
+                                            Close
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300">Email Address</Label>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                <Input
+                                                    type="email"
+                                                    value={resetEmail}
+                                                    onChange={(e) => setResetEmail(e.target.value)}
+                                                    placeholder="your@email.com"
+                                                    className="bg-slate-800/50 border-slate-700 text-white pl-10"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {error && (
+                                            <Alert variant="destructive" className="bg-red-900/30 border-red-500/50">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>{error}</AlertDescription>
+                                            </Alert>
+                                        )}
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setShowForgotPassword(false);
+                                                    setResetEmail('');
+                                                    setError('');
+                                                }}
+                                                className="flex-1 border-slate-700 text-slate-300"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                type="submit"
+                                                disabled={loading}
+                                                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                                            >
+                                                {loading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Sending...
+                                                    </>
+                                                ) : (
+                                                    'Send Reset Link'
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                </motion.div>
+            )}
         </motion.div>
     );
 }
