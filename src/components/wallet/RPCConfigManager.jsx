@@ -88,69 +88,45 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         setTesting(prev => ({ ...prev, [config.id]: true }));
         
         try {
-            const protocol = config.use_ssl ? 'https' : 'http';
-            const rpcUrl = config.port 
-                ? `${protocol}://${config.host}:${config.port}`
-                : `${protocol}://${config.host}`;
+            // Temporarily activate this config for testing
+            const originalActive = configs.find(c => c.is_active);
+            await base44.entities.RPCConfiguration.update(config.id, { is_active: true });
             
-            const headers = {
-                'Content-Type': 'application/json'
-            };
+            // Use backend proxy to test (avoids CORS)
+            const response = await base44.functions.invoke('checkRPCStatus', {});
             
-            if (config.connection_type === 'rpc' && config.username && config.password) {
-                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+            // Restore original active config
+            if (originalActive && originalActive.id !== config.id) {
+                await base44.entities.RPCConfiguration.update(config.id, { is_active: false });
+                await base44.entities.RPCConfiguration.update(originalActive.id, { is_active: true });
             }
-            
-            const response = await fetch(rpcUrl, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: 'test',
-                    method: 'getblockchaininfo',
-                    params: []
-                }),
-                signal: AbortSignal.timeout(5000)
-            });
 
-            const data = await response.json();
-
-            if (data.error) {
-                await base44.entities.RPCConfiguration.update(config.id, {
-                    connection_status: 'error',
-                    last_connected: null
-                });
-                toast.error(`Connection failed: ${data.error.message}`);
-            } else {
+            if (response.data.connected) {
                 await base44.entities.RPCConfiguration.update(config.id, {
                     connection_status: 'connected',
                     last_connected: new Date().toISOString(),
-                    node_info: {
-                        blocks: data.result.blocks,
-                        chain: data.result.chain,
-                        version: data.result.version
-                    }
+                    node_info: response.data.nodeInfo || {}
                 });
                 toast.success(`Connected to ${config.name}!`);
 
                 if (onConnectionSuccess) {
                     onConnectionSuccess();
                 }
+            } else {
+                await base44.entities.RPCConfiguration.update(config.id, {
+                    connection_status: 'error',
+                    last_connected: null
+                });
+                toast.error(`Connection failed: ${response.data.error || 'Unknown error'}`);
             }
 
             await loadConfigurations();
         } catch (err) {
-            const isCORS = err.message.includes('Failed to fetch') || err.name === 'TypeError';
             await base44.entities.RPCConfiguration.update(config.id, {
                 connection_status: 'error',
                 last_connected: null
             });
-            
-            if (isCORS) {
-                toast.error('CORS blocked - add to rod.conf: rpcallowip=127.0.0.1 and restart ROD Core');
-            } else {
-                toast.error(`Connection failed: ${err.message}`);
-            }
+            toast.error(`Test failed: ${err.message}`);
             await loadConfigurations();
         } finally {
             setTesting(prev => ({ ...prev, [config.id]: false }));
