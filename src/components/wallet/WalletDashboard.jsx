@@ -582,9 +582,16 @@ export default function WalletDashboard({ account, onLogout }) {
                                             className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors"
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-white truncate">
-                                                    {addr.label}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-medium text-white truncate">
+                                                        {addr.label}
+                                                    </p>
+                                                    {addr.importStatus === 'imported' && (
+                                                        <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
+                                                            Imported
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-amber-400/80 font-mono truncate">
                                                     {addr.address}
                                                 </p>
