@@ -587,13 +587,23 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         <Dialog open onOpenChange={onClose}>
             <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-5xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-xl">
-                        <Server className="w-6 h-6 text-purple-400" />
-                        RPC Node Management
-                    </DialogTitle>
-                    <DialogDescription className="text-slate-400">
-                        Manage multiple ROD Core RPC connections
-                    </DialogDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <DialogTitle className="flex items-center gap-2 text-xl">
+                                <Server className="w-6 h-6 text-purple-400" />
+                                RPC Node Management
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400">
+                                Manage multiple ROD Core RPC connections
+                            </DialogDescription>
+                        </div>
+                        {configs.some(c => c.connection_status === 'connected') && (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                <span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />
+                                Connected
+                            </Badge>
+                        )}
+                    </div>
                 </DialogHeader>
 
                 <div className="space-y-4">
