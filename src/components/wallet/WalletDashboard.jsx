@@ -69,7 +69,8 @@ export default function WalletDashboard({ account, onLogout }) {
                 address: account.wallet_address,
                 label: 'Primary Address',
                 createdAt: account.created_date,
-                isValid: true
+                isValid: true,
+                importStatus: 'pending'
             };
             
             const additionalAddresses = (account.additional_addresses || []).map((addr, i) => ({
@@ -78,7 +79,7 @@ export default function WalletDashboard({ account, onLogout }) {
                 label: addr.label || `Address ${i + 2}`,
                 createdAt: addr.created_at,
                 isValid: true,
-                importStatus: 'imported'
+                importStatus: 'pending'
             }));
 
             setAddresses([mainAddress, ...additionalAddresses]);
@@ -156,11 +157,11 @@ export default function WalletDashboard({ account, onLogout }) {
         try {
             const response = await base44.functions.invoke('importAllAddresses', {});
 
-            if (response.data.imported > 0) {
-                if (showToast) {
+            if (response.data.imported > 0 || response.data.alreadyImported > 0) {
+                if (showToast && response.data.imported > 0) {
                     toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
                 }
-                // Update addresses with import status
+                // Update addresses with import status - mark as imported
                 setAddresses(prev => prev.map(addr => ({
                     ...addr,
                     importStatus: 'imported'
@@ -172,6 +173,11 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             console.error('Background import check failed:', err);
+            // Mark addresses as failed to import
+            setAddresses(prev => prev.map(addr => ({
+                ...addr,
+                importStatus: 'failed'
+            })));
         }
     };
 
@@ -298,21 +304,30 @@ export default function WalletDashboard({ account, onLogout }) {
     };
 
     const handleAddressGenerated = async (newAddress) => {
-        setAddresses(prev => [newAddress, ...prev]);
-        
-        // Save to account's additional_addresses
+        // Save to account's additional_addresses first
         try {
             const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
             if (currentAccount.length > 0) {
                 const existingAddresses = currentAccount[0].additional_addresses || [];
-                await base44.entities.WalletAccount.update(account.id, {
-                    additional_addresses: [...existingAddresses, {
-                        address: newAddress.address,
-                        public_key_hash: newAddress.publicKeyHash,
-                        label: newAddress.label,
-                        created_at: newAddress.createdAt
-                    }]
-                });
+                
+                // Check if address already exists to prevent duplicates
+                const alreadyExists = existingAddresses.some(addr => addr.address === newAddress.address);
+                if (!alreadyExists) {
+                    await base44.entities.WalletAccount.update(account.id, {
+                        additional_addresses: [...existingAddresses, {
+                            address: newAddress.address,
+                            public_key_hash: newAddress.publicKeyHash,
+                            label: newAddress.label,
+                            created_at: newAddress.createdAt
+                        }]
+                    });
+                    
+                    // Add to state with pending import status
+                    setAddresses(prev => [{
+                        ...newAddress,
+                        importStatus: 'pending'
+                    }, ...prev]);
+                }
             }
         } catch (err) {
             console.error('Failed to save address:', err);
@@ -328,28 +343,41 @@ export default function WalletDashboard({ account, onLogout }) {
     };
 
     const handleWalletImported = async (importedWallet) => {
-        const newAddress = {
-            id: `imported-${Date.now()}`,
-            address: importedWallet.address,
-            label: importedWallet.label,
-            createdAt: importedWallet.created_at,
-            isValid: true,
-            imported: true
-        };
-        setAddresses(prev => [newAddress, ...prev]);
-        
-        // Save to account's additional_addresses
+        // Save to account's additional_addresses first
         try {
             const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
             if (currentAccount.length > 0) {
                 const existingAddresses = currentAccount[0].additional_addresses || [];
-                await base44.entities.WalletAccount.update(account.id, {
-                    additional_addresses: [...existingAddresses, {
+                
+                // Check if address already exists to prevent duplicates
+                const alreadyExists = existingAddresses.some(addr => addr.address === importedWallet.address);
+                if (!alreadyExists) {
+                    await base44.entities.WalletAccount.update(account.id, {
+                        additional_addresses: [...existingAddresses, {
+                            address: importedWallet.address,
+                            label: importedWallet.label,
+                            created_at: importedWallet.created_at
+                        }]
+                    });
+                    
+                    // Add to state with pending import status
+                    const newAddress = {
+                        id: `imported-${Date.now()}`,
                         address: importedWallet.address,
                         label: importedWallet.label,
-                        created_at: importedWallet.created_at
-                    }]
-                });
+                        createdAt: importedWallet.created_at,
+                        isValid: true,
+                        importStatus: 'pending'
+                    };
+                    setAddresses(prev => [newAddress, ...prev]);
+                    
+                    // Try to import immediately
+                    setTimeout(() => {
+                        if (rpcConnected) {
+                            importAllAddresses(true);
+                        }
+                    }, 1000);
+                }
             }
         } catch (err) {
             console.error('Failed to save imported address:', err);
@@ -784,9 +812,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     <p className="text-sm font-medium text-white truncate">
                                                         {addr.label}
                                                     </p>
-                                                    {addr.importStatus === 'imported' && (
+                                                    {addr.importStatus === 'imported' && rpcConnected && (
                                                         <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
-                                                            Imported
+                                                            ✓ RPC
+                                                        </Badge>
+                                                    )}
+                                                    {addr.importStatus === 'pending' && rpcConnected && (
+                                                        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50 text-xs">
+                                                            Pending
                                                         </Badge>
                                                     )}
                                                 </div>
