@@ -147,6 +147,22 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             console.error('Failed to check deposits:', err);
+            toast.error('Failed to check for deposits');
+        }
+    };
+
+    const handleManualRefresh = async () => {
+        setLoading(true);
+        toast.info('Checking for deposits...');
+        try {
+            await checkForDeposits();
+            await fetchWalletData();
+            await checkRPCStatus();
+            toast.success('Wallet refreshed');
+        } catch (err) {
+            console.error('Refresh failed:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -257,9 +273,10 @@ export default function WalletDashboard({ account, onLogout }) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={fetchWalletData}
+                        onClick={handleManualRefresh}
                         disabled={loading}
                         className="text-slate-400 hover:text-white"
+                        title="Check for deposits and refresh"
                     >
                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
