@@ -20,6 +20,7 @@ import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
 import TransactionHistory from './TransactionHistory';
+import AddressManager from './AddressManager';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -982,6 +983,44 @@ export default function WalletDashboard({ account, onLogout }) {
                         }}
                     />
                 </TabsContent>
+                </Tabs>
+
+                {/* Address Management Section */}
+                {!isMobile && (
+                <div className="mt-6">
+                    <AddressManager 
+                        account={account}
+                        addresses={addresses}
+                        onUpdate={async () => {
+                            const updatedAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
+                            if (updatedAccounts.length > 0) {
+                                const mainAddress = {
+                                    id: 'main',
+                                    address: updatedAccounts[0].wallet_address,
+                                    label: 'Primary Address',
+                                    createdAt: updatedAccounts[0].created_date,
+                                    isValid: true,
+                                    importStatus: 'pending'
+                                };
+
+                                const additionalAddresses = (updatedAccounts[0].additional_addresses || []).map((addr, i) => ({
+                                    id: `addr-${i}`,
+                                    address: addr.address,
+                                    label: addr.label || `Address ${i + 2}`,
+                                    createdAt: addr.created_at,
+                                    isValid: true,
+                                    importStatus: 'pending'
+                                }));
+
+                                setAddresses([mainAddress, ...additionalAddresses]);
+                            }
+                        }}
+                    />
+                </div>
+                )}
+
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                {/* Dummy tabs wrapper to fix nesting */}
                 </Tabs>
 
             {/* RPC Manager Modal */}
