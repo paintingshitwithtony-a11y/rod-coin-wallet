@@ -76,14 +76,16 @@ export default function WalletDashboard({ account, onLogout }) {
                 importStatus: 'pending'
             };
             
-            const additionalAddresses = (account.additional_addresses || []).map((addr, i) => ({
-                id: `addr-${i}`,
-                address: addr.address,
-                label: addr.label || `Address ${i + 2}`,
-                createdAt: addr.created_at,
-                isValid: true,
-                importStatus: 'pending'
-            }));
+            const additionalAddresses = (account.additional_addresses || [])
+                .filter(addr => addr.address !== account.wallet_address)
+                .map((addr, i) => ({
+                    id: `addr-${i}`,
+                    address: addr.address,
+                    label: addr.label || `Address ${i + 2}`,
+                    createdAt: addr.created_at,
+                    isValid: true,
+                    importStatus: 'pending'
+                }));
 
             setAddresses([mainAddress, ...additionalAddresses]);
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
@@ -441,14 +443,16 @@ export default function WalletDashboard({ account, onLogout }) {
                     isValid: true
                 };
                 
-                const additionalAddresses = (updatedAccounts[0].additional_addresses || []).map((addr, i) => ({
-                    id: `addr-${i}`,
-                    address: addr.address,
-                    label: addr.label || `Address ${i + 2}`,
-                    createdAt: addr.created_at,
-                    isValid: true,
-                    importStatus: 'imported'
-                }));
+                const additionalAddresses = (updatedAccounts[0].additional_addresses || [])
+                    .filter(addr => addr.address !== updatedAccounts[0].wallet_address)
+                    .map((addr, i) => ({
+                        id: `addr-${i}`,
+                        address: addr.address,
+                        label: addr.label || `Address ${i + 2}`,
+                        createdAt: addr.created_at,
+                        isValid: true,
+                        importStatus: 'imported'
+                    }));
 
                 setAddresses([mainAddress, ...additionalAddresses]);
             }
@@ -1023,14 +1027,16 @@ export default function WalletDashboard({ account, onLogout }) {
                                     importStatus: 'pending'
                                 };
 
-                                const additionalAddresses = (updatedAccounts[0].additional_addresses || []).map((addr, i) => ({
-                                    id: `addr-${i}`,
-                                    address: addr.address,
-                                    label: addr.label || `Address ${i + 2}`,
-                                    createdAt: addr.created_at,
-                                    isValid: true,
-                                    importStatus: 'pending'
-                                }));
+                                const additionalAddresses = (updatedAccounts[0].additional_addresses || [])
+                                    .filter(addr => addr.address !== updatedAccounts[0].wallet_address)
+                                    .map((addr, i) => ({
+                                        id: `addr-${i}`,
+                                        address: addr.address,
+                                        label: addr.label || `Address ${i + 2}`,
+                                        createdAt: addr.created_at,
+                                        isValid: true,
+                                        importStatus: 'pending'
+                                    }));
 
                                 setAddresses([mainAddress, ...additionalAddresses]);
                             }
@@ -1078,15 +1084,17 @@ export default function WalletDashboard({ account, onLogout }) {
                                     isValid: true
                                 };
 
-                                const additionalAddresses = (accs[0].additional_addresses || []).map((addr, i) => ({
-                                    id: `addr-${i}`,
-                                    address: addr.address,
-                                    label: addr.label || `Address ${i + 2}`,
-                                    createdAt: addr.created_at,
-                                    isValid: true,
-                                    seed_phrase: addr.seed_phrase,
-                                    importStatus: 'imported'
-                                }));
+                                const additionalAddresses = (accs[0].additional_addresses || [])
+                                    .filter(addr => addr.address !== accs[0].wallet_address)
+                                    .map((addr, i) => ({
+                                        id: `addr-${i}`,
+                                        address: addr.address,
+                                        label: addr.label || `Address ${i + 2}`,
+                                        createdAt: addr.created_at,
+                                        isValid: true,
+                                        seed_phrase: addr.seed_phrase,
+                                        importStatus: 'imported'
+                                    }));
 
                                 setAddresses([mainAddress, ...additionalAddresses]);
                             }
