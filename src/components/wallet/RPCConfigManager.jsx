@@ -46,6 +46,11 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     const [showScanConfig, setShowScanConfig] = useState(false);
     const [showEndpointInfo, setShowEndpointInfo] = useState(false);
     const [showFreeRPCGuide, setShowFreeRPCGuide] = useState(false);
+    const [showPortChecker, setShowPortChecker] = useState(false);
+    const [portCheckHost, setPortCheckHost] = useState('localhost');
+    const [portCheckPorts, setPortCheckPorts] = useState('9650, 8332, 8333, 18332, 18333');
+    const [portCheckResults, setPortCheckResults] = useState([]);
+    const [checkingPorts, setCheckingPorts] = useState(false);
     const [scanConfig, setScanConfig] = useState({
         ports: '9650, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
@@ -685,7 +690,141 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             <Server className="w-4 h-4 mr-2" />
                             FreeRPC.com Setup
                         </Button>
+                        <Button
+                            onClick={() => setShowPortChecker(!showPortChecker)}
+                            variant="outline"
+                            className="border-amber-600 text-amber-400 hover:bg-amber-600/10"
+                        >
+                            <Activity className="w-4 h-4 mr-2" />
+                            Port Checker
+                        </Button>
                     </div>
+
+                    {/* Port Checker */}
+                    {showPortChecker && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-gradient-to-br from-amber-900/20 to-orange-900/20 border border-amber-500/30 space-y-4"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Activity className="w-5 h-5 text-amber-400" />
+                                <h4 className="text-white font-medium">Port Checker</h4>
+                            </div>
+
+                            <Alert className="bg-amber-500/10 border-amber-500/30">
+                                <AlertCircle className="h-4 w-4 text-amber-400" />
+                                <AlertDescription className="text-amber-300/80 text-sm">
+                                    Check if specific ports are open on your computer. Useful for debugging RPC connection issues.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-3">
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">Host</Label>
+                                    <Input
+                                        value={portCheckHost}
+                                        onChange={(e) => setPortCheckHost(e.target.value)}
+                                        placeholder="localhost or 127.0.0.1"
+                                        className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">Ports to Check (comma-separated)</Label>
+                                    <Input
+                                        value={portCheckPorts}
+                                        onChange={(e) => setPortCheckPorts(e.target.value)}
+                                        placeholder="9650, 8332, 8333"
+                                        className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                    />
+                                    <p className="text-xs text-slate-500">Common ROD ports: 9650 (mainnet), 8332/8333 (Bitcoin-style), 18332/18333 (testnet)</p>
+                                </div>
+
+                                <Button
+                                    onClick={async () => {
+                                        setCheckingPorts(true);
+                                        setPortCheckResults([]);
+                                        const ports = portCheckPorts.split(',').map(p => p.trim()).filter(p => p);
+                                        const results = [];
+
+                                        for (const port of ports) {
+                                            try {
+                                                const response = await base44.functions.invoke('checkPort', {
+                                                    host: portCheckHost,
+                                                    port
+                                                });
+                                                results.push(response.data);
+                                            } catch (err) {
+                                                results.push({
+                                                    open: false,
+                                                    host: portCheckHost,
+                                                    port,
+                                                    message: 'Failed to check port'
+                                                });
+                                            }
+                                        }
+
+                                        setPortCheckResults(results);
+                                        setCheckingPorts(false);
+                                    }}
+                                    disabled={checkingPorts}
+                                    className="w-full bg-amber-600 hover:bg-amber-700"
+                                >
+                                    {checkingPorts ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Checking Ports...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Activity className="w-4 h-4 mr-2" />
+                                            Check Ports
+                                        </>
+                                    )}
+                                </Button>
+
+                                {portCheckResults.length > 0 && (
+                                    <div className="space-y-2 mt-4">
+                                        <Label className="text-slate-300">Results:</Label>
+                                        <div className="space-y-2">
+                                            {portCheckResults.map((result, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className={`p-3 rounded-lg border ${
+                                                        result.open
+                                                            ? 'bg-green-500/10 border-green-500/30'
+                                                            : 'bg-red-500/10 border-red-500/30'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            {result.open ? (
+                                                                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                                            ) : (
+                                                                <AlertCircle className="w-5 h-5 text-red-400" />
+                                                            )}
+                                                            <div>
+                                                                <p className="text-white font-mono text-sm">
+                                                                    {result.host}:{result.port}
+                                                                </p>
+                                                                <p className={`text-xs ${result.open ? 'text-green-400' : 'text-red-400'}`}>
+                                                                    {result.message}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <Badge className={result.open ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-red-500/20 text-red-400 border-red-500/50'}>
+                                                            {result.open ? 'OPEN' : 'CLOSED'}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Scan configuration */}
                     {showScanConfig && (
