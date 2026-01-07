@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson, Link
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson, Link, Settings
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
