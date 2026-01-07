@@ -9,8 +9,12 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get user's wallet account
-        const accounts = await base44.entities.WalletAccount.filter({ id: user.id });
+        // Get user's wallet account - try by email first, then by user ID
+        let accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        
+        if (accounts.length === 0) {
+            accounts = await base44.entities.WalletAccount.filter({ id: user.id });
+        }
 
         if (accounts.length === 0) {
             return Response.json({ 
