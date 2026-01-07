@@ -56,6 +56,14 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         usernames: '__cookie__, roduser, rod',
         passwords: ', rodpassword, rod'
     });
+    const [showRODSecrets, setShowRODSecrets] = useState(false);
+    const [rodSecrets, setRodSecrets] = useState({
+        host: '',
+        port: '',
+        username: '',
+        password: ''
+    });
+    const [savingSecrets, setSavingSecrets] = useState(false);
 
     useEffect(() => {
         loadConfigurations();
@@ -794,7 +802,115 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             <Activity className="w-4 h-4 mr-2" />
                             Port Checker
                         </Button>
+                        <Button
+                            onClick={() => setShowRODSecrets(!showRODSecrets)}
+                            variant="outline"
+                            className="border-purple-600 text-purple-400 hover:bg-purple-600/10"
+                        >
+                            <Settings className="w-4 h-4 mr-2" />
+                            ROD Secrets
+                        </Button>
                     </div>
+
+                    {/* ROD Secrets Manager */}
+                    {showRODSecrets && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border border-purple-500/30 space-y-4"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Settings className="w-5 h-5 text-purple-400" />
+                                <h4 className="text-white font-medium">ROD RPC Secrets</h4>
+                            </div>
+
+                            <Alert className="bg-purple-500/10 border-purple-500/30">
+                                <AlertCircle className="h-4 w-4 text-purple-400" />
+                                <AlertDescription className="text-purple-300/80 text-sm">
+                                    These secrets are stored securely and used by the "Use ROD Secrets" button to auto-configure your node.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300">RPC Host</Label>
+                                        <Input
+                                            value={rodSecrets.host}
+                                            onChange={(e) => setRodSecrets({ ...rodSecrets, host: e.target.value })}
+                                            placeholder="localhost or IP address"
+                                            className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300">RPC Port</Label>
+                                        <Input
+                                            value={rodSecrets.port}
+                                            onChange={(e) => setRodSecrets({ ...rodSecrets, port: e.target.value })}
+                                            placeholder="9650"
+                                            className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">RPC Username</Label>
+                                    <Input
+                                        value={rodSecrets.username}
+                                        onChange={(e) => setRodSecrets({ ...rodSecrets, username: e.target.value })}
+                                        placeholder="roduser or __cookie__"
+                                        className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">RPC Password</Label>
+                                    <Input
+                                        type="password"
+                                        value={rodSecrets.password}
+                                        onChange={(e) => setRodSecrets({ ...rodSecrets, password: e.target.value })}
+                                        placeholder="Your RPC password"
+                                        className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                    />
+                                </div>
+
+                                <Button
+                                    onClick={async () => {
+                                        setSavingSecrets(true);
+                                        try {
+                                            const response = await base44.functions.invoke('updateRODSecrets', rodSecrets);
+                                            
+                                            if (response.data.success) {
+                                                toast.success('ROD RPC secrets updated');
+                                                setRodSecrets({ host: '', port: '', username: '', password: '' });
+                                            } else {
+                                                toast.error(response.data.message || 'Failed to update secrets');
+                                            }
+                                        } catch (err) {
+                                            toast.error('Failed to update secrets');
+                                        } finally {
+                                            setSavingSecrets(false);
+                                        }
+                                    }}
+                                    disabled={savingSecrets || !rodSecrets.host || !rodSecrets.port}
+                                    className="w-full bg-purple-600 hover:bg-purple-700"
+                                >
+                                    {savingSecrets ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                                            Save ROD Secrets
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Port Checker */}
                     {showPortChecker && (
