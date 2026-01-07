@@ -45,6 +45,7 @@ export default function RPCConfigManager({ account, onClose }) {
     const [importing, setImporting] = useState(false);
     const [showScanConfig, setShowScanConfig] = useState(false);
     const [showEndpointInfo, setShowEndpointInfo] = useState(false);
+    const [showFreeRPCGuide, setShowFreeRPCGuide] = useState(false);
     const [scanConfig, setScanConfig] = useState({
         ports: '9650, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
@@ -656,6 +657,14 @@ export default function RPCConfigManager({ account, onClose }) {
                             <Link className="w-4 h-4 mr-2" />
                             RPC Endpoint
                         </Button>
+                        <Button
+                            onClick={() => setShowFreeRPCGuide(!showFreeRPCGuide)}
+                            variant="outline"
+                            className="border-blue-600 text-blue-400 hover:bg-blue-600/10"
+                        >
+                            <Server className="w-4 h-4 mr-2" />
+                            FreeRPC.com Setup
+                        </Button>
                     </div>
 
                     {/* Scan configuration */}
@@ -736,6 +745,131 @@ export default function RPCConfigManager({ account, onClose }) {
                                     Start Scan
                                 </Button>
                             </div>
+                        </motion.div>
+                    )}
+
+                    {/* FreeRPC.com Setup Guide */}
+                    {showFreeRPCGuide && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 space-y-4"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Server className="w-5 h-5 text-blue-400" />
+                                <h4 className="text-white font-medium">FreeRPC.com Setup Guide</h4>
+                            </div>
+
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-sm">
+                                    FreeRPC.com provides free RPC proxy services for ROD Core. Follow these steps to set it up.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-4">
+                                <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                                    <h5 className="text-white font-medium mb-3 flex items-center gap-2">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-sm">1</span>
+                                        Visit FreeRPC.com
+                                    </h5>
+                                    <p className="text-slate-300 text-sm mb-2">
+                                        Go to <a href="https://freerpc.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">https://freerpc.com</a> and create an account or log in.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                                    <h5 className="text-white font-medium mb-3 flex items-center gap-2">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-sm">2</span>
+                                        Create a New RPC Endpoint
+                                    </h5>
+                                    <div className="space-y-2 text-sm text-slate-300">
+                                        <p>In your FreeRPC.com dashboard:</p>
+                                        <ul className="list-disc list-inside space-y-1 ml-4">
+                                            <li>Click "Add New Endpoint" or "Create RPC"</li>
+                                            <li>Select <strong className="text-white">ROD Core</strong> as the blockchain</li>
+                                            <li>Choose a plan (Free tier available)</li>
+                                            <li>Give it a name (e.g., "My ROD Wallet")</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                                    <h5 className="text-white font-medium mb-3 flex items-center gap-2">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-sm">3</span>
+                                        Copy Your RPC Credentials
+                                    </h5>
+                                    <div className="space-y-2 text-sm text-slate-300">
+                                        <p>After creating the endpoint, FreeRPC.com will provide you with:</p>
+                                        <div className="mt-2 p-3 bg-slate-900 rounded border border-slate-700 space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-500 w-20">URL:</span>
+                                                <code className="text-amber-400">https://rod.freerpc.com</code>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-500 w-20">Port:</span>
+                                                <code className="text-amber-400">443</code>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-500 w-20">API Key:</span>
+                                                <code className="text-amber-400">your_api_key_here</code>
+                                            </div>
+                                        </div>
+                                        <p className="text-amber-400 text-xs mt-2">⚠️ Keep your API key secure and don't share it publicly</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 rounded-lg bg-gradient-to-br from-green-900/20 to-blue-900/20 border border-green-500/30">
+                                    <h5 className="text-white font-medium mb-3 flex items-center gap-2">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-sm">4</span>
+                                        Add to Your Wallet
+                                    </h5>
+                                    <div className="space-y-3 text-sm text-slate-300">
+                                        <p>Click "<strong className="text-white">Add Manually</strong>" above and enter these settings:</p>
+                                        
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
+                                                <div className="text-xs text-slate-500 mb-1">Connection Type</div>
+                                                <div className="text-green-400 font-medium">API Key</div>
+                                            </div>
+                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
+                                                <div className="text-xs text-slate-500 mb-1">Configuration Name</div>
+                                                <div className="text-green-400 font-medium">FreeRPC ROD</div>
+                                            </div>
+                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
+                                                <div className="text-xs text-slate-500 mb-1">Host</div>
+                                                <div className="text-green-400 font-medium font-mono text-xs">rod.freerpc.com</div>
+                                            </div>
+                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
+                                                <div className="text-xs text-slate-500 mb-1">Port</div>
+                                                <div className="text-green-400 font-medium">443</div>
+                                            </div>
+                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
+                                                <div className="text-xs text-slate-500 mb-1">SSL/TLS</div>
+                                                <div className="text-green-400 font-medium">✓ Enabled</div>
+                                            </div>
+                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
+                                                <div className="text-xs text-slate-500 mb-1">API Key</div>
+                                                <div className="text-green-400 font-medium text-xs">(paste from FreeRPC)</div>
+                                            </div>
+                                        </div>
+
+                                        <Alert className="bg-green-500/10 border-green-500/30 mt-3">
+                                            <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                            <AlertDescription className="text-green-300/80 text-xs">
+                                                After adding, click the refresh button to test the connection!
+                                            </AlertDescription>
+                                        </Alert>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Alert className="bg-amber-500/10 border-amber-500/30">
+                                <AlertCircle className="h-4 w-4 text-amber-400" />
+                                <AlertDescription className="text-amber-300/80 text-xs">
+                                    <strong>Note:</strong> FreeRPC.com may have rate limits on free plans. Check their documentation for current limits and pricing.
+                                </AlertDescription>
+                            </Alert>
                         </motion.div>
                     )}
 
