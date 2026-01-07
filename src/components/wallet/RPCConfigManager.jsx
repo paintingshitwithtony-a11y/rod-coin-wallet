@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
@@ -36,6 +37,7 @@ export default function RPCConfigManager({ account, onClose }) {
         username: '',
         password: '',
         api_key: '',
+        curl_command: '',
         use_ssl: false
     });
     const [saving, setSaving] = useState(false);
@@ -87,7 +89,17 @@ export default function RPCConfigManager({ account, onClose }) {
             };
             
             // Add authentication based on connection type
-            if (config.connection_type === 'api' && config.api_key) {
+            if (config.connection_type === 'curl') {
+                // Parse cURL command to extract headers and URL
+                const curlMatch = config.curl_command.match(/curl\s+(?:-X\s+POST\s+)?(?:-H\s+['"]([^'"]+)['"]\s+)*['"]?([^'"]+)['"]?/);
+                if (curlMatch) {
+                    const headerMatches = config.curl_command.matchAll(/-H\s+['"]([^'"]+)['"]/g);
+                    for (const match of headerMatches) {
+                        const [key, value] = match[1].split(':').map(s => s.trim());
+                        if (key && value) headers[key] = value;
+                    }
+                }
+            } else if (config.connection_type === 'api' && config.api_key) {
                 headers['X-API-Key'] = config.api_key;
             } else if (config.connection_type === 'rpc') {
                 headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
@@ -249,6 +261,7 @@ export default function RPCConfigManager({ account, onClose }) {
                                 username: config.username || '',
                                 password: config.password || '',
                                 api_key: config.api_key || '',
+                                curl_command: config.curl_command || '',
                                 use_ssl: config.use_ssl || false,
                                 is_active: false,
                                 connection_status: 'untested'
@@ -277,6 +290,7 @@ export default function RPCConfigManager({ account, onClose }) {
                 username: parsed.username,
                 password: parsed.password,
                 api_key: '',
+                curl_command: '',
                 use_ssl: false
             });
 
@@ -308,6 +322,7 @@ export default function RPCConfigManager({ account, onClose }) {
             username: config.username || '',
             password: config.password || '',
             api_key: config.api_key || '',
+            curl_command: config.curl_command || '',
             use_ssl: config.use_ssl || false
         }));
 
@@ -429,6 +444,7 @@ export default function RPCConfigManager({ account, onClose }) {
             username: config.username || '',
             password: config.password || '',
             api_key: config.api_key || '',
+            curl_command: config.curl_command || '',
             use_ssl: config.use_ssl || false
         });
         setShowAddForm(true);
@@ -451,6 +467,12 @@ export default function RPCConfigManager({ account, onClose }) {
             toast.error('API key required for API connection');
             return;
         }
+        
+        // For cURL, require cURL command
+        if (formData.connection_type === 'curl' && !formData.curl_command) {
+            toast.error('cURL command required for cURL connection');
+            return;
+        }
 
         setSaving(true);
         try {
@@ -464,6 +486,7 @@ export default function RPCConfigManager({ account, onClose }) {
                     username: formData.username || '',
                     password: formData.password || '',
                     api_key: formData.api_key || '',
+                    curl_command: formData.curl_command || '',
                     use_ssl: formData.use_ssl,
                     connection_status: 'untested'
                 });
@@ -490,6 +513,7 @@ export default function RPCConfigManager({ account, onClose }) {
                     username: formData.username || '',
                     password: formData.password || '',
                     api_key: formData.api_key || '',
+                    curl_command: formData.curl_command || '',
                     use_ssl: formData.use_ssl,
                     is_active: configs.length === 0,
                     connection_status: 'untested'
@@ -510,7 +534,7 @@ export default function RPCConfigManager({ account, onClose }) {
                 setTimeout(() => testConnection(newConfig), 500);
             }
 
-            setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', use_ssl: false });
+            setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', curl_command: '', use_ssl: false });
             setEditingConfig(null);
             setShowAddForm(false);
             await loadConfigurations();
@@ -607,7 +631,7 @@ export default function RPCConfigManager({ account, onClose }) {
                         <Button
                             onClick={() => {
                                 setEditingConfig(null);
-                                setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', use_ssl: false });
+                                setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', curl_command: '', use_ssl: false });
                                 setShowAddForm(!showAddForm);
                             }}
                             variant="outline"
@@ -823,10 +847,11 @@ rpcallowip=127.0.0.1`}
                             </h4>
                             
                             <Tabs value={formData.connection_type} onValueChange={(val) => setFormData({ ...formData, connection_type: val })}>
-                                <TabsList className="grid w-full grid-cols-3 bg-slate-800">
-                                    <TabsTrigger value="rpc">Full Node (RPC)</TabsTrigger>
-                                    <TabsTrigger value="electrum">Electrum Server</TabsTrigger>
+                                <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+                                    <TabsTrigger value="rpc">RPC</TabsTrigger>
+                                    <TabsTrigger value="electrum">Electrum</TabsTrigger>
                                     <TabsTrigger value="api">API Key</TabsTrigger>
+                                    <TabsTrigger value="curl">cURL</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="rpc" className="space-y-3 mt-3">
@@ -855,7 +880,16 @@ rpcallowip=127.0.0.1`}
                                         </AlertDescription>
                                     </Alert>
                                 </TabsContent>
-                            </Tabs>
+
+                                <TabsContent value="curl" className="space-y-3 mt-3">
+                                    <Alert className="bg-orange-500/10 border-orange-500/30">
+                                        <AlertCircle className="h-4 w-4 text-orange-400" />
+                                        <AlertDescription className="text-orange-300/80 text-xs">
+                                            Paste your cURL command for custom RPC connections
+                                        </AlertDescription>
+                                    </Alert>
+                                </TabsContent>
+                                </Tabs>
                             
                             <div className="space-y-2">
                                 <Label className="text-slate-300">Configuration Name</Label>
@@ -863,6 +897,7 @@ rpcallowip=127.0.0.1`}
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     placeholder={
+                                        formData.connection_type === 'curl' ? 'e.g., Custom cURL Connection' :
                                         formData.connection_type === 'api' ? 'e.g., ROD Mainnet API' :
                                         formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 
                                         'e.g., Local Node, Mining Pool'
@@ -906,6 +941,18 @@ rpcallowip=127.0.0.1`}
                                         checked={formData.use_ssl}
                                         onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked })}
                                     />
+                                </div>
+                            )}
+                            {formData.connection_type === 'curl' && (
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">cURL Command</Label>
+                                    <Textarea
+                                        value={formData.curl_command}
+                                        onChange={(e) => setFormData({ ...formData, curl_command: e.target.value })}
+                                        placeholder={`curl -X POST http://localhost:9650 \\\n  -H "Content-Type: application/json" \\\n  -u username:password \\\n  -d '{"jsonrpc":"1.0","id":"test","method":"getblockchaininfo","params":[]}'`}
+                                        className="bg-slate-900 border-slate-600 font-mono text-xs min-h-[120px]"
+                                    />
+                                    <p className="text-xs text-slate-500">Paste your full cURL command including headers and authentication</p>
                                 </div>
                             )}
                             {formData.connection_type === 'api' && (
@@ -954,7 +1001,7 @@ rpcallowip=127.0.0.1`}
                                 <Button onClick={() => {
                                     setShowAddForm(false);
                                     setEditingConfig(null);
-                                    setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', use_ssl: false });
+                                    setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', api_key: '', curl_command: '', use_ssl: false });
                                 }} variant="outline" className="border-slate-600">
                                     Cancel
                                 </Button>
@@ -1000,6 +1047,11 @@ rpcallowip=127.0.0.1`}
                                                     {config.connection_type === 'api' && (
                                                         <Badge variant="outline" className="text-xs border-green-500/50 text-green-400">
                                                             API
+                                                        </Badge>
+                                                    )}
+                                                    {config.connection_type === 'curl' && (
+                                                        <Badge variant="outline" className="text-xs border-orange-500/50 text-orange-400">
+                                                            cURL
                                                         </Badge>
                                                     )}
                                                     {config.is_active && (
