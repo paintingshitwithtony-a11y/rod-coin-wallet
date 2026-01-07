@@ -124,8 +124,11 @@ export default function WalletDashboard({ account, onLogout }) {
             setRpcConnected(response.data.connected);
             if (response.data.connected && response.data.nodeInfo) {
                 setRpcNodeInfo(response.data.nodeInfo);
+            } else if (response.data.error) {
+                console.log('RPC Status Error:', response.data.error);
             }
         } catch (err) {
+            console.error('RPC Status Check Failed:', err);
             setRpcConnected(false);
             setRpcNodeInfo(null);
         }
