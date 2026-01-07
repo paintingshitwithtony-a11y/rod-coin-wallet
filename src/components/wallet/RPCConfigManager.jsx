@@ -469,25 +469,88 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         setShowAddForm(true);
     };
 
-    const handleSaveConfig = async () => {
+    const validateAndTestConnection = async () => {
+        // Validate required fields
         if (!formData.name || !formData.host) {
             toast.error('Please fill in required fields');
-            return;
+            return false;
         }
 
-        // Port is optional for API connections (can be included in host)
         if (formData.connection_type !== 'api' && !formData.port) {
             toast.error('Port is required');
-            return;
+            return false;
         }
 
-        // For cURL, require cURL command
         if (formData.connection_type === 'curl' && !formData.curl_command) {
-            toast.error('cURL command required for cURL connection');
-            return;
+            toast.error('cURL command required');
+            return false;
         }
 
+        if (formData.connection_type === 'rpc' && (!formData.username || !formData.password)) {
+            toast.error('Username and password required for RPC connections');
+            return false;
+        }
+
+        if (formData.connection_type === 'api' && !formData.api_key) {
+            toast.error('API key required for API connections');
+            return false;
+        }
+
+        // Test the connection before saving
+        toast.info('Testing connection...');
+        
+        try {
+            const protocol = formData.use_ssl ? 'https' : 'http';
+            const rpcUrl = formData.port 
+                ? `${protocol}://${formData.host}:${formData.port}`
+                : `${protocol}://${formData.host}`;
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (formData.connection_type === 'api' && formData.api_key) {
+                headers['X-API-Key'] = formData.api_key;
+            } else if (formData.connection_type === 'rpc' && formData.username && formData.password) {
+                headers['Authorization'] = `Basic ${btoa(`${formData.username}:${formData.password}`)}`;
+            }
+            
+            const response = await fetch(rpcUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: 'validation',
+                    method: 'getblockchaininfo',
+                    params: []
+                }),
+                signal: AbortSignal.timeout(10000)
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                toast.error(`Connection test failed: ${data.error.message}`);
+                return false;
+            }
+            
+            toast.success('Connection validated successfully!');
+            return true;
+        } catch (err) {
+            toast.error(`Connection test failed: ${err.message}`);
+            return false;
+        }
+    };
+
+    const handleSaveConfig = async () => {
         setSaving(true);
+        
+        // Validate and test connection first
+        const isValid = await validateAndTestConnection();
+        if (!isValid) {
+            setSaving(false);
+            return;
+        }
         try {
             if (editingConfig) {
                 // Update existing config
