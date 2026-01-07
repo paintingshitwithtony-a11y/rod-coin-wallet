@@ -19,7 +19,6 @@ import AddressBook from './AddressBook';
 import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
-import RPCMonitorDashboard from './RPCMonitorDashboard';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -44,7 +43,6 @@ export default function WalletDashboard({ account, onLogout }) {
     const [rpcConnected, setRpcConnected] = useState(null);
     const [showRPCModal, setShowRPCModal] = useState(false);
     const [showRPCManager, setShowRPCManager] = useState(false);
-    const [showRPCMonitor, setShowRPCMonitor] = useState(false);
     const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
     const [selectedAddressForSeed, setSelectedAddressForSeed] = useState(null);
 
@@ -285,23 +283,14 @@ export default function WalletDashboard({ account, onLogout }) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setShowRPCMonitor(true)}
-                        className={`relative text-slate-400 hover:text-white ${rpcConnected === false ? 'text-amber-400 animate-pulse' : rpcConnected ? 'text-green-400' : ''}`}
-                        title="RPC Node Monitor"
-                    >
-                        <Activity className="w-5 h-5" />
-                        {rpcConnected === false && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
-                        )}
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
                         onClick={() => setShowRPCManager(true)}
-                        className="text-slate-400 hover:text-white"
+                        className={`relative text-slate-400 hover:text-white ${rpcConnected === false ? 'text-amber-400 animate-pulse' : rpcConnected ? 'text-green-400' : ''}`}
                         title="RPC Node Management"
                     >
                         <Plug className="w-5 h-5" />
+                        {rpcConnected === false && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
+                        )}
                     </Button>
                     <Link to={createPageUrl('SecuritySettings')}>
                         <div className="relative p-3 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
@@ -657,17 +646,6 @@ export default function WalletDashboard({ account, onLogout }) {
                                 setAddresses([mainAddress, ...additionalAddresses]);
                             }
                         });
-                    }}
-                />
-            )}
-
-            {/* RPC Monitor Dashboard */}
-            {showRPCMonitor && (
-                <RPCMonitorDashboard
-                    account={account}
-                    onClose={() => {
-                        setShowRPCMonitor(false);
-                        checkRPCStatus();
                     }}
                 />
             )}
