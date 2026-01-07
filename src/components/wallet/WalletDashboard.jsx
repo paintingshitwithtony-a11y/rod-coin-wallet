@@ -585,14 +585,29 @@ export default function WalletDashboard({ account, onLogout }) {
                         <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-white text-lg">My Addresses</CardTitle>
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="text-purple-400"
-                                    onClick={() => setActiveTab('generate')}
-                                >
-                                    + New
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-amber-400 hover:text-amber-300"
+                                        onClick={async () => {
+                                            await importAllAddresses(true);
+                                        }}
+                                        disabled={!rpcConnected || loading}
+                                        title="Import all addresses to blockchain"
+                                    >
+                                        <Plug className="w-4 h-4 mr-1" />
+                                        Import to Chain
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-purple-400"
+                                        onClick={() => setActiveTab('generate')}
+                                    >
+                                        + New
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 {addresses.length === 0 ? (
