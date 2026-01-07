@@ -66,35 +66,68 @@ export default function WalletDashboard({ account, onLogout }) {
 
     useEffect(() => {
         // Load addresses from account and cleanup duplicates
-        if (account) {
-            // Cleanup duplicates in database
-            base44.functions.invoke('cleanupDuplicateAddresses', {}).catch(err => {
-                console.error('Cleanup failed:', err);
-            });
+        const loadAddresses = async () => {
+            if (account) {
+                // Cleanup duplicates in database first
+                try {
+                    await base44.functions.invoke('cleanupDuplicateAddresses', {});
+                    
+                    // Reload account to get fresh data after cleanup
+                    const updatedAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
+                    const currentAccount = updatedAccounts.length > 0 ? updatedAccounts[0] : account;
 
-            const mainAddress = {
-                id: 'main',
-                address: account.wallet_address,
-                label: 'Primary Address',
-                createdAt: account.created_date,
-                isValid: true,
-                importStatus: 'pending'
-            };
-            
-            const additionalAddresses = (account.additional_addresses || [])
-                .filter(addr => addr.address !== account.wallet_address)
-                .map((addr, i) => ({
-                    id: `addr-${i}`,
-                    address: addr.address,
-                    label: addr.label || `Address ${i + 2}`,
-                    createdAt: addr.created_at,
-                    isValid: true,
-                    importStatus: 'pending'
-                }));
+                    const mainAddress = {
+                        id: 'main',
+                        address: currentAccount.wallet_address,
+                        label: 'Primary Address',
+                        createdAt: currentAccount.created_date,
+                        isValid: true,
+                        importStatus: 'pending'
+                    };
+                    
+                    const additionalAddresses = (currentAccount.additional_addresses || [])
+                        .filter(addr => addr.address !== currentAccount.wallet_address)
+                        .map((addr, i) => ({
+                            id: `addr-${i}`,
+                            address: addr.address,
+                            label: addr.label || `Address ${i + 2}`,
+                            createdAt: addr.created_at,
+                            isValid: true,
+                            importStatus: 'pending'
+                        }));
 
-            setAddresses([mainAddress, ...additionalAddresses]);
-            setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
+                    setAddresses([mainAddress, ...additionalAddresses]);
+                    setBalance({ confirmed: currentAccount.balance || 0, unconfirmed: 0 });
+                } catch (err) {
+                    console.error('Cleanup failed:', err);
+                    // Fallback to original account data
+                    const mainAddress = {
+                        id: 'main',
+                        address: account.wallet_address,
+                        label: 'Primary Address',
+                        createdAt: account.created_date,
+                        isValid: true,
+                        importStatus: 'pending'
+                    };
+                    
+                    const additionalAddresses = (account.additional_addresses || [])
+                        .filter(addr => addr.address !== account.wallet_address)
+                        .map((addr, i) => ({
+                            id: `addr-${i}`,
+                            address: addr.address,
+                            label: addr.label || `Address ${i + 2}`,
+                            createdAt: addr.created_at,
+                            isValid: true,
+                            importStatus: 'pending'
+                        }));
+
+                    setAddresses([mainAddress, ...additionalAddresses]);
+                    setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
+                }
             }
+        };
+        
+        loadAddresses();
         importAllAddresses();
         fetchWalletData();
         fetchRODPrice();
