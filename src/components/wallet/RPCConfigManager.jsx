@@ -941,19 +941,43 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             {/* GetBlock.io Quick Setup */}
                             <div className="flex gap-2 flex-wrap">
                             <Button
-                            onClick={() => {
-                                setFormData({
-                                    name: 'GetBlock.io ROD',
-                                    connection_type: 'api',
-                                    host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
-                                    port: '',
-                                    username: '',
-                                    password: '',
-                                    api_key: '',
-                                    curl_command: '',
-                                    use_ssl: true
-                                });
-                                handleSaveConfig();
+                            onClick={async () => {
+                                setSaving(true);
+                                try {
+                                    const newConfig = await base44.entities.RPCConfiguration.create({
+                                        account_id: account.id,
+                                        name: 'GetBlock.io ROD',
+                                        connection_type: 'api',
+                                        host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
+                                        port: '',
+                                        username: '',
+                                        password: '',
+                                        api_key: '',
+                                        curl_command: '',
+                                        use_ssl: true,
+                                        is_active: configs.length === 0,
+                                        connection_status: 'untested'
+                                    });
+
+                                    if (configs.length === 0) {
+                                        await base44.entities.WalletAccount.update(account.id, {
+                                            rpc_host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
+                                            rpc_port: '',
+                                            rpc_username: '',
+                                            rpc_password: ''
+                                        });
+                                    }
+
+                                    toast.success('GetBlock.io configuration added');
+                                    await loadConfigurations();
+                                    
+                                    // Auto-test connection
+                                    setTimeout(() => testConnection(newConfig), 500);
+                                } catch (err) {
+                                    toast.error('Failed to add GetBlock.io configuration');
+                                } finally {
+                                    setSaving(false);
+                                }
                             }}
                             disabled={saving}
                             className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
