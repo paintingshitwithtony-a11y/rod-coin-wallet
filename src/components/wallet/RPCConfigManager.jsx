@@ -558,7 +558,7 @@ export default function RPCConfigManager({ account, onClose }) {
                             onClick={() => document.getElementById('config-file-input').click()}
                             disabled={importing}
                             variant="outline"
-                            className="border-slate-600"
+                            className="border-slate-600 text-slate-300 hover:text-white"
                         >
                             {importing ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -577,7 +577,7 @@ export default function RPCConfigManager({ account, onClose }) {
                         <Button
                             onClick={handleExportConfigs}
                             variant="outline"
-                            className="border-slate-600"
+                            className="border-slate-600 text-slate-300 hover:text-white"
                             disabled={configs.length === 0}
                         >
                             <Download className="w-4 h-4 mr-2" />
@@ -590,7 +590,7 @@ export default function RPCConfigManager({ account, onClose }) {
                                 setShowAddForm(!showAddForm);
                             }}
                             variant="outline"
-                            className="border-slate-600"
+                            className="border-slate-600 text-slate-300 hover:text-white"
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Manually
@@ -598,7 +598,7 @@ export default function RPCConfigManager({ account, onClose }) {
                         <Button
                             onClick={() => setShowCommandHelp(!showCommandHelp)}
                             variant="outline"
-                            className="border-slate-600"
+                            className="border-slate-600 text-slate-300 hover:text-white"
                         >
                             <Terminal className="w-4 h-4" />
                         </Button>
