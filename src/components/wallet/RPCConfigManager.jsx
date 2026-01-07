@@ -23,7 +23,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
-export default function RPCConfigManager({ account, onClose }) {
+export default function RPCConfigManager({ account, onClose, onConnectionSuccess }) {
     const [configs, setConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -179,7 +179,12 @@ export default function RPCConfigManager({ account, onClose }) {
 
             toast.success(`Switched to ${config.name}`);
             await loadConfigurations();
-        } catch (err) {
+
+            // Trigger wallet refresh when switching active config
+            if (onConnectionSuccess) {
+                onConnectionSuccess();
+            }
+            } catch (err) {
             toast.error('Failed to switch configuration');
         }
     };

@@ -607,6 +607,11 @@ export default function WalletDashboard({ account, onLogout }) {
                         setShowRPCManager(false);
                         checkRPCStatus();
                     }}
+                    onConnectionSuccess={() => {
+                        fetchWalletData();
+                        checkRPCStatus();
+                        toast.success('Wallet updated with RPC connection');
+                    }}
                 />
             )}
 
