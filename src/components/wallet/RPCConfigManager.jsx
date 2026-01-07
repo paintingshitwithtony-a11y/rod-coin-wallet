@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ export default function RPCConfigManager({ account, onClose }) {
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
     const [testing, setTesting] = useState({});
+    const [editingConfig, setEditingConfig] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         host: 'localhost',
@@ -336,7 +337,19 @@ export default function RPCConfigManager({ account, onClose }) {
         setSaving(false);
     };
 
-    const handleAddConfig = async () => {
+    const handleEditConfig = (config) => {
+        setEditingConfig(config);
+        setFormData({
+            name: config.name,
+            host: config.host,
+            port: config.port,
+            username: config.username,
+            password: config.password
+        });
+        setShowAddForm(true);
+    };
+
+    const handleSaveConfig = async () => {
         if (!formData.name || !formData.host || !formData.port || !formData.username || !formData.password) {
             toast.error('Please fill in all fields');
             return;
@@ -344,35 +357,62 @@ export default function RPCConfigManager({ account, onClose }) {
 
         setSaving(true);
         try {
-            const newConfig = await base44.entities.RPCConfiguration.create({
-                account_id: account.id,
-                name: formData.name,
-                host: formData.host,
-                port: formData.port,
-                username: formData.username,
-                password: formData.password,
-                is_active: configs.length === 0,
-                connection_status: 'untested'
-            });
-
-            if (configs.length === 0) {
-                await base44.entities.WalletAccount.update(account.id, {
-                    rpc_host: formData.host,
-                    rpc_port: formData.port,
-                    rpc_username: formData.username,
-                    rpc_password: formData.password
+            if (editingConfig) {
+                // Update existing config
+                await base44.entities.RPCConfiguration.update(editingConfig.id, {
+                    name: formData.name,
+                    host: formData.host,
+                    port: formData.port,
+                    username: formData.username,
+                    password: formData.password,
+                    connection_status: 'untested'
                 });
+
+                // If this was the active config, update account too
+                if (editingConfig.is_active) {
+                    await base44.entities.WalletAccount.update(account.id, {
+                        rpc_host: formData.host,
+                        rpc_port: formData.port,
+                        rpc_username: formData.username,
+                        rpc_password: formData.password
+                    });
+                }
+
+                toast.success('Configuration updated');
+            } else {
+                // Create new config
+                const newConfig = await base44.entities.RPCConfiguration.create({
+                    account_id: account.id,
+                    name: formData.name,
+                    host: formData.host,
+                    port: formData.port,
+                    username: formData.username,
+                    password: formData.password,
+                    is_active: configs.length === 0,
+                    connection_status: 'untested'
+                });
+
+                if (configs.length === 0) {
+                    await base44.entities.WalletAccount.update(account.id, {
+                        rpc_host: formData.host,
+                        rpc_port: formData.port,
+                        rpc_username: formData.username,
+                        rpc_password: formData.password
+                    });
+                }
+
+                toast.success('Configuration added');
+                
+                // Auto-test new connection
+                setTimeout(() => testConnection(newConfig), 500);
             }
 
-            toast.success('Configuration added');
             setFormData({ name: '', host: 'localhost', port: '9650', username: '', password: '' });
+            setEditingConfig(null);
             setShowAddForm(false);
             await loadConfigurations();
-
-            // Auto-test new connection
-            testConnection(newConfig);
         } catch (err) {
-            toast.error('Failed to add configuration');
+            toast.error(editingConfig ? 'Failed to update configuration' : 'Failed to add configuration');
         } finally {
             setSaving(false);
         }
@@ -453,7 +493,11 @@ export default function RPCConfigManager({ account, onClose }) {
                             className="hidden"
                         />
                         <Button
-                            onClick={() => setShowAddForm(!showAddForm)}
+                            onClick={() => {
+                                setEditingConfig(null);
+                                setFormData({ name: '', host: 'localhost', port: '9650', username: '', password: '' });
+                                setShowAddForm(!showAddForm);
+                            }}
                             variant="outline"
                             className="border-slate-600"
                         >
@@ -655,13 +699,16 @@ rpcallowip=127.0.0.1`}
                         </motion.div>
                     )}
 
-                    {/* Add form */}
+                    {/* Add/Edit form */}
                     {showAddForm && (
                         <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 space-y-3"
                         >
+                            <h4 className="text-white font-medium">
+                                {editingConfig ? 'Edit Configuration' : 'Add New Configuration'}
+                            </h4>
                             <div className="space-y-2">
                                 <Label className="text-slate-300">Configuration Name</Label>
                                 <Input
@@ -715,11 +762,15 @@ rpcallowip=127.0.0.1`}
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <Button onClick={handleAddConfig} disabled={saving} className="flex-1 bg-green-600 hover:bg-green-700">
-                                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                                    Add Configuration
+                                <Button onClick={handleSaveConfig} disabled={saving} className="flex-1 bg-green-600 hover:bg-green-700">
+                                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : editingConfig ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                    {editingConfig ? 'Update Configuration' : 'Add Configuration'}
                                 </Button>
-                                <Button onClick={() => setShowAddForm(false)} variant="outline" className="border-slate-600">
+                                <Button onClick={() => {
+                                    setShowAddForm(false);
+                                    setEditingConfig(null);
+                                    setFormData({ name: '', host: 'localhost', port: '9650', username: '', password: '' });
+                                }} variant="outline" className="border-slate-600">
                                     Cancel
                                 </Button>
                             </div>
@@ -771,6 +822,14 @@ rpcallowip=127.0.0.1`}
                                             </div>
                                         </div>
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => handleEditConfig(config)}
+                                                className="text-slate-400 hover:text-blue-400"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </Button>
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
