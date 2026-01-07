@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { 
     Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, 
     TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-    LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key
+    LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
