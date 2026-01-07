@@ -1077,58 +1077,177 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             </motion.div>
                             )}
 
-                            {/* GetBlock.io Quick Setup */}
-                            <div className="flex gap-2 flex-wrap">
-                            <Button
-                            onClick={async () => {
-                                setSaving(true);
-                                try {
-                                    const newConfig = await base44.entities.RPCConfiguration.create({
-                                        account_id: account.id,
-                                        name: 'GetBlock.io ROD',
-                                        connection_type: 'api',
-                                        host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
-                                        port: '',
-                                        username: '',
-                                        password: '',
-                                        api_key: '',
-                                        curl_command: '',
-                                        use_ssl: true,
-                                        is_active: configs.length === 0,
-                                        connection_status: 'untested'
-                                    });
-
-                                    if (configs.length === 0) {
-                                        await base44.entities.WalletAccount.update(account.id, {
-                                            rpc_host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
-                                            rpc_port: '',
-                                            rpc_username: '',
-                                            rpc_password: ''
-                                        });
-                                    }
-
-                                    toast.success('GetBlock.io configuration added');
-                                    await loadConfigurations();
-                                    
-                                    // Auto-test connection
-                                    setTimeout(() => testConnection(newConfig), 500);
-                                } catch (err) {
-                                    toast.error('Failed to add GetBlock.io configuration');
-                                } finally {
-                                    setSaving(false);
-                                }
-                            }}
-                            disabled={saving}
-                            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                            {/* GetBlock.io Setup */}
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="p-4 rounded-lg bg-gradient-to-br from-green-900/20 to-blue-900/20 border border-green-500/30 space-y-4"
                             >
-                            {saving ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                                <Plug className="w-4 h-4 mr-2" />
-                            )}
-                            Connect to GetBlock.io
-                            </Button>
-                            </div>
+                                <div className="flex items-center gap-2">
+                                    <Server className="w-5 h-5 text-green-400" />
+                                    <h4 className="text-white font-medium">GetBlock.io - SSH Tunnel Setup</h4>
+                                </div>
+
+                                <Alert className="bg-blue-500/10 border-blue-500/30">
+                                    <AlertCircle className="h-4 w-4 text-blue-400" />
+                                    <AlertDescription className="text-blue-300/80 text-sm">
+                                        Set up a local tunnel to connect your ROD Core wallet to GetBlock.io via localhost
+                                    </AlertDescription>
+                                </Alert>
+
+                                <Tabs defaultValue="direct" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+                                        <TabsTrigger value="direct">Direct Connection</TabsTrigger>
+                                        <TabsTrigger value="tunnel">SSH Tunnel</TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="direct" className="space-y-3 mt-3">
+                                        <p className="text-sm text-slate-300">Connect directly to GetBlock.io (recommended)</p>
+                                        <Button
+                                            onClick={async () => {
+                                                setSaving(true);
+                                                try {
+                                                    const newConfig = await base44.entities.RPCConfiguration.create({
+                                                        account_id: account.id,
+                                                        name: 'GetBlock.io ROD',
+                                                        connection_type: 'api',
+                                                        host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
+                                                        port: '',
+                                                        username: '',
+                                                        password: '',
+                                                        api_key: '',
+                                                        curl_command: '',
+                                                        use_ssl: true,
+                                                        is_active: configs.length === 0,
+                                                        connection_status: 'untested'
+                                                    });
+
+                                                    if (configs.length === 0) {
+                                                        await base44.entities.WalletAccount.update(account.id, {
+                                                            rpc_host: 'go.getblock.io/538cb5800e2747ab8afb8a782857bc63',
+                                                            rpc_port: '',
+                                                            rpc_username: '',
+                                                            rpc_password: ''
+                                                        });
+                                                    }
+
+                                                    toast.success('GetBlock.io configuration added');
+                                                    await loadConfigurations();
+                                                    setTimeout(() => testConnection(newConfig), 500);
+                                                } catch (err) {
+                                                    toast.error('Failed to add GetBlock.io configuration');
+                                                } finally {
+                                                    setSaving(false);
+                                                }
+                                            }}
+                                            disabled={saving}
+                                            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                                        >
+                                            {saving ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    Connecting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plug className="w-4 h-4 mr-2" />
+                                                    Connect Directly
+                                                </>
+                                            )}
+                                        </Button>
+                                    </TabsContent>
+
+                                    <TabsContent value="tunnel" className="space-y-3 mt-3">
+                                        <Alert className="bg-amber-500/10 border-amber-500/30">
+                                            <AlertCircle className="h-4 w-4 text-amber-400" />
+                                            <AlertDescription className="text-amber-300/80 text-xs">
+                                                Use this method if you need to connect via localhost (e.g., for desktop wallets)
+                                            </AlertDescription>
+                                        </Alert>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <Label className="text-slate-300 text-sm mb-2 block">Step 1: Create SSH Tunnel</Label>
+                                                <p className="text-xs text-slate-400 mb-2">Run this command in your terminal to forward localhost:9650 to GetBlock.io:</p>
+                                                <div className="relative group">
+                                                    <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+ssh -L 9650:go.getblock.io:443 -N user@your-server.com</pre>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText('ssh -L 9650:go.getblock.io:443 -N user@your-server.com');
+                                                            toast.success('Command copied');
+                                                        }}
+                                                    >
+                                                        <Copy className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">Replace user@your-server.com with your SSH server details</p>
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-slate-300 text-sm mb-2 block">Step 2: Alternative - Using netcat/socat</Label>
+                                                <p className="text-xs text-slate-400 mb-2">Or use socat to create a local proxy:</p>
+                                                <div className="relative group">
+                                                    <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+socat TCP-LISTEN:9650,fork,reuseaddr \
+  OPENSSL:go.getblock.io:443,verify=0</pre>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText('socat TCP-LISTEN:9650,fork,reuseaddr OPENSSL:go.getblock.io:443,verify=0');
+                                                            toast.success('Command copied');
+                                                        }}
+                                                    >
+                                                        <Copy className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-slate-300 text-sm mb-2 block">Step 3: Add Localhost Configuration</Label>
+                                                <Button
+                                                    onClick={() => {
+                                                        setFormData({
+                                                            name: 'GetBlock.io (via Tunnel)',
+                                                            connection_type: 'rpc',
+                                                            host: 'localhost',
+                                                            port: '9650',
+                                                            username: '',
+                                                            password: '',
+                                                            api_key: '',
+                                                            curl_command: '',
+                                                            use_ssl: false
+                                                        });
+                                                        setShowAddForm(true);
+                                                        toast.info('Fill in the form below with your tunnel settings');
+                                                    }}
+                                                    className="w-full bg-blue-600 hover:bg-blue-700"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Add Localhost:9650 Configuration
+                                                </Button>
+                                            </div>
+
+                                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                                <AlertDescription className="text-blue-300/80 text-xs">
+                                                    <strong>How it works:</strong>
+                                                    <ul className="list-disc list-inside mt-2 space-y-1">
+                                                        <li>The tunnel forwards your local port 9650 to GetBlock.io:443</li>
+                                                        <li>Your wallet connects to localhost:9650 as if it's a local node</li>
+                                                        <li>All traffic is securely forwarded to GetBlock.io</li>
+                                                    </ul>
+                                                </AlertDescription>
+                                            </Alert>
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
+                            </motion.div>
 
                             {/* RPC Endpoint Info */}
                     {showEndpointInfo && (
