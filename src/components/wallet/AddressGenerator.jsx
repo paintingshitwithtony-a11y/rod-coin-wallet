@@ -195,6 +195,24 @@ export default function AddressGenerator({ onAddressGenerated }) {
                                                             </>
                                                         ) : 'Invalid'}
                                                     </Badge>
+                                                    {addr.importStatus === 'imported' && (
+                                                        <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
+                                                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                            Imported
+                                                        </Badge>
+                                                    )}
+                                                    {addr.importStatus === 'pending' && (
+                                                        <Badge variant="outline" className="border-yellow-500/50 text-yellow-400 text-xs">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            Pending Import
+                                                        </Badge>
+                                                    )}
+                                                    {addr.importStatus === 'failed' && (
+                                                        <Badge variant="outline" className="border-red-500/50 text-red-400 text-xs">
+                                                            <AlertCircle className="w-3 h-3 mr-1" />
+                                                            Import Failed
+                                                        </Badge>
+                                                    )}
                                                     <span className="text-xs text-slate-500">
                                                         {addr.address.length} chars
                                                     </span>
