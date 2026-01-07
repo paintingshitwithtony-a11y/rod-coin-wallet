@@ -114,7 +114,7 @@ export default function WalletDashboard({ account, onLogout }) {
                 });
             }
         } catch (err) {
-            console.error('Failed to fetch network hashrate:', err);
+            // Silently fail - explorer may be unreachable
         }
     };
 
