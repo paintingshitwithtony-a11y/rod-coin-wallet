@@ -96,7 +96,13 @@ export default function WalletDashboard({ account, onLogout }) {
                             importStatus: 'pending'
                         }));
 
-                    setAddresses([mainAddress, ...additionalAddresses]);
+                    // Deduplicate by address to ensure no duplicates
+                    const allAddresses = [mainAddress, ...additionalAddresses];
+                    const uniqueAddresses = allAddresses.filter((addr, index, self) => 
+                        index === self.findIndex(a => a.address === addr.address)
+                    );
+                    
+                    setAddresses(uniqueAddresses);
                     setBalance({ confirmed: currentAccount.balance || 0, unconfirmed: 0 });
                 } catch (err) {
                     console.error('Cleanup failed:', err);
@@ -121,7 +127,13 @@ export default function WalletDashboard({ account, onLogout }) {
                             importStatus: 'pending'
                         }));
 
-                    setAddresses([mainAddress, ...additionalAddresses]);
+                    // Deduplicate by address to ensure no duplicates
+                    const allAddresses = [mainAddress, ...additionalAddresses];
+                    const uniqueAddresses = allAddresses.filter((addr, index, self) => 
+                        index === self.findIndex(a => a.address === addr.address)
+                    );
+                    
+                    setAddresses(uniqueAddresses);
                     setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
                 }
             }
@@ -496,7 +508,13 @@ export default function WalletDashboard({ account, onLogout }) {
                         importStatus: 'imported'
                     }));
 
-                setAddresses([mainAddress, ...additionalAddresses]);
+                // Deduplicate by address
+                const allAddresses = [mainAddress, ...additionalAddresses];
+                const uniqueAddresses = allAddresses.filter((addr, index, self) => 
+                    index === self.findIndex(a => a.address === addr.address)
+                );
+                
+                setAddresses(uniqueAddresses);
             }
         } catch (err) {
             console.error('Failed to update primary address:', err);
