@@ -1541,8 +1541,12 @@ rpcallowip=127.0.0.1`}
                                             try {
                                                 const parsed = new URL(url);
                                                 const isHttps = parsed.protocol === 'https:';
-                                                const port = parsed.port || (isHttps ? '443' : '80');
-                                                const host = parsed.hostname + parsed.pathname.replace(/\/$/, '');
+                                                const hasPath = parsed.pathname && parsed.pathname !== '/';
+                                                const host = hasPath 
+                                                    ? parsed.hostname + parsed.pathname.replace(/\/$/, '')
+                                                    : parsed.hostname;
+                                                // Only set port if explicitly provided, or if no path and no port (localhost case)
+                                                const port = parsed.port || (hasPath ? '' : (isHttps ? '443' : '80'));
                                                 
                                                 // Determine connection type based on URL
                                                 const hasAuth = parsed.username || parsed.password;
