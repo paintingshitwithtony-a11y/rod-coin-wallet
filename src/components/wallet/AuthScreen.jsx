@@ -57,6 +57,9 @@ export default function AuthScreen({ onAuth }) {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [generatedAddress, setGeneratedAddress] = useState(null);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+    const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -232,6 +235,28 @@ export default function AuthScreen({ onAuth }) {
         }
     };
 
+    const handleForgotPassword = async (e) => {
+        e.preventDefault();
+        setForgotPasswordLoading(true);
+        setError('');
+
+        try {
+            const response = await base44.functions.invoke('forgotPassword', { 
+                email: forgotPasswordEmail.toLowerCase() 
+            });
+            
+            toast.success('Password recovery email sent! Check your inbox.');
+            setShowForgotPassword(false);
+            setForgotPasswordEmail('');
+        } catch (err) {
+            toast.info('If an account exists with this email, a recovery email has been sent.');
+            setShowForgotPassword(false);
+            setForgotPasswordEmail('');
+        } finally {
+            setForgotPasswordLoading(false);
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -295,6 +320,59 @@ export default function AuthScreen({ onAuth }) {
                             </TabsList>
                             
                             <TabsContent value="login" className="space-y-4 mt-4">
+                                {showForgotPassword ? (
+                                    <motion.form
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        onSubmit={handleForgotPassword}
+                                        className="space-y-4"
+                                    >
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300">Email Address</Label>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                                <Input
+                                                    type="email"
+                                                    value={forgotPasswordEmail}
+                                                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                                    placeholder="your@email.com"
+                                                    className="bg-slate-800/50 border-slate-700 text-white pl-10"
+                                                    required
+                                                />
+                                            </div>
+                                            <p className="text-xs text-slate-400">
+                                                We'll send password recovery instructions to this email.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setShowForgotPassword(false);
+                                                    setForgotPasswordEmail('');
+                                                }}
+                                                className="flex-1 border-slate-600 text-slate-300"
+                                            >
+                                                Back to Login
+                                            </Button>
+                                            <Button
+                                                type="submit"
+                                                disabled={forgotPasswordLoading}
+                                                className="flex-1 bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600"
+                                            >
+                                                {forgotPasswordLoading ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Sending...
+                                                    </>
+                                                ) : (
+                                                    'Send Recovery Email'
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </motion.form>
+                                ) : (
                                 <form onSubmit={handleLogin} className="space-y-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300">Email</Label>
@@ -348,7 +426,17 @@ export default function AuthScreen({ onAuth }) {
                                             </>
                                         )}
                                     </Button>
+                                    <div className="text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowForgotPassword(true)}
+                                            className="text-sm text-purple-400 hover:text-purple-300 underline"
+                                        >
+                                            Forgot your password?
+                                        </button>
+                                    </div>
                                 </form>
+                                )}
                             </TabsContent>
                             
                             <TabsContent value="signup" className="space-y-4 mt-4">
