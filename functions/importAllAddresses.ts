@@ -37,22 +37,33 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
 
-        // Build RPC URL
+        // Build RPC URL - ensure it ends with / for RPC endpoints
         const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = !config.port || config.port === ''
+        let rpcUrl = !config.port || config.port === ''
             ? `${protocol}://${config.host}`
             : `${protocol}://${config.host}:${config.port}`;
+        
+        // Ensure trailing slash for RPC endpoints
+        if (!rpcUrl.endsWith('/')) {
+            rpcUrl += '/';
+        }
 
         // Prepare headers
         const headers = {
             'Content-Type': 'application/json'
         };
 
-        if (config.connection_type === 'api' && config.api_key) {
+        // Always add Basic auth for RPC connections
+        if (config.connection_type === 'rpc') {
+            if (config.username && config.password) {
+                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+            }
+        } else if (config.connection_type === 'api' && config.api_key) {
             headers['X-API-Key'] = config.api_key;
-        } else if (config.connection_type === 'rpc' && config.username && config.password) {
-            headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
+
+        console.log('Attempting import with URL:', rpcUrl);
+        console.log('Headers:', Object.keys(headers));
 
         // Collect all addresses to import
         const addressesToImport = [
