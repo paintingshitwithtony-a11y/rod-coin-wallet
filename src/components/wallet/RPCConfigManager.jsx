@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -222,14 +222,51 @@ export default function RPCConfigManager({ account, onClose }) {
         setImporting(true);
         try {
             const content = await file.text();
+            
+            // Try to parse as JSON first (bulk import)
+            try {
+                const jsonData = JSON.parse(content);
+                if (Array.isArray(jsonData)) {
+                    // Bulk import multiple configs
+                    let imported = 0;
+                    for (const config of jsonData) {
+                        if (config.name && config.host && config.port) {
+                            await base44.entities.RPCConfiguration.create({
+                                account_id: account.id,
+                                name: config.name,
+                                connection_type: config.connection_type || 'rpc',
+                                host: config.host,
+                                port: config.port,
+                                username: config.username || '',
+                                password: config.password || '',
+                                use_ssl: config.use_ssl || false,
+                                is_active: false,
+                                connection_status: 'untested'
+                            });
+                            imported++;
+                        }
+                    }
+                    toast.success(`Imported ${imported} configuration(s)`);
+                    await loadConfigurations();
+                    setImporting(false);
+                    event.target.value = '';
+                    return;
+                }
+            } catch (e) {
+                // Not JSON, try .conf format
+            }
+            
+            // Parse as .conf file
             const parsed = parseConfigFile(content);
 
             setFormData({
                 name: parsed.isCookie ? 'Imported Config (Cookie Auth)' : 'Imported Config',
+                connection_type: 'rpc',
                 host: parsed.host,
                 port: parsed.port,
                 username: parsed.username,
-                password: parsed.password
+                password: parsed.password,
+                use_ssl: false
             });
 
             setShowAddForm(true);
@@ -244,6 +281,35 @@ export default function RPCConfigManager({ account, onClose }) {
             setImporting(false);
             event.target.value = '';
         }
+    };
+
+    const handleExportConfigs = () => {
+        if (configs.length === 0) {
+            toast.error('No configurations to export');
+            return;
+        }
+
+        const exportData = configs.map(config => ({
+            name: config.name,
+            connection_type: config.connection_type || 'rpc',
+            host: config.host,
+            port: config.port,
+            username: config.username || '',
+            password: config.password || '',
+            use_ssl: config.use_ssl || false
+        }));
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rod-rpc-configs-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
+        
+        toast.success('Configurations exported successfully');
     };
 
     const autoDetectLocal = async () => {
@@ -499,15 +565,24 @@ export default function RPCConfigManager({ account, onClose }) {
                             ) : (
                                 <Upload className="w-4 h-4 mr-2" />
                             )}
-                            Import Config
+                            Load
                         </Button>
                         <input
                             id="config-file-input"
                             type="file"
-                            accept=".conf"
+                            accept=".conf,.json"
                             onChange={handleImportConfig}
                             className="hidden"
                         />
+                        <Button
+                            onClick={handleExportConfigs}
+                            variant="outline"
+                            className="border-slate-600"
+                            disabled={configs.length === 0}
+                        >
+                            <Download className="w-4 h-4 mr-2" />
+                            Save
+                        </Button>
                         <Button
                             onClick={() => {
                                 setEditingConfig(null);
@@ -930,7 +1005,7 @@ rpcallowip=127.0.0.1`}
                     <Alert className="bg-blue-500/10 border-blue-500/30">
                         <AlertCircle className="h-4 w-4 text-blue-400" />
                         <AlertDescription className="text-blue-300/80 text-sm">
-                            Active configuration is used for all transactions. Test connections before switching.
+                            Active configuration is used for all transactions. Use Save/Load buttons to backup and restore configurations (.json or .conf files).
                         </AlertDescription>
                     </Alert>
                 </div>
