@@ -65,8 +65,13 @@ export default function WalletDashboard({ account, onLogout }) {
     }, []);
 
     useEffect(() => {
-        // Load addresses from account
+        // Load addresses from account and cleanup duplicates
         if (account) {
+            // Cleanup duplicates in database
+            base44.functions.invoke('cleanupDuplicateAddresses', {}).catch(err => {
+                console.error('Cleanup failed:', err);
+            });
+
             const mainAddress = {
                 id: 'main',
                 address: account.wallet_address,
