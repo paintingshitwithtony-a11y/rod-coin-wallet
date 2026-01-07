@@ -479,12 +479,6 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
             return;
         }
 
-        // For RPC, require username and password
-        if (formData.connection_type === 'rpc' && (!formData.username || !formData.password)) {
-            toast.error('Username and password required for RPC connection');
-            return;
-        }
-
         // For cURL, require cURL command
         if (formData.connection_type === 'curl' && !formData.curl_command) {
             toast.error('cURL command required for cURL connection');
@@ -1538,7 +1532,7 @@ rpcallowip=127.0.0.1`}
                                 <Label className="text-slate-300">Quick Setup - Paste Endpoint URL (Optional)</Label>
                                 <div className="flex gap-2">
                                     <Input
-                                        placeholder="https://go.getblock.io:443/abc123 or http://localhost:9650"
+                                        placeholder="https://go.getblock.io/abc123 or http://localhost:9650"
                                         className="bg-slate-900 border-slate-600 font-mono text-sm"
                                         onPaste={(e) => {
                                             const url = e.clipboardData.getData('text');
@@ -1548,25 +1542,22 @@ rpcallowip=127.0.0.1`}
                                                 const port = parsed.port || (isHttps ? '443' : '80');
                                                 const host = parsed.hostname + parsed.pathname.replace(/\/$/, '');
                                                 
+                                                // Determine connection type based on URL
+                                                const hasAuth = parsed.username || parsed.password;
+                                                const connectionType = hasAuth ? 'rpc' : 'api';
+                                                
                                                 setFormData({
                                                     ...formData,
                                                     host: host,
                                                     port: port,
                                                     use_ssl: isHttps,
+                                                    connection_type: connectionType,
+                                                    username: parsed.username || '',
+                                                    password: parsed.password || '',
                                                     name: formData.name || `${parsed.hostname} Connection`
                                                 });
                                                 
-                                                // Parse basic auth if present
-                                                if (parsed.username || parsed.password) {
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        username: parsed.username,
-                                                        password: parsed.password,
-                                                        connection_type: 'rpc'
-                                                    }));
-                                                }
-                                                
-                                                toast.success('URL parsed successfully');
+                                                toast.success('URL parsed - no username/password needed');
                                                 e.target.value = '';
                                             } catch (err) {
                                                 toast.error('Invalid URL format');
@@ -1574,7 +1565,7 @@ rpcallowip=127.0.0.1`}
                                         }}
                                     />
                                 </div>
-                                <p className="text-xs text-slate-500">Paste a full URL to auto-fill host, port, and SSL settings</p>
+                                <p className="text-xs text-slate-500">Paste endpoint URL - credentials extracted automatically if present</p>
                             </div>
 
                             <div className="space-y-2">
