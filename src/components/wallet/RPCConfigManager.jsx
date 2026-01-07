@@ -852,7 +852,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                 <Label className="text-slate-300 text-sm">Configuration Name</Label>
                                                 <Input
                                                     value={formData.name || 'FreeRPC ROD'}
-                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value, connection_type: 'api' })}
                                                     placeholder="FreeRPC ROD"
                                                     className="bg-slate-900 border-slate-600 text-white"
                                                 />
@@ -863,7 +863,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                     <Label className="text-slate-300 text-sm">Host</Label>
                                                     <Input
                                                         value={formData.host || 'rod.freerpc.com'}
-                                                        onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                                                        onChange={(e) => setFormData({ ...formData, host: e.target.value, connection_type: 'api' })}
                                                         placeholder="rod.freerpc.com"
                                                         className="bg-slate-900 border-slate-600 text-white font-mono text-sm"
                                                     />
@@ -872,7 +872,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                     <Label className="text-slate-300 text-sm">Port</Label>
                                                     <Input
                                                         value={formData.port || '443'}
-                                                        onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                                                        onChange={(e) => setFormData({ ...formData, port: e.target.value, connection_type: 'api' })}
                                                         placeholder="443"
                                                         className="bg-slate-900 border-slate-600 text-white"
                                                     />
@@ -884,7 +884,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                 <Input
                                                     type="password"
                                                     value={formData.api_key || ''}
-                                                    onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                                                    onChange={(e) => setFormData({ ...formData, api_key: e.target.value, connection_type: 'api' })}
                                                     placeholder="Paste your FreeRPC API key here"
                                                     className="bg-slate-900 border-slate-600 text-white font-mono text-sm"
                                                 />
@@ -894,7 +894,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                                 <Label className="text-slate-300 text-sm">Use SSL/TLS</Label>
                                                 <Switch
                                                     checked={formData.use_ssl ?? true}
-                                                    onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked })}
+                                                    onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked, connection_type: 'api' })}
                                                 />
                                             </div>
 
