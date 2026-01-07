@@ -75,10 +75,19 @@ Deno.serve(async (req) => {
         const importData = await importResponse.json();
 
         if (importData.error) {
+            // Some errors are acceptable (e.g., address already imported)
+            if (importData.error.message && importData.error.message.toLowerCase().includes('already')) {
+                return Response.json({
+                    success: true,
+                    alreadyImported: true,
+                    message: 'Address already imported',
+                    address
+                });
+            }
             return Response.json({
                 error: `RPC Error: ${importData.error.message}`,
                 success: false
-            }, { status: 500 });
+            }, { status: 400 });
         }
 
         return Response.json({
