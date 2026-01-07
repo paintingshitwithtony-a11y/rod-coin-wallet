@@ -108,6 +108,5 @@ Deno.serve(async (req) => {
         return Response.json({ 
             connected: false,
             error: error.message || 'Unknown error'
-        }, { status: 200 });
-    }
+        });
 });
