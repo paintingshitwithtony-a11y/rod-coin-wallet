@@ -94,8 +94,7 @@ Deno.serve(async (req) => {
                     for (const tx of receiveTxs) {
                         const existing = await base44.entities.Transaction.filter({
                             account_id: account.id,
-                            address: tx.address,
-                            amount: tx.amount
+                            memo: `TxID: ${tx.txid}`
                         });
 
                         // If not already recorded, add it
