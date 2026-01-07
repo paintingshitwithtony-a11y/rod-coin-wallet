@@ -397,32 +397,6 @@ export default function WalletDashboard({ account, onLogout }) {
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                            setLoading(true);
-                            try {
-                                const response = await base44.functions.invoke('recalculateBalance', {});
-                                if (response.data.success) {
-                                    toast.success(`Balance recalculated! ${response.data.duplicatesRemoved} duplicates removed`);
-                                    await fetchWalletData();
-                                } else {
-                                    toast.error('Failed to recalculate balance');
-                                }
-                            } catch (err) {
-                                toast.error('Failed to recalculate balance');
-                            } finally {
-                                setLoading(false);
-                            }
-                        }}
-                        disabled={loading}
-                        className="text-amber-400 hover:text-amber-300 border-amber-500/50"
-                        title="Remove duplicate transactions and recalculate balance"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                        Fix Balance
-                    </Button>
-                    <Button
                         variant="ghost"
                         size="icon"
                         onClick={handleManualRefresh}
