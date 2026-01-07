@@ -597,6 +597,21 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 </DialogHeader>
 
                 <div className="space-y-4">
+                    {/* Security Warning */}
+                    <Alert className="bg-red-500/10 border-red-500/30">
+                        <AlertCircle className="h-4 w-4 text-red-400" />
+                        <AlertDescription className="text-red-300/80 text-sm space-y-2">
+                            <strong className="block text-red-400">⚠️ SECURITY WARNING</strong>
+                            <p><strong>Recommended Secure Connection Methods:</strong></p>
+                            <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+                                <li><strong>Local Installation:</strong> Run ROD Core on your own computer (localhost)</li>
+                                <li><strong>VPS with Fixed IP:</strong> Deploy on a VPS with firewall rules limiting access</li>
+                                <li><strong>VPN Tunnel:</strong> Use Tailscale/WireGuard for private encrypted access</li>
+                                <li><strong>IP Whitelisting:</strong> If you have a static IP, whitelist only your address</li>
+                            </ul>
+                            <p className="text-red-400 font-semibold mt-2">❌ AVOID: Ngrok or temporary tunnels - they're insecure, temporary, and expose your node to anyone with the URL</p>
+                        </AlertDescription>
+                    </Alert>
                     {/* Auto-detect button */}
                     <div className="flex gap-2 flex-wrap">
                         <Button
@@ -1709,6 +1724,31 @@ rpcallowip=127.0.0.1`}
                                 <p className="text-xs text-slate-500">Paste endpoint URL - credentials extracted automatically if present</p>
                             </div>
 
+                            {/* Connection Type Security Info */}
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-xs space-y-2">
+                                    <p><strong>Security Best Practices:</strong></p>
+                                    <ul className="list-disc list-inside space-y-1 ml-2">
+                                        {formData.connection_type === 'rpc' && (
+                                            <>
+                                                <li>Use <code className="text-amber-400">localhost</code> for local installations (most secure)</li>
+                                                <li>For remote nodes, use a VPN (Tailscale/WireGuard) instead of public IPs</li>
+                                                <li>Enable firewall rules to whitelist only your IP addresses</li>
+                                                <li>Never use temporary tunnels like ngrok - they're not secure</li>
+                                            </>
+                                        )}
+                                        {formData.connection_type === 'api' && (
+                                            <>
+                                                <li>Only use trusted API providers with good reputation</li>
+                                                <li>Keep your API key secure and never share it</li>
+                                                <li>API connections may have rate limits and reduced privacy</li>
+                                            </>
+                                        )}
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
+                            
                             <div className="space-y-2">
                                 <Label className="text-slate-300">Configuration Name</Label>
                                 <Input
@@ -1718,7 +1758,7 @@ rpcallowip=127.0.0.1`}
                                         formData.connection_type === 'curl' ? 'e.g., Custom cURL Connection' :
                                         formData.connection_type === 'api' ? 'e.g., ROD Mainnet API' :
                                         formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 
-                                        'e.g., Local Node, Mining Pool'
+                                        'e.g., Local Node, VPS'
                                     }
                                     className="bg-slate-900 border-slate-600"
                                 />
@@ -1728,14 +1768,24 @@ rpcallowip=127.0.0.1`}
                                     <Label className="text-slate-300">Host</Label>
                                     <Input
                                         value={formData.host}
-                                        onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                                        onChange={(e) => {
+                                            const host = e.target.value;
+                                            setFormData({ ...formData, host });
+                                            // Warn about ngrok
+                                            if (host.includes('ngrok')) {
+                                                toast.error('⚠️ Ngrok is NOT recommended - insecure and temporary. Use localhost or VPN instead.');
+                                            }
+                                        }}
                                         placeholder={
                                             formData.connection_type === 'api' ? 'api.rod-mainnet.com' :
                                             formData.connection_type === 'electrum' ? 'electrum.example.com' : 
-                                            'localhost'
+                                            'localhost (recommended)'
                                         }
                                         className="bg-slate-900 border-slate-600"
                                     />
+                                    {formData.connection_type === 'rpc' && (
+                                        <p className="text-xs text-green-400">✓ localhost is the most secure option</p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">Port</Label>
@@ -1945,6 +1995,20 @@ rpcallowip=127.0.0.1`}
                         <AlertCircle className="h-4 w-4 text-blue-400" />
                         <AlertDescription className="text-blue-300/80 text-sm">
                             Active configuration is used for all transactions. Use Save/Load buttons to backup and restore configurations (.json or .conf files).
+                        </AlertDescription>
+                    </Alert>
+
+                    {/* Additional Security Guidance */}
+                    <Alert className="bg-amber-500/10 border-amber-500/30">
+                        <AlertCircle className="h-4 w-4 text-amber-400" />
+                        <AlertDescription className="text-amber-300/80 text-xs space-y-2">
+                            <p><strong>⚠️ Important Security Notes:</strong></p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                                <li><strong>Validate Endpoints:</strong> Only connect to nodes you trust - malicious nodes can return fake balance/transaction data</li>
+                                <li><strong>Private Keys:</strong> Never share your wallet's private keys with anyone, including RPC node operators</li>
+                                <li><strong>Network Security:</strong> Remote connections should always use encrypted tunnels (VPN/SSH), not public internet</li>
+                                <li><strong>Read-Only Recommended:</strong> For maximum security, consider using watch-only addresses for remote nodes</li>
+                            </ul>
                         </AlertDescription>
                     </Alert>
                 </div>
