@@ -71,7 +71,7 @@ export default function WalletDashboard({ account, onLogout }) {
                 createdAt: account.created_date,
                 isValid: true
             };
-            
+
             const additionalAddresses = (account.additional_addresses || []).map((addr, i) => ({
                 id: `addr-${i}`,
                 address: addr.address,
@@ -81,7 +81,19 @@ export default function WalletDashboard({ account, onLogout }) {
                 importStatus: 'imported'
             }));
 
-            setAddresses([mainAddress, ...additionalAddresses]);
+            // Deduplicate addresses by address string
+            const allAddresses = [mainAddress, ...additionalAddresses];
+            const uniqueAddresses = [];
+            const seenAddresses = new Set();
+
+            for (const addr of allAddresses) {
+                if (!seenAddresses.has(addr.address)) {
+                    seenAddresses.add(addr.address);
+                    uniqueAddresses.push(addr);
+                }
+            }
+
+            setAddresses(uniqueAddresses);
             setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
             }
         importAllAddresses();
