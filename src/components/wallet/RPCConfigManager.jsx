@@ -899,21 +899,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                             </div>
 
                                             <Button
-                                                onClick={() => {
-                                                    // Set connection type to API and pre-fill defaults
-                                                    setFormData({
-                                                        name: formData.name || 'FreeRPC ROD',
-                                                        connection_type: 'api',
-                                                        host: formData.host || 'rod.freerpc.com',
-                                                        port: formData.port || '443',
-                                                        api_key: formData.api_key || '',
-                                                        use_ssl: formData.use_ssl ?? true,
-                                                        username: '',
-                                                        password: '',
-                                                        curl_command: ''
-                                                    });
-                                                    handleSaveConfig();
-                                                }}
+                                                onClick={handleSaveConfig}
                                                 disabled={saving || !formData.api_key}
                                                 className="w-full bg-green-600 hover:bg-green-700 h-11"
                                             >
