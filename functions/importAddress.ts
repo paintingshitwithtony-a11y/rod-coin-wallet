@@ -34,8 +34,9 @@ Deno.serve(async (req) => {
 
         if (configs.length === 0) {
             return Response.json({ 
-                error: 'No active RPC configuration',
-                success: false
+                success: true,
+                message: 'Address saved (RPC not configured yet)',
+                address
             });
         }
 

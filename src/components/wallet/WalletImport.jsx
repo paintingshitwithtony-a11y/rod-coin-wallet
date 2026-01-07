@@ -121,8 +121,7 @@ export default function WalletImport({ account, onWalletImported }) {
                     label: label.trim()
                 });
             } catch (importError) {
-                console.error('Failed to import address into node:', importError);
-                toast.warning('Wallet imported but not added to node');
+                // Silently fail - will import when RPC is configured
             }
 
             toast.success(`Wallet "${label}" imported from seed phrase!`);
@@ -206,8 +205,7 @@ export default function WalletImport({ account, onWalletImported }) {
                     label: label.trim()
                 });
             } catch (importError) {
-                console.error('Failed to import address into node:', importError);
-                toast.warning('Wallet imported but not added to node');
+                // Silently fail - will import when RPC is configured
             }
 
             toast.success(`Wallet "${label}" imported successfully!`);

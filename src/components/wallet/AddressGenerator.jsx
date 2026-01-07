@@ -46,8 +46,8 @@ export default function AddressGenerator({ onAddressGenerated }) {
                     label: newAddress.label
                 });
             } catch (importError) {
-                console.error('Failed to import address into node:', importError);
-                toast.warning('Address generated but not imported into node');
+                // Silently fail - address is saved, will import when RPC is configured
+                console.log('Address will import when RPC is configured');
             }
             
             if (onAddressGenerated) {

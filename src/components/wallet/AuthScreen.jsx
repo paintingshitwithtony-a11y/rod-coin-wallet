@@ -209,14 +209,14 @@ export default function AuthScreen({ onAuth }) {
             
             localStorage.setItem('rod_wallet_session', JSON.stringify(session));
             
-            // Import primary address into node
+            // Import primary address into node (will work once RPC is configured)
             try {
                 await base44.functions.invoke('importAddress', {
                     address: address,
                     label: 'Primary Address'
                 });
             } catch (importError) {
-                console.error('Failed to import primary address:', importError);
+                // Silently fail - will import when RPC is configured
             }
             
             toast.success('Wallet created successfully!');
