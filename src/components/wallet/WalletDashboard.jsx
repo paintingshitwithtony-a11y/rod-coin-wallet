@@ -125,17 +125,7 @@ export default function WalletDashboard({ account, onLogout }) {
             if (response.data.connected && response.data.nodeInfo) {
                 setRpcNodeInfo(response.data.nodeInfo);
             } else if (response.data.error) {
-                console.log('RPC Status Error:', response.data.error, response.data.errorType);
-                // Show user-friendly error message
-                if (response.data.errorType === 'auth') {
-                    toast.error('RPC Authentication Failed', {
-                        description: response.data.error
-                    });
-                } else if (response.data.errorType === 'network' && response.data.retriesAttempted) {
-                    toast.error('RPC Connection Failed', {
-                        description: `${response.data.error} (after ${response.data.retriesAttempted} attempts)`
-                    });
-                }
+                console.log('RPC Status Error:', response.data.error);
             }
         } catch (err) {
             console.error('RPC Status Check Failed:', err);
