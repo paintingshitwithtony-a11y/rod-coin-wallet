@@ -45,6 +45,9 @@ export default function WalletDashboard({ account, onLogout }) {
     const [showRPCManager, setShowRPCManager] = useState(false);
     const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
     const [selectedAddressForSeed, setSelectedAddressForSeed] = useState(null);
+    const [rpcError, setRpcError] = useState(null);
+    const [reconnectAttempts, setReconnectAttempts] = useState(0);
+    const [isReconnecting, setIsReconnecting] = useState(false);
 
     useEffect(() => {
         // Load addresses from account
@@ -131,19 +134,49 @@ export default function WalletDashboard({ account, onLogout }) {
         }
     };
 
-    const checkRPCStatus = async () => {
+    const checkRPCStatus = async (isRetry = false) => {
         try {
             const response = await base44.functions.invoke('checkRPCStatus', {});
-            setRpcConnected(response.data.connected);
-            if (response.data.connected && response.data.nodeInfo) {
-                setRpcNodeInfo(response.data.nodeInfo);
-            } else if (response.data.error) {
-                console.log('RPC Status Error:', response.data.error);
+            
+            if (response.data.connected) {
+                setRpcConnected(true);
+                setRpcError(null);
+                setReconnectAttempts(0);
+                setIsReconnecting(false);
+                
+                if (response.data.nodeInfo) {
+                    setRpcNodeInfo(response.data.nodeInfo);
+                }
+                
+                if (isRetry) {
+                    toast.success('RPC connection restored!');
+                }
+            } else {
+                setRpcConnected(false);
+                setRpcNodeInfo(null);
+                setRpcError(response.data.error || 'Connection failed');
+                
+                // Attempt auto-reconnect (max 3 attempts)
+                if (!isRetry && reconnectAttempts < 3) {
+                    setIsReconnecting(true);
+                    setReconnectAttempts(prev => prev + 1);
+                    setTimeout(() => checkRPCStatus(true), 5000);
+                }
             }
         } catch (err) {
             console.error('RPC Status Check Failed:', err);
             setRpcConnected(false);
             setRpcNodeInfo(null);
+            setRpcError(err.message);
+            
+            // Attempt auto-reconnect (max 3 attempts)
+            if (!isRetry && reconnectAttempts < 3) {
+                setIsReconnecting(true);
+                setReconnectAttempts(prev => prev + 1);
+                setTimeout(() => checkRPCStatus(true), 5000);
+            } else {
+                setIsReconnecting(false);
+            }
         }
     };
 
@@ -264,9 +297,22 @@ export default function WalletDashboard({ account, onLogout }) {
                                 Logged In
                             </Badge>
                             {rpcConnected !== null && (
-                                <Badge variant="outline" className={rpcConnected ? "border-blue-500/50 text-blue-400" : "border-amber-500/50 text-amber-400"}>
-                                    <span className={`w-2 h-2 rounded-full ${rpcConnected ? 'bg-blue-400' : 'bg-amber-400'} mr-2`} />
-                                    RPC {rpcConnected ? 'Connected' : 'Offline'}
+                                <Badge 
+                                    variant="outline" 
+                                    className={
+                                        isReconnecting ? "border-yellow-500/50 text-yellow-400" :
+                                        rpcConnected ? "border-green-500/50 text-green-400" : 
+                                        "border-red-500/50 text-red-400"
+                                    }
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${
+                                        isReconnecting ? 'bg-yellow-400 animate-pulse' :
+                                        rpcConnected ? 'bg-green-400' : 
+                                        'bg-red-400'
+                                    } mr-2`} />
+                                    {isReconnecting ? `Reconnecting (${reconnectAttempts}/3)` :
+                                     rpcConnected ? 'RPC Connected' : 
+                                     'RPC Offline'}
                                 </Badge>
                             )}
                             <span className="text-xs text-slate-500">
@@ -309,12 +355,26 @@ export default function WalletDashboard({ account, onLogout }) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setShowRPCManager(true)}
-                        className={`relative text-slate-400 hover:text-white ${rpcConnected === false ? 'text-amber-400 animate-pulse' : rpcConnected ? 'text-green-400' : ''}`}
-                        title="RPC Node Management"
+                        onClick={() => {
+                            if (!rpcConnected && !isReconnecting) {
+                                setReconnectAttempts(0);
+                                checkRPCStatus();
+                            }
+                            setShowRPCManager(true);
+                        }}
+                        className={`relative text-slate-400 hover:text-white ${
+                            isReconnecting ? 'text-yellow-400' :
+                            rpcConnected === false ? 'text-red-400' : 
+                            rpcConnected ? 'text-green-400' : ''
+                        }`}
+                        title={
+                            isReconnecting ? 'Reconnecting...' :
+                            rpcConnected === false ? 'RPC Offline - Click to configure' :
+                            'RPC Node Management'
+                        }
                     >
-                        <Plug className="w-5 h-5" />
-                        {rpcConnected === false && (
+                        <Plug className={`w-5 h-5 ${isReconnecting ? 'animate-pulse' : ''}`} />
+                        {rpcConnected === false && !isReconnecting && (
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
                         )}
                     </Button>
@@ -677,18 +737,82 @@ export default function WalletDashboard({ account, onLogout }) {
             )}
 
             {/* Connection Status Alert */}
-            {rpcConnected === false && (
+            {rpcConnected === false && !isReconnecting && (
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="fixed top-4 right-4 z-50 max-w-md"
                 >
-                    <Alert className="bg-amber-500/10 border-amber-500/30 backdrop-blur-xl">
-                        <AlertCircle className="h-4 w-4 text-amber-400" />
-                        <AlertDescription className="text-amber-300/80">
-                            RPC connection offline. Click the <Plug className="inline w-4 h-4 mx-1" /> button to configure.
+                    <Alert className="bg-red-500/10 border-red-500/30 backdrop-blur-xl">
+                        <AlertCircle className="h-4 w-4 text-red-400" />
+                        <AlertDescription className="text-red-300/90">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <strong>RPC Offline</strong>
+                                    {rpcError && <p className="text-xs mt-1 text-red-400/80">{rpcError}</p>}
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setReconnectAttempts(0);
+                                        checkRPCStatus();
+                                    }}
+                                    className="text-red-300 hover:text-white ml-4"
+                                >
+                                    <RefreshCw className="w-4 h-4 mr-1" />
+                                    Retry
+                                </Button>
+                            </div>
                         </AlertDescription>
                     </Alert>
+                </motion.div>
+            )}
+
+            {isReconnecting && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fixed top-4 right-4 z-50 max-w-md"
+                >
+                    <Alert className="bg-yellow-500/10 border-yellow-500/30 backdrop-blur-xl">
+                        <Loader2 className="h-4 w-4 text-yellow-400 animate-spin" />
+                        <AlertDescription className="text-yellow-300/90">
+                            <strong>Reconnecting to RPC...</strong>
+                            <p className="text-xs mt-1">Attempt {reconnectAttempts} of 3</p>
+                        </AlertDescription>
+                    </Alert>
+                </motion.div>
+            )}
+
+            {rpcConnected && rpcNodeInfo && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="fixed top-4 right-4 z-50 max-w-sm"
+                >
+                    <Card className="bg-green-500/10 border-green-500/30 backdrop-blur-xl">
+                        <CardContent className="p-3">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-green-300">RPC Connected</p>
+                                    <p className="text-xs text-green-400/80">
+                                        Block {rpcNodeInfo.blocks?.toLocaleString()} • {rpcNodeInfo.chain}
+                                    </p>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setRpcConnected(null)}
+                                    className="text-green-400 hover:text-white"
+                                >
+                                    ×
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </motion.div>
             )}
         </div>
