@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
     DialogContent,
@@ -28,10 +30,12 @@ export default function RPCConfigManager({ account, onClose }) {
     const [editingConfig, setEditingConfig] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
+        connection_type: 'rpc',
         host: 'localhost',
         port: '9650',
         username: '',
-        password: ''
+        password: '',
+        use_ssl: false
     });
     const [saving, setSaving] = useState(false);
     const [showCommandHelp, setShowCommandHelp] = useState(false);
@@ -341,17 +345,25 @@ export default function RPCConfigManager({ account, onClose }) {
         setEditingConfig(config);
         setFormData({
             name: config.name,
+            connection_type: config.connection_type || 'rpc',
             host: config.host,
             port: config.port,
-            username: config.username,
-            password: config.password
+            username: config.username || '',
+            password: config.password || '',
+            use_ssl: config.use_ssl || false
         });
         setShowAddForm(true);
     };
 
     const handleSaveConfig = async () => {
-        if (!formData.name || !formData.host || !formData.port || !formData.username || !formData.password) {
-            toast.error('Please fill in all fields');
+        if (!formData.name || !formData.host || !formData.port) {
+            toast.error('Please fill in required fields');
+            return;
+        }
+        
+        // For RPC, require username and password
+        if (formData.connection_type === 'rpc' && (!formData.username || !formData.password)) {
+            toast.error('Username and password required for RPC connection');
             return;
         }
 
@@ -361,10 +373,12 @@ export default function RPCConfigManager({ account, onClose }) {
                 // Update existing config
                 await base44.entities.RPCConfiguration.update(editingConfig.id, {
                     name: formData.name,
+                    connection_type: formData.connection_type,
                     host: formData.host,
                     port: formData.port,
-                    username: formData.username,
-                    password: formData.password,
+                    username: formData.username || '',
+                    password: formData.password || '',
+                    use_ssl: formData.use_ssl,
                     connection_status: 'untested'
                 });
 
@@ -384,10 +398,12 @@ export default function RPCConfigManager({ account, onClose }) {
                 const newConfig = await base44.entities.RPCConfiguration.create({
                     account_id: account.id,
                     name: formData.name,
+                    connection_type: formData.connection_type,
                     host: formData.host,
                     port: formData.port,
-                    username: formData.username,
-                    password: formData.password,
+                    username: formData.username || '',
+                    password: formData.password || '',
+                    use_ssl: formData.use_ssl,
                     is_active: configs.length === 0,
                     connection_status: 'untested'
                 });
@@ -407,7 +423,7 @@ export default function RPCConfigManager({ account, onClose }) {
                 setTimeout(() => testConnection(newConfig), 500);
             }
 
-            setFormData({ name: '', host: 'localhost', port: '9650', username: '', password: '' });
+            setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', use_ssl: false });
             setEditingConfig(null);
             setShowAddForm(false);
             await loadConfigurations();
@@ -495,7 +511,7 @@ export default function RPCConfigManager({ account, onClose }) {
                         <Button
                             onClick={() => {
                                 setEditingConfig(null);
-                                setFormData({ name: '', host: 'localhost', port: '9650', username: '', password: '' });
+                                setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', use_ssl: false });
                                 setShowAddForm(!showAddForm);
                             }}
                             variant="outline"
@@ -709,12 +725,38 @@ rpcallowip=127.0.0.1`}
                             <h4 className="text-white font-medium">
                                 {editingConfig ? 'Edit Configuration' : 'Add New Configuration'}
                             </h4>
+                            
+                            <Tabs value={formData.connection_type} onValueChange={(val) => setFormData({ ...formData, connection_type: val })}>
+                                <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+                                    <TabsTrigger value="rpc">Full Node (RPC)</TabsTrigger>
+                                    <TabsTrigger value="electrum">Electrum Server</TabsTrigger>
+                                </TabsList>
+                                
+                                <TabsContent value="rpc" className="space-y-3 mt-3">
+                                    <Alert className="bg-blue-500/10 border-blue-500/30">
+                                        <AlertCircle className="h-4 w-4 text-blue-400" />
+                                        <AlertDescription className="text-blue-300/80 text-xs">
+                                            Connect to a full ROD Core node via RPC
+                                        </AlertDescription>
+                                    </Alert>
+                                </TabsContent>
+                                
+                                <TabsContent value="electrum" className="space-y-3 mt-3">
+                                    <Alert className="bg-purple-500/10 border-purple-500/30">
+                                        <AlertCircle className="h-4 w-4 text-purple-400" />
+                                        <AlertDescription className="text-purple-300/80 text-xs">
+                                            Connect to an Electrum server (lightweight, no full node required)
+                                        </AlertDescription>
+                                    </Alert>
+                                </TabsContent>
+                            </Tabs>
+                            
                             <div className="space-y-2">
                                 <Label className="text-slate-300">Configuration Name</Label>
                                 <Input
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="e.g., Local Node, Mining Pool"
+                                    placeholder={formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 'e.g., Local Node, Mining Pool'}
                                     className="bg-slate-900 border-slate-600"
                                 />
                             </div>
@@ -724,7 +766,7 @@ rpcallowip=127.0.0.1`}
                                     <Input
                                         value={formData.host}
                                         onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                                        placeholder="localhost"
+                                        placeholder={formData.connection_type === 'electrum' ? 'electrum.example.com' : 'localhost'}
                                         className="bg-slate-900 border-slate-600"
                                     />
                                 </div>
@@ -733,34 +775,46 @@ rpcallowip=127.0.0.1`}
                                     <Input
                                         value={formData.port}
                                         onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                                        placeholder="9650"
+                                        placeholder={formData.connection_type === 'electrum' ? '50002' : '9650'}
                                         className="bg-slate-900 border-slate-600"
                                     />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">Username</Label>
-                                    <Input
-                                        value={formData.username}
-                                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                        placeholder="__cookie__ or roduser"
-                                        className="bg-slate-900 border-slate-600"
+                            
+                            {formData.connection_type === 'electrum' && (
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                    <Label className="text-slate-300">Use SSL/TLS</Label>
+                                    <Switch
+                                        checked={formData.use_ssl}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked })}
                                     />
-                                    <p className="text-xs text-slate-500">Use "__cookie__" for cookie auth</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">Password</Label>
-                                    <Input
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder=".cookie content or password"
-                                        className="bg-slate-900 border-slate-600"
-                                    />
-                                    <p className="text-xs text-slate-500">Paste .cookie file content if using cookie auth</p>
+                            )}
+                            {formData.connection_type === 'rpc' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300">Username</Label>
+                                        <Input
+                                            value={formData.username}
+                                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                            placeholder="__cookie__ or roduser"
+                                            className="bg-slate-900 border-slate-600"
+                                        />
+                                        <p className="text-xs text-slate-500">Use "__cookie__" for cookie auth</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300">Password</Label>
+                                        <Input
+                                            type="password"
+                                            value={formData.password}
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            placeholder=".cookie content or password"
+                                            className="bg-slate-900 border-slate-600"
+                                        />
+                                        <p className="text-xs text-slate-500">Paste .cookie file content if using cookie auth</p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             <div className="flex gap-2">
                                 <Button onClick={handleSaveConfig} disabled={saving} className="flex-1 bg-green-600 hover:bg-green-700">
                                     {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : editingConfig ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -769,7 +823,7 @@ rpcallowip=127.0.0.1`}
                                 <Button onClick={() => {
                                     setShowAddForm(false);
                                     setEditingConfig(null);
-                                    setFormData({ name: '', host: 'localhost', port: '9650', username: '', password: '' });
+                                    setFormData({ name: '', connection_type: 'rpc', host: 'localhost', port: '9650', username: '', password: '', use_ssl: false });
                                 }} variant="outline" className="border-slate-600">
                                     Cancel
                                 </Button>
@@ -807,6 +861,11 @@ rpcallowip=127.0.0.1`}
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-medium text-white">{config.name}</h4>
+                                                    {config.connection_type === 'electrum' && (
+                                                        <Badge variant="outline" className="text-xs border-purple-500/50 text-purple-400">
+                                                            Electrum
+                                                        </Badge>
+                                                    )}
                                                     {config.is_active && (
                                                         <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50">
                                                             Active
@@ -817,7 +876,7 @@ rpcallowip=127.0.0.1`}
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-slate-400 font-mono">
-                                                    {config.host}:{config.port}
+                                                    {config.use_ssl ? 'SSL://' : ''}{config.host}:{config.port}
                                                 </p>
                                             </div>
                                         </div>
