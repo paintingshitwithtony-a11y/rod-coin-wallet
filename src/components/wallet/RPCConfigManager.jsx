@@ -824,42 +824,101 @@ export default function RPCConfigManager({ account, onClose }) {
                                         <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-sm">4</span>
                                         Add to Your Wallet
                                     </h5>
-                                    <div className="space-y-3 text-sm text-slate-300">
-                                        <p>Click "<strong className="text-white">Add Manually</strong>" above and enter these settings:</p>
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-slate-300">Configure your FreeRPC connection directly below:</p>
                                         
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
-                                                <div className="text-xs text-slate-500 mb-1">Connection Type</div>
-                                                <div className="text-green-400 font-medium">API Key</div>
+                                        <div className="space-y-3">
+                                            <div className="space-y-2">
+                                                <Label className="text-slate-300 text-sm">Configuration Name</Label>
+                                                <Input
+                                                    value={formData.name || 'FreeRPC ROD'}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                    placeholder="FreeRPC ROD"
+                                                    className="bg-slate-900 border-slate-600 text-white"
+                                                />
                                             </div>
-                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
-                                                <div className="text-xs text-slate-500 mb-1">Configuration Name</div>
-                                                <div className="text-green-400 font-medium">FreeRPC ROD</div>
-                                            </div>
-                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
-                                                <div className="text-xs text-slate-500 mb-1">Host</div>
-                                                <div className="text-green-400 font-medium font-mono text-xs">rod.freerpc.com</div>
-                                            </div>
-                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
-                                                <div className="text-xs text-slate-500 mb-1">Port</div>
-                                                <div className="text-green-400 font-medium">443</div>
-                                            </div>
-                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
-                                                <div className="text-xs text-slate-500 mb-1">SSL/TLS</div>
-                                                <div className="text-green-400 font-medium">✓ Enabled</div>
-                                            </div>
-                                            <div className="p-3 bg-slate-900/50 rounded border border-green-500/20">
-                                                <div className="text-xs text-slate-500 mb-1">API Key</div>
-                                                <div className="text-green-400 font-medium text-xs">(paste from FreeRPC)</div>
-                                            </div>
-                                        </div>
 
-                                        <Alert className="bg-green-500/10 border-green-500/30 mt-3">
-                                            <CheckCircle2 className="h-4 w-4 text-green-400" />
-                                            <AlertDescription className="text-green-300/80 text-xs">
-                                                After adding, click the refresh button to test the connection!
-                                            </AlertDescription>
-                                        </Alert>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <Label className="text-slate-300 text-sm">Host</Label>
+                                                    <Input
+                                                        value={formData.host || 'rod.freerpc.com'}
+                                                        onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                                                        placeholder="rod.freerpc.com"
+                                                        className="bg-slate-900 border-slate-600 text-white font-mono text-sm"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-slate-300 text-sm">Port</Label>
+                                                    <Input
+                                                        value={formData.port || '443'}
+                                                        onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                                                        placeholder="443"
+                                                        className="bg-slate-900 border-slate-600 text-white"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-slate-300 text-sm">API Key (from FreeRPC.com)</Label>
+                                                <Input
+                                                    type="password"
+                                                    value={formData.api_key || ''}
+                                                    onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                                                    placeholder="Paste your FreeRPC API key here"
+                                                    className="bg-slate-900 border-slate-600 text-white font-mono text-sm"
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                                <Label className="text-slate-300 text-sm">Use SSL/TLS</Label>
+                                                <Switch
+                                                    checked={formData.use_ssl ?? true}
+                                                    onCheckedChange={(checked) => setFormData({ ...formData, use_ssl: checked })}
+                                                />
+                                            </div>
+
+                                            <Button
+                                                onClick={() => {
+                                                    // Set connection type to API and pre-fill defaults
+                                                    setFormData({
+                                                        name: formData.name || 'FreeRPC ROD',
+                                                        connection_type: 'api',
+                                                        host: formData.host || 'rod.freerpc.com',
+                                                        port: formData.port || '443',
+                                                        api_key: formData.api_key || '',
+                                                        use_ssl: formData.use_ssl ?? true,
+                                                        username: '',
+                                                        password: '',
+                                                        curl_command: ''
+                                                    });
+                                                    handleSaveConfig();
+                                                }}
+                                                disabled={saving || !formData.api_key}
+                                                className="w-full bg-green-600 hover:bg-green-700 h-11"
+                                            >
+                                                {saving ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Saving & Testing...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                        Save & Test Connection
+                                                    </>
+                                                )}
+                                            </Button>
+
+                                            {!formData.api_key && (
+                                                <Alert className="bg-amber-500/10 border-amber-500/30">
+                                                    <AlertCircle className="h-4 w-4 text-amber-400" />
+                                                    <AlertDescription className="text-amber-300/80 text-xs">
+                                                        Please enter your API key from FreeRPC.com to continue
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
