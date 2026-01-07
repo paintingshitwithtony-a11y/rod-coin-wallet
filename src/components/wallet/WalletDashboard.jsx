@@ -280,6 +280,16 @@ export default function WalletDashboard({ account, onLogout }) {
                     >
                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
+                    <Link to={createPageUrl('RPCMonitor')}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-slate-400 hover:text-purple-400"
+                            title="RPC Monitor Dashboard"
+                        >
+                            <Activity className="w-5 h-5" />
+                        </Button>
+                    </Link>
                     <Button
                         variant="ghost"
                         size="icon"
