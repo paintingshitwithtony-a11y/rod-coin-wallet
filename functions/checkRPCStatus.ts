@@ -10,9 +10,7 @@ Deno.serve(async (req) => {
         }
 
         // Get user's wallet account
-        const accounts = await base44.entities.WalletAccount.filter({ 
-            email: user.email 
-        });
+        const accounts = await base44.entities.WalletAccount.filter({ id: user.id });
 
         if (accounts.length === 0) {
             return Response.json({ 
@@ -23,30 +21,42 @@ Deno.serve(async (req) => {
 
         const account = accounts[0];
 
-        // Get RPC credentials from user account (fallback to env)
-        const rpcHost = account.rpc_host || Deno.env.get('ROD_RPC_HOST');
-        const rpcPort = account.rpc_port || Deno.env.get('ROD_RPC_PORT');
-        const rpcUser = account.rpc_username || Deno.env.get('ROD_RPC_USERNAME');
-        const rpcPass = account.rpc_password || Deno.env.get('ROD_RPC_PASSWORD');
+        // Get active RPC configuration
+        const configs = await base44.entities.RPCConfiguration.filter({
+            account_id: account.id,
+            is_active: true
+        });
 
-        if (!rpcHost || !rpcPort || !rpcUser || !rpcPass) {
+        if (configs.length === 0) {
             return Response.json({ 
                 connected: false,
-                error: 'RPC credentials not configured'
+                error: 'No active RPC configuration'
             });
         }
 
-        // Test RPC connection
-        const rpcUrl = `http://${rpcHost}:${rpcPort}`;
-        const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
+        const config = configs[0];
+
+        // Build RPC URL
+        const protocol = config.use_ssl ? 'https' : 'http';
+        const rpcUrl = config.connection_type === 'api' && !config.port 
+            ? `${protocol}://${config.host}`
+            : `${protocol}://${config.host}:${config.port}`;
+
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (config.connection_type === 'api' && config.api_key) {
+            headers['X-API-Key'] = config.api_key;
+        } else if (config.connection_type === 'rpc') {
+            headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+        }
         
         try {
             const rpcResponse = await fetch(rpcUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${rpcAuth}`
-                },
+                headers,
                 body: JSON.stringify({
                     jsonrpc: '1.0',
                     id: 'statusCheck',
