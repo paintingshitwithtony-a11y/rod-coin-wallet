@@ -273,8 +273,28 @@ export default function WalletDashboard({ account, onLogout }) {
         }
     };
 
-    const handleAddressGenerated = (newAddress) => {
+    const handleAddressGenerated = async (newAddress) => {
         setAddresses(prev => [newAddress, ...prev]);
+        
+        // Save to account's additional_addresses
+        try {
+            const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (currentAccount.length > 0) {
+                const existingAddresses = currentAccount[0].additional_addresses || [];
+                await base44.entities.WalletAccount.update(account.id, {
+                    additional_addresses: [...existingAddresses, {
+                        address: newAddress.address,
+                        public_key_hash: newAddress.publicKeyHash,
+                        label: newAddress.label,
+                        created_at: newAddress.createdAt
+                    }]
+                });
+            }
+        } catch (err) {
+            console.error('Failed to save address:', err);
+            toast.error('Failed to save address to account');
+        }
+        
         // Trigger import check after a short delay
         setTimeout(() => {
             if (rpcConnected) {
