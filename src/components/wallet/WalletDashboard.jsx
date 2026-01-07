@@ -50,6 +50,16 @@ export default function WalletDashboard({ account, onLogout }) {
     const [reconnectAttempts, setReconnectAttempts] = useState(0);
     const [isReconnecting, setIsReconnecting] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         // Load addresses from account
@@ -358,49 +368,51 @@ export default function WalletDashboard({ account, onLogout }) {
 
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
+                <div className="flex items-center gap-2 md:gap-3">
                     <img 
                         src="https://www.spacexpanse.org/img/about.png" 
                         alt="SpaceXpanse Logo" 
-                        className="w-12 h-12 rounded-xl"
+                        className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} rounded-xl`}
                     />
                     <div>
-                        <h1 className="text-2xl font-bold text-white">ROD Wallet</h1>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="border-green-500/50 text-green-400">
-                                <span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />
-                                Logged In
+                        <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-white`}>ROD Wallet</h1>
+                        <div className={`flex items-center gap-1 md:gap-2 flex-wrap ${isMobile ? 'text-xs' : ''}`}>
+                            <Badge variant="outline" className={`border-green-500/50 text-green-400 ${isMobile ? 'text-xs px-1.5 py-0.5' : ''}`}>
+                                <span className="w-2 h-2 rounded-full bg-green-400 mr-1 md:mr-2 animate-pulse" />
+                                {isMobile ? 'Online' : 'Logged In'}
                             </Badge>
                             {rpcConnected !== null && (
                                 <Badge 
                                     variant="outline" 
-                                    className={
+                                    className={`${isMobile ? 'text-xs px-1.5 py-0.5' : ''} ${
                                         isReconnecting ? "border-yellow-500/50 text-yellow-400" :
                                         rpcConnected ? "border-green-500/50 text-green-400" : 
                                         "border-red-500/50 text-red-400"
-                                    }
+                                    }`}
                                 >
                                     <span className={`w-2 h-2 rounded-full ${
                                         isReconnecting ? 'bg-yellow-400 animate-pulse' :
                                         rpcConnected ? 'bg-green-400' : 
                                         'bg-red-400'
-                                    } mr-2`} />
-                                    {isReconnecting ? `Reconnecting (${reconnectAttempts}/3)` :
-                                     rpcConnected ? 'RPC Connected' : 
-                                     'RPC Offline'}
+                                    } mr-1 md:mr-2`} />
+                                    {isReconnecting ? (isMobile ? `Retry ${reconnectAttempts}/3` : `Reconnecting (${reconnectAttempts}/3)`) :
+                                     rpcConnected ? (isMobile ? 'RPC OK' : 'RPC Connected') : 
+                                     (isMobile ? 'RPC Off' : 'RPC Offline')}
                                 </Badge>
                             )}
-                            <span className="text-xs text-slate-500">
-                                {account?.email}
-                            </span>
-                            <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
-                                <Users className="w-3 h-3 mr-1" />
-                                {onlineUsers} Online
+                            {!isMobile && (
+                                <span className="text-xs text-slate-500">
+                                    {account?.email}
+                                </span>
+                            )}
+                            <Badge variant="outline" className={`border-green-500/50 text-green-400 ${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs'}`}>
+                                <Users className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} mr-1`} />
+                                {onlineUsers}
                             </Badge>
-                            {networkHashrate && (
+                            {!isMobile && networkHashrate && (
                                 <>
                                     <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-xs">
                                         SHA256: {networkHashrate.sha256}
@@ -413,27 +425,29 @@ export default function WalletDashboard({ account, onLogout }) {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} ${isMobile ? 'justify-end' : ''}`}>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={handleManualRefresh}
                         disabled={loading}
-                        className="text-slate-400 hover:text-white"
+                        className={`text-slate-400 hover:text-white ${isMobile ? 'h-8 w-8' : ''}`}
                         title="Check for deposits and refresh"
                     >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${loading ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Link to={createPageUrl('RPCMonitor')}>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-slate-400 hover:text-purple-400"
-                            title="RPC Monitor Dashboard"
-                        >
-                            <Activity className="w-5 h-5" />
-                        </Button>
-                    </Link>
+                    {!isMobile && (
+                        <Link to={createPageUrl('RPCMonitor')}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-slate-400 hover:text-purple-400"
+                                title="RPC Monitor Dashboard"
+                            >
+                                <Activity className="w-5 h-5" />
+                            </Button>
+                        </Link>
+                    )}
                     <Button
                         variant="ghost"
                         size="icon"
@@ -444,7 +458,7 @@ export default function WalletDashboard({ account, onLogout }) {
                             }
                             setShowRPCManager(true);
                         }}
-                        className={`relative text-slate-400 hover:text-white ${
+                        className={`relative text-slate-400 hover:text-white ${isMobile ? 'h-8 w-8' : ''} ${
                             isReconnecting ? 'text-yellow-400' :
                             rpcConnected === false ? 'text-red-400' : 
                             rpcConnected ? 'text-green-400' : ''
@@ -455,15 +469,15 @@ export default function WalletDashboard({ account, onLogout }) {
                             'RPC Node Management'
                         }
                     >
-                        <Plug className={`w-5 h-5 ${isReconnecting ? 'animate-pulse' : ''}`} />
+                        <Plug className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isReconnecting ? 'animate-pulse' : ''}`} />
                         {rpcConnected === false && !isReconnecting && (
                             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
                         )}
                     </Button>
                     <Link to={createPageUrl('SecuritySettings')}>
-                        <div className="relative p-3 rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
-                            <Shield className="w-15 h-15 text-white" />
-                            <span className="absolute inset-0 flex items-center justify-center text-white font-black text-[8px] tracking-wider" style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>
+                        <div className={`relative ${isMobile ? 'p-2' : 'p-3'} rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity`}>
+                            <Shield className={`${isMobile ? 'w-10 h-10' : 'w-15 h-15'} text-white`} />
+                            <span className={`absolute inset-0 flex items-center justify-center text-white font-black ${isMobile ? 'text-[6px]' : 'text-[8px]'} tracking-wider`} style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>
                                 SECURITY
                             </span>
                         </div>
@@ -471,9 +485,9 @@ export default function WalletDashboard({ account, onLogout }) {
                     <Button
                         variant="ghost"
                         onClick={onLogout}
-                        className="text-slate-400 hover:text-red-400 gap-2"
+                        className={`text-slate-400 hover:text-red-400 gap-2 ${isMobile ? 'h-8 px-2' : ''}`}
                     >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                         <span className="hidden sm:inline">Logout</span>
                     </Button>
                 </div>
@@ -486,28 +500,28 @@ export default function WalletDashboard({ account, onLogout }) {
             >
                 <Card className="bg-gradient-to-br from-purple-900/80 to-slate-900/80 border-purple-500/30 backdrop-blur-xl overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                    <CardContent className="p-6 relative">
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3">
+                    <CardContent className={`${isMobile ? 'p-4' : 'p-6'} relative`}>
+                        <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-start justify-between'}`}>
+                            <div className="flex items-start gap-2 md:gap-3">
                                 <img 
                                     src="https://www.spacexpanse.org/img/about.png" 
                                     alt="ROD Logo" 
-                                    className="w-10 h-10 rounded-lg mt-1"
+                                    className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg mt-1`}
                                 />
-                                <div>
-                                    <p className="text-sm text-slate-400 mb-1">Total Balance</p>
-                                    <h2 className="text-4xl font-bold text-white mb-2">
+                                <div className="flex-1">
+                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>Total Balance</p>
+                                    <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold text-white mb-2`}>
                                         {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
-                                        <span className="text-xl text-slate-400 ml-2">ROD</span>
+                                        <span className={`${isMobile ? 'text-sm' : 'text-xl'} text-slate-400 ml-2`}>ROD</span>
                                     </h2>
                                     {rodPrice && (
-                                        <div className="text-2xl font-semibold text-green-400 mb-2">
+                                        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-green-400 mb-2`}>
                                             ≈ ${(balance.confirmed * rodPrice).toFixed(2)} USD
                                         </div>
                                     )}
                                     {balance.unconfirmed > 0 && (
-                                        <div className="flex items-center gap-2 text-sm text-amber-400">
-                                            <Clock className="w-4 h-4" />
+                                        <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-amber-400`}>
+                                            <Clock className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                                             +{balance.unconfirmed} ROD pending
                                         </div>
                                     )}
@@ -530,52 +544,52 @@ export default function WalletDashboard({ account, onLogout }) {
                                             }
                                         }}
                                         disabled={loading}
-                                        className="text-amber-400 hover:text-amber-300 border-amber-500/50 mt-2 h-6 px-2 text-xs"
+                                        className={`text-amber-400 hover:text-amber-300 border-amber-500/50 mt-2 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
                                         title="Remove duplicate transactions and recalculate balance"
                                     >
-                                        {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                        {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
                                         Fix Balance
                                     </Button>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-3">
+                            <div className={`flex ${isMobile ? 'flex-row w-full justify-between' : 'flex-col items-end'} gap-3`}>
                                 {priceLoading ? (
-                                    <div className="flex items-center gap-2 text-slate-400">
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                        <span className="text-sm">Loading price...</span>
+                                    <div className={`flex items-center gap-2 text-slate-400 ${isMobile ? 'text-xs' : ''}`}>
+                                        <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
+                                        {!isMobile && <span className="text-sm">Loading price...</span>}
                                     </div>
                                 ) : rodPrice ? (
                                     <a 
                                         href="https://klingex.io/trade/ROD-USDT" 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        className="flex flex-col items-end p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-purple-500/50 group"
+                                        className={`flex flex-col ${isMobile ? 'items-start' : 'items-end'} ${isMobile ? 'p-2' : 'p-3'} rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-purple-500/50 group`}
                                     >
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-xs text-slate-400 group-hover:text-purple-400">Current Price</span>
-                                            <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-purple-400" />
+                                            <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-400 group-hover:text-purple-400`}>Current Price</span>
+                                            <ExternalLink className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} text-slate-500 group-hover:text-purple-400`} />
                                         </div>
-                                        <div className="text-2xl font-bold text-green-400">
+                                        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-400`}>
                                             ${rodPrice.toFixed(8)}
                                         </div>
-                                        <div className="text-xs text-slate-500 group-hover:text-purple-400">
+                                        <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-500 group-hover:text-purple-400`}>
                                             via KLINGEX.IO
                                         </div>
                                     </a>
                                 ) : null}
-                                <div className="flex gap-2">
+                                <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
                                 <Button 
                                     onClick={() => setActiveTab('send')}
-                                    className="bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700"
+                                    className={`bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700 ${isMobile ? 'flex-1 text-sm px-3 h-9' : ''}`}
                                 >
-                                    <ArrowUpRight className="w-4 h-4 mr-2" />
+                                    <ArrowUpRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} mr-2`} />
                                     Send
                                 </Button>
                                 <Button 
                                     onClick={() => setActiveTab('receive')}
-                                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50"
+                                    className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50 ${isMobile ? 'flex-1 text-sm px-3 h-9' : ''}`}
                                 >
-                                    <ArrowDownLeft className="w-4 h-4 mr-2" />
+                                    <ArrowDownLeft className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} mr-2`} />
                                     Receive
                                 </Button>
                                 </div>
@@ -587,67 +601,73 @@ export default function WalletDashboard({ account, onLogout }) {
 
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="bg-slate-800/50 border border-slate-700">
-                    <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600">
-                        Overview
+                <TabsList className={`bg-slate-800/50 border border-slate-700 ${isMobile ? 'w-full grid grid-cols-4 h-auto' : ''}`}>
+                    <TabsTrigger value="overview" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
+                        {isMobile ? 'Home' : 'Overview'}
                     </TabsTrigger>
-                    <TabsTrigger value="history" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="history" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         History
                     </TabsTrigger>
-                    <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
-                        Generate
-                    </TabsTrigger>
-                    <TabsTrigger value="import" className="data-[state=active]:bg-purple-600">
-                        Import
-                    </TabsTrigger>
-                    <TabsTrigger value="send" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="send" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         Send
                     </TabsTrigger>
-                    <TabsTrigger value="receive" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="receive" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         Receive
                     </TabsTrigger>
-                    <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
-                        Contacts
-                    </TabsTrigger>
+                    {!isMobile && (
+                        <>
+                            <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
+                                Generate
+                            </TabsTrigger>
+                            <TabsTrigger value="import" className="data-[state=active]:bg-purple-600">
+                                Import
+                            </TabsTrigger>
+                            <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
+                                Contacts
+                            </TabsTrigger>
+                        </>
+                    )}
                 </TabsList>
 
                 <TabsContent value="history" className="mt-6">
                     <TransactionHistory account={account} />
                 </TabsContent>
 
-                <TabsContent value="overview" className="mt-6">
-                    <div className="space-y-6">
+                <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+                    <div className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>
                         {/* Statistics Cards */}
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
                             <Card className="bg-slate-900/80 border-slate-700/50">
-                                <CardContent className="p-4">
-                                    <p className="text-sm text-slate-400 mb-1">Total Received</p>
-                                    <p className="text-2xl font-bold text-green-400">
-                                        +{transactions.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 4 })} ROD
+                                <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
+                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
+                                    <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-green-400`}>
+                                        {isMobile ? '+' : '+'}{transactions.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                        {!isMobile && ' ROD'}
                                     </p>
                                 </CardContent>
                             </Card>
                             <Card className="bg-slate-900/80 border-slate-700/50">
-                                <CardContent className="p-4">
-                                    <p className="text-sm text-slate-400 mb-1">Total Sent</p>
-                                    <p className="text-2xl font-bold text-red-400">
-                                        {transactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: 4 })} ROD
+                                <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
+                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Sent' : 'Total Sent'}</p>
+                                    <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-red-400`}>
+                                        {transactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                        {!isMobile && ' ROD'}
                                     </p>
                                 </CardContent>
                             </Card>
                             <Card className="bg-slate-900/80 border-slate-700/50">
-                                <CardContent className="p-4">
-                                    <p className="text-sm text-slate-400 mb-1">Transactions</p>
-                                    <p className="text-2xl font-bold text-white">
+                                <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
+                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'TXs' : 'Transactions'}</p>
+                                    <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-white`}>
                                         {transactions.length}
                                     </p>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        <div className="grid gap-6 lg:grid-cols-2">
-                        {/* My Addresses */}
-                        <Card className="bg-slate-900/80 border-slate-700/50">
+<div className={`grid ${isMobile ? 'gap-4' : 'gap-6 lg:grid-cols-2'}`}>
+    {/* My Addresses */}
+    <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-white text-lg">My Addresses</CardTitle>
                                 <div className="flex gap-2">
@@ -790,25 +810,27 @@ export default function WalletDashboard({ account, onLogout }) {
                         </div>
 
                         {/* Market Data Widget */}
-                        <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden">
-                            <CardHeader>
-                                <CardTitle className="text-white text-lg flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5 text-green-400" />
-                                    ROD Market Data
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <iframe 
-                                    src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
-                                    width="100%"
-                                    height="600"
-                                    frameBorder="0"
-                                    scrolling="no"
-                                    className="w-full"
-                                    title="ROD SpaceXpanse Market Data"
-                                />
-                            </CardContent>
-                        </Card>
+                        {!isMobile && (
+                            <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden">
+                                <CardHeader>
+                                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5 text-green-400" />
+                                        ROD Market Data
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <iframe 
+                                        src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
+                                        width="100%"
+                                        height="600"
+                                        frameBorder="0"
+                                        scrolling="no"
+                                        className="w-full"
+                                        title="ROD SpaceXpanse Market Data"
+                                    />
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </TabsContent>
 
