@@ -40,6 +40,11 @@ export default function AddressGenerator({ onAddressGenerated }) {
 
             setAddresses(prev => [newAddress, ...prev]);
 
+            // Save to account (will persist and auto-import on next check)
+            if (onAddressGenerated) {
+                onAddressGenerated(newAddress);
+            }
+
             // Import address into ROD Core node so it can track transactions
             try {
                 const result = await base44.functions.invoke('importAddress', {
@@ -52,23 +57,21 @@ export default function AddressGenerator({ onAddressGenerated }) {
                     setAddresses(prev => prev.map(a => 
                         a.address === address ? { ...a, importStatus: 'imported' } : a
                     ));
-                    toast.success('Address generated and imported to RPC node');
+                    toast.success('Address generated and imported to blockchain');
                 } else {
                     newAddress.importStatus = 'failed';
                     setAddresses(prev => prev.map(a => 
                         a.address === address ? { ...a, importStatus: 'failed' } : a
                     ));
-                    toast.warning('Address generated but not imported to RPC', {
-                        description: 'Will auto-import when RPC is connected'
+                    toast.warning('Address generated but import failed', {
+                        description: result.data.message || 'Check RPC connection'
                     });
                 }
             } catch (importError) {
                 newAddress.importStatus = 'pending';
-                toast.info('Address generated - will import when RPC is available');
-            }
-
-            if (onAddressGenerated) {
-                onAddressGenerated(newAddress);
+                toast.warning('Address saved - RPC import pending', {
+                    description: 'Will auto-import when connected'
+                });
             }
         } catch (error) {
             toast.error('Failed to generate address');
