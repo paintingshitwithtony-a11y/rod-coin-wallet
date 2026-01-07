@@ -49,6 +49,7 @@ export default function WalletDashboard({ account, onLogout }) {
     const [rpcError, setRpcError] = useState(null);
     const [reconnectAttempts, setReconnectAttempts] = useState(0);
     const [isReconnecting, setIsReconnecting] = useState(false);
+    const [onlineUsers, setOnlineUsers] = useState(0);
 
     useEffect(() => {
         // Load addresses from account
@@ -79,6 +80,7 @@ export default function WalletDashboard({ account, onLogout }) {
         fetchNetworkHashrate();
         checkForDeposits();
         checkRPCStatus();
+        fetchOnlineUsers();
 
         // Auto-refresh balance, check deposits, and import addresses every 30 seconds
         const interval = setInterval(() => {
@@ -86,6 +88,7 @@ export default function WalletDashboard({ account, onLogout }) {
             fetchNetworkHashrate();
             checkForDeposits();
             checkRPCStatus();
+            fetchOnlineUsers();
             // Periodically attempt to import any pending addresses
             if (rpcConnected) {
                 importAllAddresses();
@@ -125,6 +128,17 @@ export default function WalletDashboard({ account, onLogout }) {
             }
         } catch (err) {
             // Silently fail - explorer may be unreachable
+        }
+    };
+
+    const fetchOnlineUsers = async () => {
+        try {
+            const response = await base44.functions.invoke('getOnlineUsers', {});
+            if (response.data.count !== undefined) {
+                setOnlineUsers(response.data.count);
+            }
+        } catch (err) {
+            // Silently fail
         }
     };
 
@@ -382,6 +396,10 @@ export default function WalletDashboard({ account, onLogout }) {
                             <span className="text-xs text-slate-500">
                                 {account?.email}
                             </span>
+                            <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
+                                <Users className="w-3 h-3 mr-1" />
+                                {onlineUsers} Online
+                            </Badge>
                             {networkHashrate && (
                                 <>
                                     <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-xs">
