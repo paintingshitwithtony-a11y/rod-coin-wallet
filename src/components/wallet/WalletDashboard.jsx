@@ -612,6 +612,34 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 <TabsContent value="overview" className="mt-6">
                     <div className="space-y-6">
+                        {/* Statistics Cards */}
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <Card className="bg-slate-900/80 border-slate-700/50">
+                                <CardContent className="p-4">
+                                    <p className="text-sm text-slate-400 mb-1">Total Received</p>
+                                    <p className="text-2xl font-bold text-green-400">
+                                        +{transactions.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 4 })} ROD
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-slate-900/80 border-slate-700/50">
+                                <CardContent className="p-4">
+                                    <p className="text-sm text-slate-400 mb-1">Total Sent</p>
+                                    <p className="text-2xl font-bold text-red-400">
+                                        {transactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: 4 })} ROD
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-slate-900/80 border-slate-700/50">
+                                <CardContent className="p-4">
+                                    <p className="text-sm text-slate-400 mb-1">Transactions</p>
+                                    <p className="text-2xl font-bold text-white">
+                                        {transactions.length}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         <div className="grid gap-6 lg:grid-cols-2">
                         {/* My Addresses */}
                         <Card className="bg-slate-900/80 border-slate-700/50">
