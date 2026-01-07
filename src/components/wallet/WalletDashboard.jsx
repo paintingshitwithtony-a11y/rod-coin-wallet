@@ -125,12 +125,18 @@ export default function WalletDashboard({ account, onLogout }) {
     const importAllAddresses = async () => {
         try {
             const response = await base44.functions.invoke('importAllAddresses', {});
-            // Silently succeed - only log if addresses were actually imported
-            if (response.data.success && response.data.imported > 0) {
-                console.log(`Imported ${response.data.imported}/${response.data.total} addresses into node`);
+            console.log('Import response:', response.data);
+            
+            if (response.data.success) {
+                if (response.data.imported > 0) {
+                    console.log(`✓ Imported ${response.data.imported}/${response.data.total} addresses into node`);
+                } else if (response.data.errors && response.data.errors.length > 0) {
+                    console.error('Import errors:', response.data.errors);
+                    toast.error(`Failed to import addresses: ${response.data.errors[0]}`);
+                }
             }
         } catch (err) {
-            // Silently fail - RPC may not be configured yet
+            console.error('Import failed:', err);
         }
     };
 

@@ -110,11 +110,15 @@ Deno.serve(async (req) => {
 
         const successCount = results.filter(r => r.success).length;
 
+        // Log detailed results for debugging
+        console.log('Import results:', JSON.stringify(results, null, 2));
+        
         return Response.json({
             success: true,
             imported: successCount,
             total: addressesToImport.length,
-            results
+            results,
+            errors: results.filter(r => !r.success).map(r => r.error)
         });
 
     } catch (error) {
