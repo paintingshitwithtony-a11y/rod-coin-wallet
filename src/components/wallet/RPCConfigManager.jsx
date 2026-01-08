@@ -622,7 +622,8 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                         toast.error(response.data.message || 'Failed to configure from secrets');
                                     }
                                 } catch (err) {
-                                    toast.error('No ROD RPC secrets found');
+                                    toast.error(err.message || 'Failed to configure from secrets');
+                                    console.error('Setup error:', err);
                                 } finally {
                                     setSaving(false);
                                 }
