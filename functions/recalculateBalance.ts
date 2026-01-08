@@ -99,6 +99,15 @@ Deno.serve(async (req) => {
             balance: newBalance
         });
 
+        // Get sample transactions for debugging
+        const sampleTxs = remainingTxs.slice(0, 10).map(tx => ({
+            type: tx.type,
+            amount: tx.amount,
+            address: tx.address,
+            memo: tx.memo,
+            created: tx.created_date
+        }));
+
         return Response.json({
             success: true,
             oldBalance: account.balance,
@@ -108,7 +117,10 @@ Deno.serve(async (req) => {
             remainingTransactions: remainingTxs.length,
             receivedTotal,
             sentTotal,
-            uniqueTxids: txidMap.size
+            uniqueTxids: txMap.size,
+            sampleTransactions: sampleTxs,
+            receiveCount: remainingTxs.filter(tx => tx.type === 'receive').length,
+            sendCount: remainingTxs.filter(tx => tx.type === 'send').length
         });
 
     } catch (error) {

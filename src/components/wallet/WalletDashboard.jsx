@@ -703,7 +703,11 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     try {
                                                                         const response = await base44.functions.invoke('recalculateBalance', {});
                                                                         if (response.data.success) {
-                                                                            toast.success(`Balance recalculated! ${response.data.duplicatesRemoved} duplicates removed`);
+                                                                            const data = response.data;
+                                                                            console.log('Balance Details:', data);
+                                                                            toast.success(`Fixed! ${data.duplicatesRemoved} duplicates removed. New balance: ${data.newBalance.toFixed(4)} ROD`, {
+                                                                                description: `Received: ${data.receivedTotal.toFixed(4)} | Sent: ${data.sentTotal.toFixed(4)}`
+                                                                            });
                                                                             await fetchWalletData();
                                                                         } else {
                                                                             toast.error('Failed to recalculate balance');
