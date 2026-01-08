@@ -92,13 +92,21 @@ Deno.serve(async (req) => {
 
                     // Check if we already have these transactions recorded
                     for (const tx of receiveTxs) {
+                        // Enhanced duplicate detection: check by txid, amount, and address
                         const existing = await base44.entities.Transaction.filter({
                             account_id: account.id,
-                            memo: `TxID: ${tx.txid}`
+                            type: 'receive',
+                            amount: tx.amount,
+                            address: tx.address
                         });
 
+                        // Additional check: verify memo contains this txid
+                        const alreadyExists = existing.some(existingTx => 
+                            existingTx.memo?.includes(tx.txid)
+                        );
+
                         // If not already recorded, add it
-                        if (existing.length === 0) {
+                        if (existing.length === 0 || !alreadyExists) {
                             const newTx = await base44.entities.Transaction.create({
                                 account_id: account.id,
                                 type: 'receive',

@@ -565,15 +565,25 @@ export default function WalletDashboard({ account, onLogout }) {
                             </Button>
                             {!isMobile &&
               <Link to={createPageUrl('RPCMonitor')}>
-                                    <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-slate-400 hover:text-purple-400"
-                  title="RPC Monitor">
+                          <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-slate-400 hover:text-purple-400"
+              title="RPC Monitor">
 
-                                        <Activity className="w-4 h-4" />
-                                    </Button>
-                                </Link>
+                              <Activity className="w-4 h-4" />
+                          </Button>
+                      </Link>
+                  <Link to={createPageUrl('Analytics')}>
+                          <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-slate-400 hover:text-blue-400"
+              title="Analytics">
+
+                              <TrendingUp className="w-4 h-4" />
+                          </Button>
+                      </Link>
               }
                             <Button
                 variant="ghost"
