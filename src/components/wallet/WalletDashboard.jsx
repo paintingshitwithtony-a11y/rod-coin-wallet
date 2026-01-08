@@ -703,6 +703,75 @@ export default function WalletDashboard({ account, onLogout }) {
                                         </Card>
                                     </motion.div>
 
+                                    {/* All Wallets Section */}
+                                    {allWallets.length > 1 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.1 }}
+                                            className="mb-6">
+                                            <Card className="bg-slate-900/80 border-slate-700/50">
+                                                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                                                        <Wallet className="w-5 h-5 text-purple-400" />
+                                                        Your Wallets
+                                                    </CardTitle>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setShowWalletManager(true)}
+                                                        className="text-purple-400 hover:text-purple-300">
+                                                        Manage All
+                                                    </Button>
+                                                </CardHeader>
+                                                <CardContent className="space-y-2">
+                                                    {walletsLoading ? (
+                                                        <p className="text-center text-slate-400 py-4">Loading wallets...</p>
+                                                    ) : (
+                                                        allWallets.map((wallet, index) => (
+                                                            <motion.div
+                                                                key={wallet.id}
+                                                                initial={{ opacity: 0, x: -20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ delay: index * 0.05 }}
+                                                                onClick={() => !wallet.is_active && handleWalletClick(wallet)}
+                                                                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                                                                    wallet.is_active 
+                                                                        ? 'bg-purple-900/30 border-purple-500/50 ring-1 ring-purple-500/30' 
+                                                                        : 'bg-slate-800/30 border-slate-700/50 hover:border-purple-500/30 hover:bg-slate-800/50'
+                                                                }`}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${wallet.color || 'from-purple-500 to-purple-700'} flex items-center justify-center shrink-0`}>
+                                                                        <Wallet className="w-5 h-5 text-white" />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="font-medium text-white">{wallet.name}</p>
+                                                                            {wallet.is_active && (
+                                                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
+                                                                                    Active
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className="text-xs text-slate-500 font-mono truncate">
+                                                                            {wallet.wallet_address}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-lg font-bold text-white">
+                                                                            {(wallet.balance || 0).toFixed(4)}
+                                                                        </p>
+                                                                        <p className="text-xs text-slate-500">ROD</p>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        ))
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    )}
+
                                     {/* Statistics Cards */}
                         <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
                             <Card className="bg-slate-900/80 border-slate-700/50">
