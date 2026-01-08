@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
         }
 
         // Get the user's account
-        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) {
             return Response.json({ error: 'Wallet account not found' }, { status: 404 });
         }
