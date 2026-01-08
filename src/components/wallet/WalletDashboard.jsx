@@ -508,7 +508,7 @@ export default function WalletDashboard({ account, onLogout }) {
             </div>
 
             {/* Spacer for fixed header */}
-            <div className="h-20 md:h-24"></div>
+            <div className="h-28 md:h-32"></div>
 
             {/* Balance Card */}
             <motion.div
