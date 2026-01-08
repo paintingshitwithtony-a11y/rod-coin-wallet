@@ -575,7 +575,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
 
     return (
         <Dialog open onOpenChange={onClose}>
-            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-5xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] md:max-w-5xl max-h-[80vh] overflow-y-auto overflow-x-hidden">
                 <DialogHeader>
                     <div className="flex items-center justify-between">
                         <div>
@@ -598,8 +598,9 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
 
                 <div className="space-y-4">
                     {/* Auto-detect button */}
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-1 md:gap-2 flex-wrap overflow-x-hidden">
                         <Button
+                            className="text-xs md:text-sm"
                             onClick={async () => {
                                 setSaving(true);
                                 try {
