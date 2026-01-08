@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
         // Check each address
         for (const address of addresses) {
             try {
-                // Get recent transactions for this address
+                // Get received transactions by address
                 const listResponse = await fetch(rpcUrl, {
                     method: 'POST',
                     headers: {
@@ -67,13 +67,14 @@ Deno.serve(async (req) => {
                     body: JSON.stringify({
                         jsonrpc: '1.0',
                         id: 'check_deposits',
-                        method: 'listtransactions',
-                        params: ['*', 50, 0, true]
+                        method: 'listreceivedbyaddress',
+                        params: [0, true, true]
                     })
                 });
 
                 if (!listResponse.ok) {
-                    console.error(`RPC error for ${address}:`, await listResponse.text());
+                    const errorText = await listResponse.text();
+                    console.error(`RPC error for ${address}:`, errorText);
                     continue;
                 }
 
@@ -83,7 +84,38 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
-                const transactions = listData.result || [];
+                const receivedList = listData.result || [];
+                const addressData = receivedList.find(item => item.address === address);
+                
+                if (!addressData || addressData.amount === 0) {
+                    continue;
+                }
+
+                // Get transaction list for this address
+                const txListResponse = await fetch(rpcUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeaders
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '1.0',
+                        id: 'list_txs',
+                        method: 'listtransactions',
+                        params: ['*', 100, 0, true]
+                    })
+                });
+
+                if (!txListResponse.ok) {
+                    continue;
+                }
+
+                const txListData = await txListResponse.json();
+                if (txListData.error) {
+                    continue;
+                }
+
+                const transactions = txListData.result || [];
                 const incomingTxs = transactions.filter(tx => 
                     tx.category === 'receive' && 
                     tx.address === address
@@ -149,8 +181,10 @@ Deno.serve(async (req) => {
     } catch (error) {
         console.error('Check all wallets deposits error:', error);
         return Response.json({ 
-            error: error.message,
-            totalNewDeposits: 0
+            success: false,
+            error: error.message || 'Failed to check deposits',
+            totalNewDeposits: 0,
+            details: error.stack
         }, { status: 500 });
     }
 });
