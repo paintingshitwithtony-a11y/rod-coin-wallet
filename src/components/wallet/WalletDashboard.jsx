@@ -947,10 +947,10 @@ export default function WalletDashboard({ account, onLogout }) {
 
             {/* Connection Status Alert */}
             {rpcConnected === false && !isReconnecting &&
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="fixed top-4 right-4 z-50 max-w-md">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="fixed top-20 md:top-4 right-2 md:right-4 z-50 max-w-md">
 
                     <Alert className="bg-red-500/10 border-red-500/30 backdrop-blur-xl">
                         <AlertCircle className="h-4 w-4 text-red-400" />
@@ -979,10 +979,10 @@ export default function WalletDashboard({ account, onLogout }) {
       }
 
             {isReconnecting &&
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="fixed top-4 right-4 z-50 max-w-md">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="fixed top-20 md:top-4 right-2 md:right-4 z-50 max-w-md">
 
                     <Alert className="bg-yellow-500/10 border-yellow-500/30 backdrop-blur-xl">
                         <Loader2 className="h-4 w-4 text-yellow-400 animate-spin" />
@@ -995,11 +995,11 @@ export default function WalletDashboard({ account, onLogout }) {
       }
 
             {rpcConnected && rpcNodeInfo &&
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="fixed top-4 right-4 z-50 max-w-sm">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-20 md:top-4 right-2 md:right-4 z-50 max-w-sm">
 
                     <Card className="bg-green-500/10 border-green-500/30 backdrop-blur-xl">
                         <CardContent className="p-3">
