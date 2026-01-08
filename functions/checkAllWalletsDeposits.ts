@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { addresses } = await req.json();
+        const body = await req.json();
+        const addresses = body.addresses || [];
 
         if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
             return Response.json({ error: 'No addresses provided' }, { status: 400 });
@@ -30,10 +31,11 @@ Deno.serve(async (req) => {
 
         if (rpcConfigs.length === 0) {
             return Response.json({ 
-                error: 'No active RPC configuration. Please configure your node connection first.',
+                success: false,
+                error: 'No active RPC configuration',
                 newDeposits: [],
                 totalNewDeposits: 0
-            }, { status: 200 });
+            });
         }
 
         const rpcConfig = rpcConfigs[0];
