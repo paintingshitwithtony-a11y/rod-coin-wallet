@@ -124,12 +124,17 @@ Deno.serve(async (req) => {
                 // Check which ones are already recorded
                 for (const tx of incomingTxs) {
                     const txid = tx.txid;
+                    
+                    // Check for existing transaction by txid AND address to avoid duplicates
                     const existing = await base44.asServiceRole.entities.Transaction.filter({
-                        account_id: account.id,
-                        memo: txid
+                        account_id: account.id
                     });
+                    
+                    const isDuplicate = existing.some(existingTx => 
+                        existingTx.memo === txid && existingTx.address === tx.address
+                    );
 
-                    if (existing.length === 0) {
+                    if (!isDuplicate) {
                         // New deposit - record it
                         await base44.asServiceRole.entities.Transaction.create({
                             account_id: account.id,
@@ -156,20 +161,37 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Update account balance if there were new deposits
-        if (totalNewDeposits > 0) {
-            const allTransactions = await base44.asServiceRole.entities.Transaction.filter({
-                account_id: account.id
-            });
+        // Always recalculate balance to ensure accuracy
+        const allTransactions = await base44.asServiceRole.entities.Transaction.filter({
+            account_id: account.id
+        });
 
-            const newBalance = allTransactions.reduce((sum, tx) => {
-                return tx.type === 'receive' ? sum + tx.amount : sum - Math.abs(tx.amount);
-            }, 0);
-
-            await base44.asServiceRole.entities.WalletAccount.update(account.id, {
-                balance: newBalance
-            });
+        // Remove any duplicate transactions (same memo/txid)
+        const seenTxids = new Set();
+        const duplicates = [];
+        
+        for (const tx of allTransactions) {
+            if (tx.memo && seenTxids.has(tx.memo)) {
+                duplicates.push(tx.id);
+            } else if (tx.memo) {
+                seenTxids.add(tx.memo);
+            }
         }
+
+        // Delete duplicates
+        for (const dupId of duplicates) {
+            await base44.asServiceRole.entities.Transaction.delete(dupId);
+        }
+
+        // Recalculate balance from remaining transactions
+        const remainingTxs = allTransactions.filter(tx => !duplicates.includes(tx.id));
+        const newBalance = remainingTxs.reduce((sum, tx) => {
+            return tx.type === 'receive' ? sum + tx.amount : sum - Math.abs(tx.amount);
+        }, 0);
+
+        await base44.asServiceRole.entities.WalletAccount.update(account.id, {
+            balance: newBalance
+        });
 
         return Response.json({
             success: true,
