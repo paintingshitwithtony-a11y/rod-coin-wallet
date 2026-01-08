@@ -45,9 +45,23 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 { account_id: account.id },
                 '-created_date'
             );
-            setWallets(walletList);
             
-            const total = walletList.reduce((sum, w) => sum + (w.balance || 0), 0);
+            // Always include main account wallet
+            const mainWallet = {
+                id: 'main-account',
+                account_id: account.id,
+                name: 'Main Wallet',
+                wallet_address: account.wallet_address,
+                balance: account.balance || 0,
+                is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
+                wallet_type: 'standard',
+                color: 'from-purple-500 to-purple-700'
+            };
+            
+            const allWallets = [mainWallet, ...walletList];
+            setWallets(allWallets);
+            
+            const total = allWallets.reduce((sum, w) => sum + (w.balance || 0), 0);
             setTotalBalance(total);
         } catch (err) {
             toast.error('Failed to load wallets');
@@ -58,15 +72,17 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
 
     const handleSwitchWallet = async (wallet) => {
         try {
-            // Set all wallets to inactive
+            // Set all wallets to inactive (skip main account)
             await Promise.all(
-                wallets.map(w => 
+                wallets.filter(w => w.id !== 'main-account').map(w => 
                     base44.entities.Wallet.update(w.id, { is_active: false })
                 )
             );
             
             // Set selected wallet as active (without changing its name/alias)
-            await base44.entities.Wallet.update(wallet.id, { is_active: true });
+            if (wallet.id !== 'main-account') {
+                await base44.entities.Wallet.update(wallet.id, { is_active: true });
+            }
             
             toast.success(`Switched to ${wallet.name}`);
             onWalletSwitch(wallet);
@@ -77,6 +93,10 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
     };
 
     const handleStartEdit = (wallet) => {
+        if (wallet.id === 'main-account') {
+            toast.error('Cannot rename main wallet');
+            return;
+        }
         setEditingWallet(wallet.id);
         setEditName(wallet.name);
     };
@@ -93,8 +113,13 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
     };
 
     const handleDeleteWallet = async (wallet) => {
-        if (wallets.length === 1) {
-            toast.error('Cannot delete your only wallet');
+        if (wallet.id === 'main-account') {
+            toast.error('Cannot delete main wallet');
+            return;
+        }
+        
+        if (wallets.length <= 2) {
+            toast.error('Cannot delete your only additional wallet');
             return;
         }
         
@@ -203,10 +228,12 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                             Active
                                                         </Badge>
                                                     )}
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {wallet.wallet_type}
-                                                    </Badge>
-                                                </div>
+                                                    {wallet.id !== 'main-account' && (
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {wallet.wallet_type}
+                                                        </Badge>
+                                                    )}
+                                                    </div>
                                                 <p className="text-sm text-amber-400/80 font-mono truncate">
                                                     {wallet.wallet_address}
                                                 </p>
@@ -225,22 +252,26 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                         Switch
                                                     </Button>
                                                 )}
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => setShowBackup(wallet)}
-                                                    className="border-slate-700"
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleDeleteWallet(wallet)}
-                                                    className="border-slate-700 text-red-400 hover:text-red-300"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                                {wallet.id !== 'main-account' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setShowBackup(wallet)}
+                                                            className="border-slate-700"
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleDeleteWallet(wallet)}
+                                                            className="border-slate-700 text-red-400 hover:text-red-300"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </CardContent>
