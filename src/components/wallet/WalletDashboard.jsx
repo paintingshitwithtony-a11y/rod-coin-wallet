@@ -54,6 +54,8 @@ export default function WalletDashboard({ account, onLogout }) {
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletManager, setShowWalletManager] = useState(false);
   const [currentWallet, setCurrentWallet] = useState(null);
+  const [allWallets, setAllWallets] = useState([]);
+  const [walletsLoading, setWalletsLoading] = useState(true);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -106,6 +108,7 @@ export default function WalletDashboard({ account, onLogout }) {
     checkForDeposits();
     checkRPCStatus();
     fetchOnlineUsers();
+    fetchAllWallets();
 
     // Auto-refresh balance, check deposits, and import addresses every 30 seconds
     const interval = setInterval(() => {
@@ -122,6 +125,44 @@ export default function WalletDashboard({ account, onLogout }) {
 
     return () => clearInterval(interval);
   }, [account]);
+
+  const fetchAllWallets = async () => {
+    setWalletsLoading(true);
+    try {
+      const walletList = await base44.entities.Wallet.filter(
+        { account_id: account.id },
+        '-created_date'
+      );
+      setAllWallets(walletList);
+    } catch (err) {
+      console.error('Failed to fetch wallets:', err);
+    } finally {
+      setWalletsLoading(false);
+    }
+  };
+
+  const handleWalletClick = async (wallet) => {
+    try {
+      // Update all wallets to inactive
+      await Promise.all(
+        allWallets.map(w => 
+          base44.entities.Wallet.update(w.id, { is_active: false })
+        )
+      );
+      
+      // Set clicked wallet as active
+      await base44.entities.Wallet.update(wallet.id, { is_active: true });
+      
+      setCurrentWallet(wallet);
+      toast.success(`Switched to ${wallet.name}`);
+      
+      // Refresh data
+      fetchAllWallets();
+      fetchWalletData();
+    } catch (err) {
+      toast.error('Failed to switch wallet');
+    }
+  };
 
   const fetchRODPrice = async () => {
     setPriceLoading(true);
