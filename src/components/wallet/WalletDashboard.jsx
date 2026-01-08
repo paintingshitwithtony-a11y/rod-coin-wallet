@@ -381,25 +381,30 @@ export default function WalletDashboard({ account, onLogout }) {
 
     return (
         <div className="space-y-4 md:space-y-6">
-            {/* Header */}
-            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
-                <div className="flex items-center gap-2 md:gap-3">
-                    <img 
-                        src="https://www.spacexpanse.org/img/about.png" 
-                        alt="SpaceXpanse Logo" 
-                        className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} rounded-xl`}
-                    />
-                    <div>
-                        <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-white`}>ROD Wallet</h1>
-                        <div className={`flex items-center gap-1 md:gap-2 flex-wrap ${isMobile ? 'text-xs' : ''}`}>
-                            <Badge variant="outline" className={`border-green-500/50 text-green-400 ${isMobile ? 'text-xs px-1.5 py-0.5' : ''}`}>
-                                <span className="w-2 h-2 rounded-full bg-green-400 mr-1 md:mr-2 animate-pulse" />
-                                {isMobile ? 'Online' : 'Logged In'}
+            {/* Header Bar - Full Width */}
+            <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10">
+                <div className="max-w-7xl mx-auto px-4 py-3">
+                    <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap">
+                        {/* Logo & Title */}
+                        <div className="flex items-center gap-2">
+                            <img 
+                                src="https://www.spacexpanse.org/img/about.png" 
+                                alt="SpaceXpanse Logo" 
+                                className="w-8 h-8 md:w-10 h-10 rounded-xl"
+                            />
+                            <h1 className="text-lg md:text-xl font-bold text-white">ROD Wallet</h1>
+                        </div>
+
+                        {/* Status Badges */}
+                        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                            <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-green-400 mr-1 animate-pulse" />
+                                Online
                             </Badge>
                             {rpcConnected !== null && (
                                 <Badge 
                                     variant="outline" 
-                                    className={`${isMobile ? 'text-xs px-1.5 py-0.5' : ''} ${
+                                    className={`text-xs ${
                                         isReconnecting ? "border-yellow-500/50 text-yellow-400" :
                                         rpcConnected ? "border-green-500/50 text-green-400" : 
                                         "border-red-500/50 text-red-400"
@@ -409,19 +414,18 @@ export default function WalletDashboard({ account, onLogout }) {
                                         isReconnecting ? 'bg-yellow-400 animate-pulse' :
                                         rpcConnected ? 'bg-green-400' : 
                                         'bg-red-400'
-                                    } mr-1 md:mr-2`} />
-                                    {isReconnecting ? (isMobile ? `Retry ${reconnectAttempts}/3` : `Reconnecting (${reconnectAttempts}/3)`) :
-                                     rpcConnected ? (isMobile ? 'RPC OK' : 'RPC Connected') : 
-                                     (isMobile ? 'RPC Off' : 'RPC Offline')}
+                                    } mr-1`} />
+                                    {isReconnecting ? `Retry ${reconnectAttempts}/3` :
+                                     rpcConnected ? 'RPC OK' : 'RPC Off'}
                                 </Badge>
                             )}
                             {!isMobile && (
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-slate-400 hidden md:inline">
                                     {account?.email}
                                 </span>
                             )}
-                            <Badge variant="outline" className={`border-green-500/50 text-green-400 ${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs'}`}>
-                                <Users className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} mr-1`} />
+                            <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
+                                <Users className="w-3 h-3 mr-1" />
                                 {onlineUsers}
                             </Badge>
                             {!isMobile && networkHashrate && (
@@ -430,80 +434,81 @@ export default function WalletDashboard({ account, onLogout }) {
                                         SHA256: {networkHashrate.sha256}
                                     </Badge>
                                     <Badge variant="outline" className="border-purple-500/50 text-purple-400 text-xs">
-                                        NEOSCRYPT: {networkHashrate.neoscrypt}
+                                        NEO: {networkHashrate.neoscrypt}
                                     </Badge>
                                 </>
                             )}
                         </div>
-                    </div>
-                </div>
-                <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} ${isMobile ? 'justify-end' : ''}`}>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleManualRefresh}
-                        disabled={loading}
-                        className={`text-slate-400 hover:text-white ${isMobile ? 'h-8 w-8' : ''}`}
-                        title="Check for deposits and refresh"
-                    >
-                        <RefreshCw className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${loading ? 'animate-spin' : ''}`} />
-                    </Button>
-                    {!isMobile && (
-                        <Link to={createPageUrl('RPCMonitor')}>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1 md:gap-2">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-slate-400 hover:text-purple-400"
-                                title="RPC Monitor Dashboard"
+                                onClick={handleManualRefresh}
+                                disabled={loading}
+                                className="h-8 w-8 text-slate-400 hover:text-white"
+                                title="Refresh"
                             >
-                                <Activity className="w-5 h-5" />
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             </Button>
-                        </Link>
-                    )}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                            if (!rpcConnected && !isReconnecting) {
-                                setReconnectAttempts(0);
-                                checkRPCStatus();
-                            }
-                            setShowRPCManager(true);
-                        }}
-                        className={`relative text-slate-400 hover:text-white ${isMobile ? 'h-8 w-8' : ''} ${
-                            isReconnecting ? 'text-yellow-400' :
-                            rpcConnected === false ? 'text-red-400' : 
-                            rpcConnected ? 'text-green-400' : ''
-                        }`}
-                        title={
-                            isReconnecting ? 'Reconnecting...' :
-                            rpcConnected === false ? 'RPC Offline - Click to configure' :
-                            'RPC Node Management'
-                        }
-                    >
-                        <Plug className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isReconnecting ? 'animate-pulse' : ''}`} />
-                        {rpcConnected === false && !isReconnecting && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
-                        )}
-                    </Button>
-                    <Link to={createPageUrl('SecuritySettings')}>
-                        <div className={`relative ${isMobile ? 'p-2' : 'p-3'} rounded-xl bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity`}>
-                            <Shield className={`${isMobile ? 'w-10 h-10' : 'w-15 h-15'} text-white`} />
-                            <span className={`absolute inset-0 flex items-center justify-center text-white font-black ${isMobile ? 'text-[6px]' : 'text-[8px]'} tracking-wider`} style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>
-                                SECURITY
-                            </span>
+                            {!isMobile && (
+                                <Link to={createPageUrl('RPCMonitor')}>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-400 hover:text-purple-400"
+                                        title="RPC Monitor"
+                                    >
+                                        <Activity className="w-4 h-4" />
+                                    </Button>
+                                </Link>
+                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    if (!rpcConnected && !isReconnecting) {
+                                        setReconnectAttempts(0);
+                                        checkRPCStatus();
+                                    }
+                                    setShowRPCManager(true);
+                                }}
+                                className={`relative h-8 w-8 text-slate-400 hover:text-white ${
+                                    isReconnecting ? 'text-yellow-400' :
+                                    rpcConnected === false ? 'text-red-400' : 
+                                    rpcConnected ? 'text-green-400' : ''
+                                }`}
+                                title="RPC Config"
+                            >
+                                <Plug className={`w-4 h-4 ${isReconnecting ? 'animate-pulse' : ''}`} />
+                                {rpcConnected === false && !isReconnecting && (
+                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
+                                )}
+                            </Button>
+                            <Link to={createPageUrl('SecuritySettings')}>
+                                <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <Shield className="w-5 h-5 text-white" />
+                                    <span className="absolute inset-0 flex items-center justify-center text-white font-black text-[6px] tracking-wider" style={{textShadow: '0 2px 4px rgba(0,0,0,0.5)'}}>
+                                        SECURITY
+                                    </span>
+                                </div>
+                            </Link>
+                            <Button
+                                variant="ghost"
+                                onClick={onLogout}
+                                className="h-8 px-2 md:px-3 text-slate-400 hover:text-red-400 gap-1"
+                            >
+                                <LogOut className="w-3 h-3 md:w-4 h-4" />
+                                <span className="hidden sm:inline text-xs">Logout</span>
+                            </Button>
                         </div>
-                    </Link>
-                    <Button
-                        variant="ghost"
-                        onClick={onLogout}
-                        className={`text-slate-400 hover:text-red-400 gap-2 ${isMobile ? 'h-8 px-2' : ''}`}
-                    >
-                        <LogOut className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                        <span className="hidden sm:inline">Logout</span>
-                    </Button>
+                    </div>
                 </div>
             </div>
+
+            {/* Spacer for fixed header */}
+            <div className="h-16 md:h-20"></div>
 
             {/* Balance Card */}
             <motion.div
