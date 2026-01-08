@@ -99,6 +99,33 @@ Deno.serve(async (req) => {
             balance: newBalance
         });
 
+        // Recalculate individual wallet balances
+        const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        for (const wallet of wallets) {
+            let walletBalance = 0;
+
+            // Get all addresses for this wallet
+            const walletAddresses = [wallet.wallet_address];
+            if (wallet.additional_addresses) {
+                walletAddresses.push(...wallet.additional_addresses.map(a => a.address));
+            }
+
+            // Sum transactions for this wallet's addresses
+            for (const tx of remainingTxs) {
+                if (walletAddresses.includes(tx.address)) {
+                    if (tx.type === 'receive') {
+                        walletBalance += tx.amount;
+                    } else if (tx.type === 'send') {
+                        walletBalance -= Math.abs(tx.amount);
+                    }
+                }
+            }
+
+            await base44.asServiceRole.entities.Wallet.update(wallet.id, {
+                balance: walletBalance
+            });
+        }
+
         // Get sample transactions for debugging
         const sampleTxs = remainingTxs.slice(0, 10).map(tx => ({
             type: tx.type,
@@ -120,7 +147,8 @@ Deno.serve(async (req) => {
             uniqueTxids: txMap.size,
             sampleTransactions: sampleTxs,
             receiveCount: remainingTxs.filter(tx => tx.type === 'receive').length,
-            sendCount: remainingTxs.filter(tx => tx.type === 'send').length
+            sendCount: remainingTxs.filter(tx => tx.type === 'send').length,
+            walletsUpdated: wallets.length
         });
 
     } catch (error) {
