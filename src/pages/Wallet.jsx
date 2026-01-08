@@ -60,7 +60,7 @@ export default function Wallet() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 relative overflow-x-hidden overflow-y-auto">
             {/* Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
@@ -91,7 +91,7 @@ export default function Wallet() {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 container mx-auto px-4 py-8">
+            <div className="relative z-10 container mx-auto px-2 md:px-4 py-8 overflow-x-hidden max-w-full">
                 {/* Header */}
                 <motion.header
           initial={{ opacity: 0, y: -20 }}

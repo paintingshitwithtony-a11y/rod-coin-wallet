@@ -380,11 +380,11 @@ export default function WalletDashboard({ account, onLogout }) {
 
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
             {/* Header Bar - Full Width */}
-            <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10">
-                <div className="max-w-7xl mx-auto px-4 py-3">
-                    <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap">
+            <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10 overflow-x-hidden">
+                <div className="max-w-7xl mx-auto px-2 md:px-4 py-3">
+                    <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap overflow-x-hidden">
                         {/* Logo & Title */}
                         <div className="flex items-center gap-2">
                             <img
