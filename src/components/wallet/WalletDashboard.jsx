@@ -680,7 +680,7 @@ export default function WalletDashboard({ account, onLogout }) {
                             </Card>
                         </div>
 
-            <div className={`grid ${isMobile ? 'gap-4' : 'gap-6 lg:grid-cols-2'}`}>
+            <div className={`grid ${isMobile ? 'gap-4 mt-6' : 'gap-6 lg:grid-cols-2 mt-8'}`}>
     {/* My Addresses */}
     <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
