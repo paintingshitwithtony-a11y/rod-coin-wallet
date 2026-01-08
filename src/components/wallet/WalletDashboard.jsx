@@ -135,7 +135,18 @@ export default function WalletDashboard({ account, onLogout }) {
         { account_id: account.id },
         '-created_date'
       );
-      setAllWallets(walletList);
+      
+      // Check which wallets are imported to RPC
+      const walletsWithImportStatus = await Promise.all(
+        walletList.map(async (wallet) => {
+          const isImported = addresses.some(addr => 
+            addr.address === wallet.wallet_address && addr.importStatus === 'imported'
+          );
+          return { ...wallet, importStatus: isImported ? 'imported' : null };
+        })
+      );
+      
+      setAllWallets(walletsWithImportStatus);
     } catch (err) {
       console.error('Failed to fetch wallets:', err);
     } finally {
@@ -836,7 +847,12 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                                     Active
                                                                                 </Badge>
                                                                             )}
-                                                                        </div>
+                                                                            {wallet.importStatus === 'imported' && (
+                                                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
+                                                                                    Imported
+                                                                                </Badge>
+                                                                            )}
+                                                                            </div>
                                                                         <p className="text-xs text-slate-500 font-mono truncate">
                                                                             {wallet.wallet_address}
                                                                         </p>
