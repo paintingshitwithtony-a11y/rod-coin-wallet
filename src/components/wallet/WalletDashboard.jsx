@@ -696,7 +696,32 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     +{balance.unconfirmed} ROD pending
                                                                 </div>
                                                             }
-                                                            <div className="flex gap-2 mt-2">
+                                                            <div className="flex gap-2 mt-2 flex-wrap">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={async () => {
+                                                                        if (!confirm('Delete all transactions from Jan 8, 2026?')) return;
+                                                                        setLoading(true);
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('deleteTransactionsByDate', {
+                                                                                startDate: '2026-01-08T00:00:00'
+                                                                            });
+                                                                            if (response.data.success) {
+                                                                                toast.success(`Deleted ${response.data.deleted} transactions. New balance: ${response.data.newBalance.toFixed(4)} ROD`);
+                                                                                await fetchWalletData();
+                                                                            }
+                                                                        } catch (err) {
+                                                                            toast.error('Failed to delete transactions');
+                                                                        } finally {
+                                                                            setLoading(false);
+                                                                        }
+                                                                    }}
+                                                                    disabled={loading}
+                                                                    className={`text-red-400 hover:text-red-300 border-red-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                    title="Delete all Jan 8 transactions">
+                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
+                                                                    Clear Today
+                                                                </Button>
                                                                 <Button
                                                                     variant="outline"
                                                                     onClick={async () => {
