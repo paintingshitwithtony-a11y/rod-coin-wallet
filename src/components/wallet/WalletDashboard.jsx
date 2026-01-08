@@ -510,115 +510,10 @@ export default function WalletDashboard({ account, onLogout }) {
             {/* Spacer for fixed header */}
             <div className="my-1 h-8 md:h-12"></div>
 
-            {/* Balance Card */}
-            <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}>
-
-                <Card className="bg-gradient-to-br from-purple-900/80 to-slate-900/80 border-purple-500/30 backdrop-blur-xl overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                    <CardContent className="px-6 py-3 relative">
-                        <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-start justify-between'}`}>
-                            <div className="flex items-start gap-2 md:gap-3">
-                                <img
-                  src="https://www.spacexpanse.org/img/about.png"
-                  alt="ROD Logo"
-                  className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg mt-1`} />
-
-                                <div className="flex-1">
-                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>Total Balance</p>
-                                    <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold text-white mb-2`}>
-                                        {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
-                                        <span className={`${isMobile ? 'text-sm' : 'text-xl'} text-slate-400 ml-2`}>ROD</span>
-                                    </h2>
-                                    {rodPrice &&
-                  <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-green-400 mb-2`}>
-                                            ≈ ${(balance.confirmed * rodPrice).toFixed(2)} USD
-                                        </div>
-                  }
-                                    {balance.unconfirmed > 0 &&
-                  <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-amber-400`}>
-                                            <Clock className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                                            +{balance.unconfirmed} ROD pending
-                                        </div>
-                  }
-                                    <Button
-                    variant="outline"
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        const response = await base44.functions.invoke('recalculateBalance', {});
-                        if (response.data.success) {
-                          toast.success(`Balance recalculated! ${response.data.duplicatesRemoved} duplicates removed`);
-                          await fetchWalletData();
-                        } else {
-                          toast.error('Failed to recalculate balance');
-                        }
-                      } catch (err) {
-                        toast.error('Failed to recalculate balance');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                    className={`text-amber-400 hover:text-amber-300 border-amber-500/50 mt-2 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                    title="Remove duplicate transactions and recalculate balance">
-
-                                        {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                        Fix Balance
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className={`flex ${isMobile ? 'flex-row w-full justify-between' : 'flex-col items-end'} gap-3`}>
-                                {priceLoading ?
-                <div className={`flex items-center gap-2 text-slate-400 ${isMobile ? 'text-xs' : ''}`}>
-                                        <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
-                                        {!isMobile && <span className="text-sm">Loading price...</span>}
-                                    </div> :
-                rodPrice ?
-                <a
-                  href="https://klingex.io/trade/ROD-USDT"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex flex-col ${isMobile ? 'items-start' : 'items-end'} ${isMobile ? 'p-2' : 'p-3'} rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-purple-500/50 group`}>
-
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-400 group-hover:text-purple-400`}>Current Price</span>
-                                            <ExternalLink className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} text-slate-500 group-hover:text-purple-400`} />
-                                        </div>
-                                        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-400`}>
-                                            ${rodPrice.toFixed(8)}
-                                        </div>
-                                        <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-500 group-hover:text-purple-400`}>
-                                            via KLINGEX.IO
-                                        </div>
-                                    </a> :
-                null}
-                                <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
-                                <Button
-                    onClick={() => setActiveTab('send')}
-                    className={`bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700 ${isMobile ? 'flex-1 text-sm px-3 h-9' : ''}`}>
-
-                                    <ArrowUpRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} mr-2`} />
-                                    Send
-                                </Button>
-                                <Button
-                    onClick={() => setActiveTab('receive')}
-                    className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50 ${isMobile ? 'flex-1 text-sm px-3 h-9' : ''}`}>
-
-                                    <ArrowDownLeft className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} mr-2`} />
-                                    Receive
-                                </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </motion.div>
-
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className={`bg-slate-800/50 border border-slate-700 ${isMobile ? 'w-full grid grid-cols-4 h-auto' : ''}`}>
+                <div className="flex justify-center mb-6">
+                    <TabsList className={`bg-slate-800/50 border border-slate-700 ${isMobile ? 'w-full grid grid-cols-4 h-auto' : ''}`}>
                     <TabsTrigger value="overview" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         {isMobile ? 'Home' : 'Overview'}
                     </TabsTrigger>
@@ -641,17 +536,27 @@ export default function WalletDashboard({ account, onLogout }) {
                             </TabsTrigger>
                             <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
                                 Contacts
-                            </TabsTrigger>
-                        </>
-          }
-                </TabsList>
+                                </TabsTrigger>
+                                </>
+                                }
+                                </TabsList>
+                                </div>
 
-                <TabsContent value="history" className="mt-6">
+                                <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+                                {/* Balance Card */}
+                                <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mb-6">
+
+                                <Card className="bg-gradient-to-br from-purple-900/80 to-slate-900/80 border-purple-500/30 backdrop-blur-xl overflow-hidden">
+                                ...
+                                </Card>
+                                </motion.div>
+
+                                <TabsContent value="history" className="mt-6">
                     <TransactionHistory account={account} />
                 </TabsContent>
-
-                <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
-                    <div className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>
                         {/* Statistics Cards */}
                         <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
                             <Card className="bg-slate-900/80 border-slate-700/50">
