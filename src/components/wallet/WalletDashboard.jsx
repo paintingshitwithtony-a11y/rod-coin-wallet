@@ -826,7 +826,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                         {/* Market Data Widget */}
                         {!isMobile &&
-                            <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden">
+                            <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden mt-8">
                                 <CardHeader>
                                     <CardTitle className="text-white text-lg flex items-center gap-2">
                                         <TrendingUp className="w-5 h-5 text-green-400" />
