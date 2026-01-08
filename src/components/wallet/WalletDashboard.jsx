@@ -20,6 +20,7 @@ import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
 import TransactionHistory from './TransactionHistory';
+import WalletManager from './WalletManager';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -51,6 +52,8 @@ export default function WalletDashboard({ account, onLogout }) {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [showWalletManager, setShowWalletManager] = useState(false);
+  const [currentWallet, setCurrentWallet] = useState(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -486,6 +489,15 @@ export default function WalletDashboard({ account, onLogout }) {
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
                 }
                             </Button>
+                            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowWalletManager(true)}
+                className="h-8 w-8 text-slate-400 hover:text-purple-400"
+                title="Wallet Manager">
+
+                                <Wallet className="w-4 h-4" />
+                            </Button>
                             <Link to={createPageUrl('SecuritySettings')}>
                                 <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
                                     <Shield className="w-5 h-5 text-white" />
@@ -908,6 +920,19 @@ export default function WalletDashboard({ account, onLogout }) {
         }} />
 
       }
+
+            {/* Wallet Manager Modal */}
+            {showWalletManager && (
+                <WalletManager
+                    account={account}
+                    currentWallet={currentWallet}
+                    onWalletSwitch={(wallet) => {
+                        setCurrentWallet(wallet);
+                        fetchWalletData();
+                    }}
+                    onClose={() => setShowWalletManager(false)}
+                />
+            )}
 
             {/* Address Seed Modal */}
             {selectedAddressForSeed &&
