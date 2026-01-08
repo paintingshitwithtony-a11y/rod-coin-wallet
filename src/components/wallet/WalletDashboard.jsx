@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Search } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -328,51 +328,6 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-  const handleCheckAllWallets = async () => {
-    setLoading(true);
-    toast.info('Checking all wallets for deposits...');
-    try {
-      // Collect all wallet addresses
-      const allAddresses = [
-        account.wallet_address,
-        ...addresses.map(a => a.address),
-        ...allWallets.map(w => w.wallet_address)
-      ];
-      
-      // Remove duplicates
-      const uniqueAddresses = [...new Set(allAddresses)].filter(a => a);
-      
-      if (uniqueAddresses.length === 0) {
-        toast.error('No addresses to check');
-        setLoading(false);
-        return;
-      }
-      
-      const response = await base44.functions.invoke('checkAllWalletsDeposits', {
-        addresses: uniqueAddresses
-      });
-      
-      if (response.data.error) {
-        toast.error(response.data.error);
-        return;
-      }
-      
-      if (response.data.totalNewDeposits > 0) {
-        toast.success(`Found ${response.data.totalNewDeposits} new deposit(s) across all wallets!`);
-      } else {
-        toast.success(`Checked ${uniqueAddresses.length} address(es) - no new deposits`);
-      }
-      
-      await fetchWalletData();
-      await fetchAllWallets();
-    } catch (err) {
-      console.error('Failed to check all wallets:', err);
-      toast.error(err.response?.data?.error || 'Failed to check wallets');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchWalletData = async () => {
     setLoading(true);
     try {
@@ -599,24 +554,14 @@ export default function WalletDashboard({ account, onLogout }) {
                         {/* Action Buttons */}
                         <div className="flex items-center gap-1 md:gap-2">
                             <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleManualRefresh}
-                            disabled={loading}
-                            className="h-8 w-8 text-slate-400 hover:text-white"
-                            title="Refresh">
+                variant="ghost"
+                size="icon"
+                onClick={handleManualRefresh}
+                disabled={loading}
+                className="h-8 w-8 text-slate-400 hover:text-white"
+                title="Refresh">
 
                                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                            </Button>
-                            <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleCheckAllWallets}
-                            disabled={loading}
-                            className="h-8 w-8 text-slate-400 hover:text-green-400"
-                            title="Check All Wallets for Deposits">
-
-                                <Search className={`w-4 h-4 ${loading ? 'animate-pulse' : ''}`} />
                             </Button>
                             {!isMobile &&
               <Link to={createPageUrl('RPCMonitor')}>
