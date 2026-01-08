@@ -274,7 +274,7 @@ export default function AuthScreen({ onAuth }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="w-full max-w-md mx-auto"
+            className="w-full max-w-md mx-auto mt-24"
         >
             <Card className="bg-slate-900/80 border-purple-500/30 backdrop-blur-xl shadow-2xl shadow-purple-500/10">
                 <CardHeader className="text-center pb-2">
