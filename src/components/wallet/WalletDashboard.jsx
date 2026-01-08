@@ -696,35 +696,58 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     +{balance.unconfirmed} ROD pending
                                                                 </div>
                                                             }
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={async () => {
-                                                                    setLoading(true);
-                                                                    try {
-                                                                        const response = await base44.functions.invoke('recalculateBalance', {});
-                                                                        if (response.data.success) {
-                                                                            const data = response.data;
-                                                                            console.log('Balance Details:', data);
-                                                                            toast.success(`Fixed! ${data.duplicatesRemoved} duplicates removed. New balance: ${data.newBalance.toFixed(4)} ROD`, {
-                                                                                description: `Received: ${data.receivedTotal.toFixed(4)} | Sent: ${data.sentTotal.toFixed(4)}`
+                                                            <div className="flex gap-2 mt-2">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={async () => {
+                                                                        setLoading(true);
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('debugTransactions', {});
+                                                                            console.log('=== TRANSACTION DEBUG ===', response.data);
+                                                                            toast.info(`Check console for details`, {
+                                                                                description: `${response.data.receiveCount} receives, ${response.data.sendCount} sends`
                                                                             });
-                                                                            await fetchWalletData();
-                                                                        } else {
-                                                                            toast.error('Failed to recalculate balance');
+                                                                        } catch (err) {
+                                                                            toast.error('Debug failed');
+                                                                        } finally {
+                                                                            setLoading(false);
                                                                         }
-                                                                    } catch (err) {
-                                                                        toast.error('Failed to recalculate balance');
-                                                                    } finally {
-                                                                        setLoading(false);
-                                                                    }
-                                                                }}
-                                                                disabled={loading}
-                                                                className={`text-amber-400 hover:text-amber-300 border-amber-500/50 mt-2 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                title="Remove duplicate transactions and recalculate balance">
-
-                                                                {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                Fix Balance
-                                                            </Button>
+                                                                    }}
+                                                                    disabled={loading}
+                                                                    className={`text-blue-400 hover:text-blue-300 border-blue-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                    title="Debug transactions in console">
+                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
+                                                                    Debug
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={async () => {
+                                                                        setLoading(true);
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('recalculateBalance', {});
+                                                                            if (response.data.success) {
+                                                                                const data = response.data;
+                                                                                console.log('Balance Details:', data);
+                                                                                toast.success(`Fixed! ${data.duplicatesRemoved} duplicates removed. New balance: ${data.newBalance.toFixed(4)} ROD`, {
+                                                                                    description: `Received: ${data.receivedTotal.toFixed(4)} | Sent: ${data.sentTotal.toFixed(4)}`
+                                                                                });
+                                                                                await fetchWalletData();
+                                                                            } else {
+                                                                                toast.error('Failed to recalculate balance');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            toast.error('Failed to recalculate balance');
+                                                                        } finally {
+                                                                            setLoading(false);
+                                                                        }
+                                                                    }}
+                                                                    disabled={loading}
+                                                                    className={`text-amber-400 hover:text-amber-300 border-amber-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                    title="Remove duplicate transactions and recalculate balance">
+                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
+                                                                    Fix Balance
+                                                                </Button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className={`flex ${isMobile ? 'flex-row w-full justify-between' : 'flex-col items-end'} gap-3`}>
