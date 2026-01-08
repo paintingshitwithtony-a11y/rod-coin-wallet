@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
     Wallet, Plus, Download, Upload, CheckCircle2, 
-    Trash2, Edit2, Eye, EyeOff, Copy, Settings
+    Trash2, Edit2, Eye, EyeOff, Copy, Settings, Pencil
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { Input } from "@/components/ui/input";
 import WalletCreator from './WalletCreator';
 import WalletBackup from './WalletBackup';
 import WalletRestore from './WalletRestore';
@@ -30,6 +31,8 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
     const [showBackup, setShowBackup] = useState(null);
     const [showRestore, setShowRestore] = useState(false);
     const [totalBalance, setTotalBalance] = useState(0);
+    const [editingWallet, setEditingWallet] = useState(null);
+    const [editName, setEditName] = useState('');
 
     useEffect(() => {
         fetchWallets();
@@ -62,7 +65,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 )
             );
             
-            // Set selected wallet as active
+            // Set selected wallet as active (without changing its name/alias)
             await base44.entities.Wallet.update(wallet.id, { is_active: true });
             
             toast.success(`Switched to ${wallet.name}`);
@@ -70,6 +73,22 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             onClose();
         } catch (err) {
             toast.error('Failed to switch wallet');
+        }
+    };
+
+    const handleStartEdit = (wallet) => {
+        setEditingWallet(wallet.id);
+        setEditName(wallet.name);
+    };
+
+    const handleSaveEdit = async (walletId) => {
+        try {
+            await base44.entities.Wallet.update(walletId, { name: editName });
+            toast.success('Wallet name updated');
+            setEditingWallet(null);
+            fetchWallets();
+        } catch (err) {
+            toast.error('Failed to update wallet name');
         }
     };
 
@@ -158,7 +177,26 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                             
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className="font-semibold text-white">{wallet.name}</h3>
+                                                    {editingWallet === wallet.id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            onBlur={() => handleSaveEdit(wallet.id)}
+                                                            onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit(wallet.id)}
+                                                            className="bg-slate-900 text-white px-2 py-1 rounded border border-purple-500 text-sm font-semibold"
+                                                            autoFocus
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <h3 className="font-semibold text-white">{wallet.name}</h3>
+                                                            <button
+                                                                onClick={() => handleStartEdit(wallet)}
+                                                                className="text-slate-500 hover:text-purple-400 transition-colors">
+                                                                <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     {wallet.is_active && (
                                                         <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
                                                             <CheckCircle2 className="w-3 h-3 mr-1" />

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -419,6 +419,23 @@ export default function WalletDashboard({ account, onLogout }) {
     setCopiedAddress(address);
     toast.success('Address copied');
     setTimeout(() => setCopiedAddress(null), 2000);
+  };
+
+  const handleMakePrimaryAddress = async (address) => {
+    try {
+      await base44.entities.WalletAccount.update(account.id, {
+        wallet_address: address.address
+      });
+      toast.success(`${address.label} is now your primary address`);
+      
+      // Refresh account data
+      const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+      if (accounts.length > 0) {
+        account.wallet_address = accounts[0].wallet_address;
+      }
+    } catch (err) {
+      toast.error('Failed to set primary address');
+    }
   };
 
 
@@ -885,6 +902,11 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     <p className="text-sm font-medium text-white truncate">
                                                         {addr.label}
                                                     </p>
+                                                    {addr.address === account.wallet_address && (
+                                                        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs">
+                                                            Primary
+                                                        </Badge>
+                                                    )}
                                                     {addr.importStatus === 'imported' &&
                         <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
                                                             Imported
@@ -896,6 +918,15 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 </p>
                                             </div>
                                             <div className="flex gap-1 shrink-0">
+                                                <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleMakePrimaryAddress(addr)}
+                        className={`${addr.address === account.wallet_address ? 'text-amber-400' : 'text-slate-400 hover:text-amber-400'}`}
+                        title="Make Primary Address">
+
+                                                    <Star className={`w-4 h-4 ${addr.address === account.wallet_address ? 'fill-amber-400' : ''}`} />
+                                                </Button>
                                                 <Button
                         variant="ghost"
                         size="icon"
