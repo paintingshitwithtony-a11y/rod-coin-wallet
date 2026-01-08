@@ -24,6 +24,10 @@ export default function TransactionHistory({ account }) {
     const [filteredTxs, setFilteredTxs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [memoSearch, setMemoSearch] = useState('');
+    const [addressFilter, setAddressFilter] = useState('');
+    const [minAmount, setMinAmount] = useState('');
+    const [maxAmount, setMaxAmount] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [sortBy, setSortBy] = useState('date-desc');
@@ -36,7 +40,7 @@ export default function TransactionHistory({ account }) {
 
     useEffect(() => {
         applyFilters();
-    }, [transactions, searchQuery, typeFilter, statusFilter, sortBy, dateRange]);
+    }, [transactions, searchQuery, memoSearch, addressFilter, minAmount, maxAmount, typeFilter, statusFilter, sortBy, dateRange]);
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -58,14 +62,42 @@ export default function TransactionHistory({ account }) {
     const applyFilters = () => {
         let filtered = [...transactions];
 
-        // Search filter
+        // General search filter (ID)
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(tx =>
-                tx.address?.toLowerCase().includes(query) ||
-                tx.memo?.toLowerCase().includes(query) ||
                 tx.id?.toLowerCase().includes(query)
             );
+        }
+
+        // Memo search filter
+        if (memoSearch) {
+            const query = memoSearch.toLowerCase();
+            filtered = filtered.filter(tx =>
+                tx.memo?.toLowerCase().includes(query)
+            );
+        }
+
+        // Address filter
+        if (addressFilter) {
+            const query = addressFilter.toLowerCase();
+            filtered = filtered.filter(tx =>
+                tx.address?.toLowerCase().includes(query)
+            );
+        }
+
+        // Amount range filter
+        if (minAmount) {
+            const min = parseFloat(minAmount);
+            if (!isNaN(min)) {
+                filtered = filtered.filter(tx => Math.abs(tx.amount) >= min);
+            }
+        }
+        if (maxAmount) {
+            const max = parseFloat(maxAmount);
+            if (!isNaN(max)) {
+                filtered = filtered.filter(tx => Math.abs(tx.amount) <= max);
+            }
         }
 
         // Type filter
@@ -258,18 +290,57 @@ export default function TransactionHistory({ account }) {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Search and Filters Row */}
+                    {/* Search and Filters Row 1 */}
                     <div className="grid gap-3 md:grid-cols-5">
-                        <div className="relative md:col-span-2">
+                        <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <Input
-                                placeholder="Search by address, memo, or ID..."
+                                placeholder="Search by ID..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-10 bg-slate-800/50 border-slate-700 text-white"
                             />
                         </div>
 
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <Input
+                                placeholder="Search memo..."
+                                value={memoSearch}
+                                onChange={(e) => setMemoSearch(e.target.value)}
+                                className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+                            />
+                        </div>
+
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <Input
+                                placeholder="Filter by address..."
+                                value={addressFilter}
+                                onChange={(e) => setAddressFilter(e.target.value)}
+                                className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+                            />
+                        </div>
+
+                        <Input
+                            type="number"
+                            placeholder="Min amount"
+                            value={minAmount}
+                            onChange={(e) => setMinAmount(e.target.value)}
+                            className="bg-slate-800/50 border-slate-700 text-white"
+                        />
+
+                        <Input
+                            type="number"
+                            placeholder="Max amount"
+                            value={maxAmount}
+                            onChange={(e) => setMaxAmount(e.target.value)}
+                            className="bg-slate-800/50 border-slate-700 text-white"
+                        />
+                    </div>
+
+                    {/* Filters Row 2 */}
+                    <div className="grid gap-3 md:grid-cols-3">
                         <Select value={typeFilter} onValueChange={setTypeFilter}>
                             <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
                                 <SelectValue placeholder="Type" />
@@ -338,7 +409,7 @@ export default function TransactionHistory({ account }) {
                                     <Hash className="w-12 h-12 text-slate-700 mx-auto mb-3" />
                                     <p className="text-slate-500">No transactions found</p>
                                     <p className="text-sm text-slate-600 mt-1">
-                                        {searchQuery || typeFilter !== 'all' || statusFilter !== 'all' || dateRange !== 'all'
+                                        {searchQuery || memoSearch || addressFilter || minAmount || maxAmount || typeFilter !== 'all' || statusFilter !== 'all' || dateRange !== 'all'
                                             ? 'Try adjusting your filters'
                                             : 'Your transaction history will appear here'}
                                     </p>
