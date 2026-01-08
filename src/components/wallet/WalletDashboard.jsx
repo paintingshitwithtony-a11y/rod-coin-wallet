@@ -847,9 +847,13 @@ export default function WalletDashboard({ account, onLogout }) {
                             </Card>
             }
                     </div>
-                </TabsContent>
+                    </TabsContent>
 
-                <TabsContent value="generate" className="mt-6">
+                    <TabsContent value="history" className="mt-6">
+                    <TransactionHistory account={account} />
+                    </TabsContent>
+
+                    <TabsContent value="generate" className="mt-6">
                     <AddressGenerator onAddressGenerated={handleAddressGenerated} />
                 </TabsContent>
 
