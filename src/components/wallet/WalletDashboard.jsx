@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -56,6 +56,8 @@ export default function WalletDashboard({ account, onLogout }) {
   const [currentWallet, setCurrentWallet] = useState(null);
   const [allWallets, setAllWallets] = useState([]);
   const [walletsLoading, setWalletsLoading] = useState(true);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [editAddressLabel, setEditAddressLabel] = useState('');
 
   useEffect(() => {
     const checkMobile = () => {
@@ -438,6 +440,43 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const handleStartEditLabel = (address) => {
+    setEditingAddress(address.id);
+    setEditAddressLabel(address.label);
+  };
+
+  const handleSaveLabel = async (address) => {
+    try {
+      const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
+      if (currentAccount.length > 0) {
+        const additionalAddresses = currentAccount[0].additional_addresses || [];
+        const updatedAddresses = additionalAddresses.map(addr => 
+          addr.address === address.address ? { ...addr, label: editAddressLabel } : addr
+        );
+        
+        await base44.entities.WalletAccount.update(account.id, {
+          additional_addresses: updatedAddresses
+        });
+        
+        // Update local state
+        setAddresses(prev => prev.map(addr => 
+          addr.id === address.id ? { ...addr, label: editAddressLabel } : addr
+        ));
+        
+        toast.success('Address label updated');
+      }
+      setEditingAddress(null);
+    } catch (err) {
+      toast.error('Failed to update label');
+    }
+  };
+
+  const getWalletDeposits = (walletAddress) => {
+    return transactions
+      .filter(tx => tx.type === 'receive' && tx.address.includes(walletAddress.slice(-6)))
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  };
+
 
 
   return (
@@ -765,10 +804,10 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     </p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-lg font-bold text-white">
-                                                                        {balance.confirmed.toFixed(4)}
+                                                                    <p className="text-lg font-bold text-green-400">
+                                                                        +{getWalletDeposits(account.wallet_address).toFixed(4)}
                                                                     </p>
-                                                                    <p className="text-xs text-slate-500">ROD</p>
+                                                                    <p className="text-xs text-slate-500">Deposits</p>
                                                                 </div>
                                                             </div>
                                                         </motion.div>
@@ -803,10 +842,10 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                         </p>
                                                                     </div>
                                                                     <div className="text-right">
-                                                                        <p className="text-lg font-bold text-white">
-                                                                            {(wallet.balance || 0).toFixed(4)}
+                                                                        <p className="text-lg font-bold text-green-400">
+                                                                            +{getWalletDeposits(wallet.wallet_address).toFixed(4)}
                                                                         </p>
-                                                                        <p className="text-xs text-slate-500">ROD</p>
+                                                                        <p className="text-xs text-slate-500">Deposits</p>
                                                                     </div>
                                                                 </div>
                                                             </motion.div>
@@ -899,9 +938,28 @@ export default function WalletDashboard({ account, onLogout }) {
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-sm font-medium text-white truncate">
-                                                        {addr.label}
-                                                    </p>
+                                                    {editingAddress === addr.id ? (
+                                                        <Input
+                                                            type="text"
+                                                            value={editAddressLabel}
+                                                            onChange={(e) => setEditAddressLabel(e.target.value)}
+                                                            onBlur={() => handleSaveLabel(addr)}
+                                                            onKeyPress={(e) => e.key === 'Enter' && handleSaveLabel(addr)}
+                                                            className="bg-slate-900 text-white px-2 py-1 h-7 text-sm font-medium"
+                                                            autoFocus
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-sm font-medium text-white truncate">
+                                                                {addr.label}
+                                                            </p>
+                                                            <button
+                                                                onClick={() => handleStartEditLabel(addr)}
+                                                                className="text-slate-500 hover:text-purple-400 transition-colors">
+                                                                <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     {addr.address === account.wallet_address && (
                                                         <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs">
                                                             Primary
