@@ -29,8 +29,8 @@ Deno.serve(async (req) => {
 
         console.log(`Total transactions found: ${allTxs.length}`);
 
-        // Group by txid to find duplicates
-        const txidMap = new Map();
+        // Group by multiple criteria to find duplicates
+        const txMap = new Map();
         const duplicates = [];
 
         for (const tx of allTxs) {
@@ -38,14 +38,25 @@ Deno.serve(async (req) => {
             const txidMatch = tx.memo?.match(/TxID:\s*([a-f0-9]+)/i);
             const txid = txidMatch ? txidMatch[1] : null;
 
-            if (txid) {
-                if (txidMap.has(txid)) {
-                    // This is a duplicate
+            // Create unique key: type+amount+address+txid (or timestamp if no txid)
+            const key = txid 
+                ? `${tx.type}-${tx.amount}-${tx.address}-${txid}`
+                : `${tx.type}-${tx.amount}-${tx.address}-${new Date(tx.created_date).getTime()}`;
+
+            if (txMap.has(key)) {
+                // This is a duplicate - keep the older one
+                const existing = txMap.get(key);
+                if (new Date(tx.created_date) > new Date(existing.created_date)) {
+                    // Current tx is newer, mark it as duplicate
                     duplicates.push(tx.id);
                 } else {
-                    // First occurrence, keep it
-                    txidMap.set(txid, tx);
+                    // Existing is newer, mark it as duplicate and replace
+                    duplicates.push(existing.id);
+                    txMap.set(key, tx);
                 }
+            } else {
+                // First occurrence, keep it
+                txMap.set(key, tx);
             }
         }
 
@@ -55,7 +66,7 @@ Deno.serve(async (req) => {
         let deleted = 0;
         for (const dupId of duplicates) {
             try {
-                await base44.entities.Transaction.delete(dupId);
+                await base44.asServiceRole.entities.Transaction.delete(dupId);
                 deleted++;
             } catch (err) {
                 console.error(`Failed to delete ${dupId}:`, err);
