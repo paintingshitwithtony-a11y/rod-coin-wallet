@@ -34,13 +34,14 @@ export default function Analytics() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const session = JSON.parse(localStorage.getItem('walletSession') || '{}');
-            if (!session.email) {
+            const savedSession = localStorage.getItem('rod_wallet_session');
+            if (!savedSession) {
                 toast.error('Please log in');
                 return;
             }
 
-            const accounts = await base44.entities.WalletAccount.filter({ email: session.email });
+            const session = JSON.parse(savedSession);
+            const accounts = await base44.entities.WalletAccount.filter({ id: session.id });
             if (accounts.length > 0) {
                 setAccount(accounts[0]);
                 
@@ -220,13 +221,29 @@ export default function Analytics() {
                 </div>
 
                 {/* Key Metrics */}
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-5">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <Card className="bg-gradient-to-br from-purple-500/10 to-slate-900/80 border-purple-500/30">
+                            <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs text-slate-400 mb-1">Current Balance</p>
+                                        <p className="text-xl font-bold text-purple-400">
+                                            {account ? account.balance.toFixed(4) : '0.0000'} ROD
+                                        </p>
+                                    </div>
+                                    <Wallet className="w-8 h-8 text-purple-400/50" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                         <Card className="bg-gradient-to-br from-green-500/10 to-slate-900/80 border-green-500/30">
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs text-slate-400 mb-1">Total Income</p>
+                                        <p className="text-xs text-slate-400 mb-1">Total Received</p>
                                         <p className="text-xl font-bold text-green-400">
                                             {totalIncome.toFixed(4)} ROD
                                         </p>
@@ -242,7 +259,7 @@ export default function Analytics() {
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs text-slate-400 mb-1">Total Spending</p>
+                                        <p className="text-xs text-slate-400 mb-1">Total Sent</p>
                                         <p className="text-xl font-bold text-red-400">
                                             {totalSpending.toFixed(4)} ROD
                                         </p>
@@ -253,23 +270,7 @@ export default function Analytics() {
                         </Card>
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                        <Card className={`bg-gradient-to-br ${netFlow >= 0 ? 'from-purple-500/10 border-purple-500/30' : 'from-amber-500/10 border-amber-500/30'} to-slate-900/80`}>
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs text-slate-400 mb-1">Net Flow</p>
-                                        <p className={`text-xl font-bold ${netFlow >= 0 ? 'text-purple-400' : 'text-amber-400'}`}>
-                                            {netFlow >= 0 ? '+' : ''}{netFlow.toFixed(4)} ROD
-                                        </p>
-                                    </div>
-                                    <TrendingUp className={`w-8 h-8 ${netFlow >= 0 ? 'text-purple-400/50' : 'text-amber-400/50'}`} />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
                         <Card className="bg-gradient-to-br from-blue-500/10 to-slate-900/80 border-blue-500/30">
                             <CardContent className="p-4">
                                 <div className="flex items-center justify-between">
