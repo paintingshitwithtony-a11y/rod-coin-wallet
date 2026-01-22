@@ -267,9 +267,19 @@ export default function Analytics() {
                                             {account ? account.balance.toFixed(4) : '0.0000'} ROD
                                         </p>
                                         {account && rodPrice && (
-                                            <p className="text-sm text-green-400 mt-1">
-                                                ≈ ${(account.balance * rodPrice).toFixed(2)} USD
-                                            </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-sm text-green-400">
+                                                    ≈ ${(account.balance * rodPrice).toFixed(2)} USD
+                                                </p>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={fetchRODPrice}
+                                                    className="h-5 w-5 text-slate-400 hover:text-green-400"
+                                                    title="Refresh ROD price">
+                                                    <RefreshCw className="w-3 h-3" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
                                     <Wallet className="w-8 h-8 text-purple-400/50" />
