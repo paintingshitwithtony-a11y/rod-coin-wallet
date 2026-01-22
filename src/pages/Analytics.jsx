@@ -55,11 +55,14 @@ export default function Analytics() {
 
     const fetchRODPrice = async () => {
         try {
-            // Hardcoded price from KlingeX.io (as of latest check)
-            // In production, you would use a proper API endpoint
-            setRodPrice(0.00049952);
+            const response = await base44.functions.invoke('getRODPrice', {});
+            if (response.data.success && response.data.price) {
+                setRodPrice(response.data.price);
+            }
         } catch (err) {
             console.error('Failed to fetch ROD price:', err);
+            // Fallback to last known price
+            setRodPrice(0.00049952);
         }
     };
 
