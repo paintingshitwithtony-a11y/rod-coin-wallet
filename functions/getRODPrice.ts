@@ -19,16 +19,36 @@ Deno.serve(async (req) => {
 
         const html = await response.text();
         
-        // Use regex to find the price in the HTML
-        // Looking for pattern: ROD/USDT followed by the price
-        const pricePattern = /ROD\/USDT[^\d]*(0\.\d{8})/i;
-        const match = html.match(pricePattern);
+        // Multiple patterns to try
+        const patterns = [
+            /ROD\/USDT.*?(0\.\d{8})/s,
+            /"price":\s*"?(0\.\d{8})"?/i,
+            /lastPrice[":"]\s*"?(0\.\d{8})"?/i,
+            /<h1[^>]*>.*?ROD\/USDT.*?(0\.\d{8})/si,
+            /data-price[=:"']*\s*(0\.\d{8})/i
+        ];
         
-        if (!match || !match[1]) {
-            throw new Error('Could not find price in page');
+        let price = null;
+        for (const pattern of patterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+                price = parseFloat(match[1]);
+                break;
+            }
         }
         
-        const price = parseFloat(match[1]);
+        if (!price) {
+            // Last resort: find any 8-decimal number that looks like a price
+            const allMatches = html.match(/0\.0{4,6}\d{1,2}/g);
+            if (allMatches && allMatches.length > 0) {
+                // Take the first reasonable looking price
+                price = parseFloat(allMatches[0]);
+            }
+        }
+
+        if (!price) {
+            throw new Error('Could not find price in page');
+        }
 
         return Response.json({
             success: true,
