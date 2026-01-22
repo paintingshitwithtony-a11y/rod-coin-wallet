@@ -11,16 +11,17 @@ Deno.serve(async (req) => {
         }
 
         // Fetch ROD price from KlingeX.io API
-        const response = await fetch('https://api.klingex.io/api/v1/ticker/24hr?symbol=ROD_USDT');
+        const response = await fetch('https://klingex.io/api/v1/ticker/24hr?symbol=ROD_USDT');
         
         if (!response.ok) {
-            throw new Error('Failed to fetch price from KlingeX.io');
+            throw new Error(`KlingeX API returned ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('KlingeX API response:', data);
         
         // Extract the last price from the response
-        const price = parseFloat(data.lastPrice || data.last || 0);
+        const price = parseFloat(data.lastPrice || data.last || data.price || 0);
 
         return Response.json({
             success: true,
