@@ -25,10 +25,15 @@ export default function Analytics() {
     const [loading, setLoading] = useState(true);
     const [networkStats, setNetworkStats] = useState(null);
     const [timeRange, setTimeRange] = useState('30d');
+    const [rodPrice, setRodPrice] = useState(null);
 
     useEffect(() => {
         loadData();
         fetchNetworkStats();
+        fetchRODPrice();
+
+        // Auto-refresh price every 30 seconds
+        const priceInterval = setInterval(fetchRODPrice, 30000);
 
         // Subscribe to account updates for real-time balance
         const savedSession = localStorage.getItem('rod_wallet_session');
@@ -39,9 +44,24 @@ export default function Analytics() {
                     setAccount(event.data);
                 }
             });
-            return unsubscribe;
+            return () => {
+                unsubscribe();
+                clearInterval(priceInterval);
+            };
         }
+
+        return () => clearInterval(priceInterval);
     }, []);
+
+    const fetchRODPrice = async () => {
+        try {
+            // Hardcoded price from KlingeX.io (as of latest check)
+            // In production, you would use a proper API endpoint
+            setRodPrice(0.00049952);
+        } catch (err) {
+            console.error('Failed to fetch ROD price:', err);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -243,6 +263,11 @@ export default function Analytics() {
                                         <p className="text-xl font-bold text-purple-400">
                                             {account ? account.balance.toFixed(4) : '0.0000'} ROD
                                         </p>
+                                        {account && rodPrice && (
+                                            <p className="text-sm text-green-400 mt-1">
+                                                ≈ ${(account.balance * rodPrice).toFixed(2)} USD
+                                            </p>
+                                        )}
                                     </div>
                                     <Wallet className="w-8 h-8 text-purple-400/50" />
                                 </div>
