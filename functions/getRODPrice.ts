@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import * as cheerio from 'npm:cheerio@1.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -11,41 +10,25 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Scrape ROD price from KlingeX.io trading page
+        // Fetch the trading page
         const response = await fetch('https://klingex.io/trade/ROD-USDT');
         
         if (!response.ok) {
-            throw new Error(`KlingeX page returned ${response.status}`);
+            throw new Error(`Failed to fetch page: ${response.status}`);
         }
 
         const html = await response.text();
-        const $ = cheerio.load(html);
         
-        // Find the price - it's in an h1 tag next to the ROD logo
-        let price = 0;
+        // Use regex to find the price in the HTML
+        // Looking for pattern: ROD/USDT followed by the price
+        const pricePattern = /ROD\/USDT[^\d]*(0\.\d{8})/i;
+        const match = html.match(pricePattern);
         
-        // Look for h1 tags that contain the price pattern
-        $('h1').each((i, elem) => {
-            const text = $(elem).text().trim();
-            // Match pattern like "ROD/USDT" followed by price
-            const match = text.match(/ROD\/USDT\s*(0\.\d+)/i);
-            if (match) {
-                price = parseFloat(match[1]);
-            }
-        });
-        
-        // Alternative: look for any element containing ROD/USDT followed by a price
-        if (price === 0) {
-            const bodyText = $('body').text();
-            const match = bodyText.match(/ROD\/USDT[^\d]*(0\.\d{8})/);
-            if (match) {
-                price = parseFloat(match[1]);
-            }
+        if (!match || !match[1]) {
+            throw new Error('Could not find price in page');
         }
-
-        if (price === 0) {
-            throw new Error('Could not extract price from page');
-        }
+        
+        const price = parseFloat(match[1]);
 
         return Response.json({
             success: true,
