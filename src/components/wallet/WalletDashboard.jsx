@@ -178,16 +178,18 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const fetchRODPrice = async () => {
-    setPriceLoading(true);
-    try {
-      // Hardcoded price from KlingeX.io (as of latest check)
-      // In production, you would use a proper API endpoint
-      setRodPrice(0.00049952);
-    } catch (err) {
-      console.error('Failed to fetch ROD price:', err);
-    } finally {
-      setPriceLoading(false);
-    }
+      setPriceLoading(true);
+      try {
+          const response = await base44.functions.invoke('getRODPrice', {});
+          if (response.data.success && response.data.price) {
+              setRodPrice(response.data.price);
+          }
+      } catch (err) {
+          console.error('Failed to fetch ROD price:', err);
+          setRodPrice(0.00049952);
+      } finally {
+          setPriceLoading(false);
+      }
   };
 
   const fetchNetworkHashrate = async () => {
