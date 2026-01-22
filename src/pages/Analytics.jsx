@@ -29,6 +29,18 @@ export default function Analytics() {
     useEffect(() => {
         loadData();
         fetchNetworkStats();
+
+        // Subscribe to account updates for real-time balance
+        const savedSession = localStorage.getItem('rod_wallet_session');
+        if (savedSession) {
+            const session = JSON.parse(savedSession);
+            const unsubscribe = base44.entities.WalletAccount.subscribe((event) => {
+                if (event.id === session.id && event.type === 'update') {
+                    setAccount(event.data);
+                }
+            });
+            return unsubscribe;
+        }
     }, []);
 
     const loadData = async () => {
