@@ -21,31 +21,26 @@ Deno.serve(async (req) => {
         const html = await response.text();
         const $ = cheerio.load(html);
         
-        // Find the price element - look for the ROD/USDT price display
+        // Find the price - it's in an h1 tag next to the ROD logo
         let price = 0;
         
-        // Try to find price in the heading or price display area
-        $('h1, .text-2xl, .text-3xl, .text-4xl').each((i, elem) => {
-            const text = $(elem).text();
-            if (text.includes('ROD/USDT')) {
-                const priceMatch = text.match(/0\.\d+/);
-                if (priceMatch) {
-                    price = parseFloat(priceMatch[0]);
-                }
+        // Look for h1 tags that contain the price pattern
+        $('h1').each((i, elem) => {
+            const text = $(elem).text().trim();
+            // Match pattern like "ROD/USDT" followed by price
+            const match = text.match(/ROD\/USDT\s*(0\.\d+)/i);
+            if (match) {
+                price = parseFloat(match[1]);
             }
         });
         
-        // If not found, try table data
+        // Alternative: look for any element containing ROD/USDT followed by a price
         if (price === 0) {
-            $('table tr').each((i, elem) => {
-                const text = $(elem).text();
-                if (text.includes('ROD/USDT')) {
-                    const priceMatch = text.match(/0\.\d+/);
-                    if (priceMatch) {
-                        price = parseFloat(priceMatch[0]);
-                    }
-                }
-            });
+            const bodyText = $('body').text();
+            const match = bodyText.match(/ROD\/USDT[^\d]*(0\.\d{8})/);
+            if (match) {
+                price = parseFloat(match[1]);
+            }
         }
 
         if (price === 0) {
@@ -64,7 +59,6 @@ Deno.serve(async (req) => {
         return Response.json({ 
             error: error.message,
             success: false,
-            // Fallback to hardcoded price if API fails
             price: 0.000058
         }, { status: 500 });
     }
