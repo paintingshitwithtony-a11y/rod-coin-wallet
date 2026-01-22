@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
     TrendingUp, TrendingDown, Activity, DollarSign, ArrowUpRight,
-    ArrowDownLeft, Calendar, Zap, Database, Network, ArrowLeft
+    ArrowDownLeft, Calendar, Zap, Database, Network, ArrowLeft, RefreshCw, Wallet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
