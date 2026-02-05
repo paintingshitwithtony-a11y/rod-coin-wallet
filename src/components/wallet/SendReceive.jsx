@@ -125,6 +125,12 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             const amountNum = parseFloat(amount);
             const feeNum = parseFloat(fee);
             
+            console.log('=== SENDING TRANSACTION ===');
+            console.log('From:', fromAddress || account.wallet_address);
+            console.log('To:', recipient);
+            console.log('Amount:', amountNum);
+            console.log('Fee:', feeNum);
+            
             // Call backend function to broadcast transaction via ROD Core RPC
             const response = await base44.functions.invoke('sendTransaction', {
                 recipient,
@@ -133,6 +139,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 memo: memo || '',
                 fromAddress: fromAddress || account.wallet_address
             });
+            
+            console.log('Response:', response.data);
             
             if (response.data.error) {
                 toast.error(response.data.error, {
