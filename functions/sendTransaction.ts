@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { recipient, amount, fee, memo } = await req.json();
+        const { recipient, amount, fee, memo, fromAddress } = await req.json();
 
         // Validate inputs
         if (!recipient || !amount || amount <= 0) {
@@ -81,6 +81,12 @@ Deno.serve(async (req) => {
         const rpcUrl = `http://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
         
+        // Use sendfrom if specific address provided, otherwise sendtoaddress
+        const rpcMethod = fromAddress ? 'sendfrom' : 'sendtoaddress';
+        const rpcParams = fromAddress 
+            ? [fromAddress, recipient, amount]
+            : [recipient, amount, memo || '', '', false];
+        
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers: {
@@ -90,14 +96,8 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
                 jsonrpc: '1.0',
                 id: 'sendTransaction',
-                method: 'sendtoaddress',
-                params: [
-                    recipient,
-                    amount,
-                    memo || '',
-                    '',
-                    false
-                ]
+                method: rpcMethod,
+                params: rpcParams
             })
         });
 

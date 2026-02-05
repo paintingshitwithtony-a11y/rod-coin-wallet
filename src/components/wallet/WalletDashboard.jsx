@@ -1208,10 +1208,11 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 <TabsContent value="send" className="mt-6">
                     <SendReceive
-            mode="send"
-            balance={balance.confirmed}
-            account={account}
-            onTransactionComplete={fetchWalletData} />
+                mode="send"
+                balance={balance.confirmed}
+                account={account}
+                onTransactionComplete={fetchWalletData}
+                fromAddress={currentWallet?.wallet_address || account.wallet_address} />
 
                 </TabsContent>
 

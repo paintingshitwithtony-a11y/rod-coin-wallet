@@ -17,7 +17,7 @@ import { base44 } from '@/api/base44Client';
 import TransactionConfirmation from './TransactionConfirmation';
 import MFAVerification from './MFAVerification';
 
-export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete }) {
+export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete, fromAddress }) {
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [fee, setFee] = useState('0.0001');
@@ -130,7 +130,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 recipient,
                 amount: amountNum,
                 fee: feeNum,
-                memo: memo || ''
+                memo: memo || '',
+                fromAddress: fromAddress || account.wallet_address
             });
             
             if (response.data.error) {
