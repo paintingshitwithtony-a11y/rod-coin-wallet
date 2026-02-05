@@ -20,6 +20,20 @@ Deno.serve(async (req) => {
 
         const account = accounts[0];
 
+        // Get all wallets first to map addresses to wallet IDs
+        const allWallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        const addressToWalletMap = new Map();
+        
+        // Build address to wallet mapping
+        for (const wallet of allWallets) {
+            addressToWalletMap.set(wallet.wallet_address, wallet.id);
+            if (wallet.additional_addresses) {
+                for (const addr of wallet.additional_addresses) {
+                    addressToWalletMap.set(addr.address, wallet.id);
+                }
+            }
+        }
+        
         // Get all transactions
         const allTxs = await base44.entities.Transaction.filter(
             { account_id: account.id },
@@ -28,6 +42,28 @@ Deno.serve(async (req) => {
         );
 
         console.log(`Total transactions found: ${allTxs.length}`);
+        console.log(`Total wallets found: ${allWallets.length}`);
+        
+        // Update old transactions that don't have wallet_id/wallet_address set
+        let migratedCount = 0;
+        for (const tx of allTxs) {
+            if (!tx.wallet_id && !tx.wallet_address) {
+                // For receive transactions, the 'address' field is where the coins were received
+                const walletId = addressToWalletMap.get(tx.address);
+                
+                await base44.asServiceRole.entities.Transaction.update(tx.id, {
+                    wallet_id: walletId || null,
+                    wallet_address: tx.address
+                });
+                
+                // Update in-memory object for balance calculation
+                tx.wallet_id = walletId || null;
+                tx.wallet_address = tx.address;
+                migratedCount++;
+            }
+        }
+        
+        console.log(`Migrated ${migratedCount} old transactions`);
 
         // Group by multiple criteria to find duplicates
         const txMap = new Map();
@@ -163,7 +199,8 @@ Deno.serve(async (req) => {
             sampleTransactions: sampleTxs,
             receiveCount: remainingTxs.filter(tx => tx.type === 'receive').length,
             sendCount: remainingTxs.filter(tx => tx.type === 'send').length,
-            walletsUpdated: wallets.length
+            walletsUpdated: wallets.length,
+            transactionsMigrated: migratedCount
         });
 
     } catch (error) {
