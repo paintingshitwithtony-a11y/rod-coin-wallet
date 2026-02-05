@@ -135,7 +135,22 @@ export default function WalletDashboard({ account, onLogout }) {
         { account_id: account.id },
         '-created_date'
       );
-      
+
+      // Always include main account wallet
+      const mainWallet = {
+        id: 'main-account',
+        account_id: account.id,
+        name: 'Main Wallet',
+        wallet_address: account.wallet_address,
+        balance: account.balance || 0,
+        is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
+        wallet_type: 'standard',
+        color: 'from-purple-500 to-purple-700',
+        importStatus: addresses.some(addr => 
+          addr.address === account.wallet_address && addr.importStatus === 'imported'
+        ) ? 'imported' : null
+      };
+
       // Check which wallets are imported to RPC
       const walletsWithImportStatus = await Promise.all(
         walletList.map(async (wallet) => {
@@ -145,8 +160,9 @@ export default function WalletDashboard({ account, onLogout }) {
           return { ...wallet, importStatus: isImported ? 'imported' : null };
         })
       );
-      
-      setAllWallets(walletsWithImportStatus);
+
+      const allWallets = [mainWallet, ...walletsWithImportStatus];
+      setAllWallets(allWallets);
     } catch (err) {
       console.error('Failed to fetch wallets:', err);
     } finally {
