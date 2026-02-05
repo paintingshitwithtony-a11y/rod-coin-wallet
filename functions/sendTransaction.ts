@@ -77,15 +77,24 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
+        console.log('=== SEND TRANSACTION DEBUG ===');
+        console.log('Account ID:', account.id);
+        console.log('From Address:', fromAddress || 'default');
+        console.log('To Address:', recipient);
+        console.log('Amount:', amount);
+        console.log('Fee:', fee);
+        console.log('Current Balance:', account.balance);
+
         // Send transaction via ROD Core RPC
         const rpcUrl = `http://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
         
-        // Use sendfrom if specific address provided, otherwise sendtoaddress
-        const rpcMethod = fromAddress ? 'sendfrom' : 'sendtoaddress';
-        const rpcParams = fromAddress 
-            ? [fromAddress, recipient, amount]
-            : [recipient, amount, memo || '', '', false];
+        // Always use sendtoaddress (sendfrom is deprecated and doesn't work properly)
+        const rpcMethod = 'sendtoaddress';
+        const rpcParams = [recipient, amount, memo || '', '', false];
+        
+        console.log('RPC Method:', rpcMethod);
+        console.log('RPC Params:', rpcParams);
         
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
@@ -119,6 +128,7 @@ Deno.serve(async (req) => {
         }
 
         const txid = rpcData.result;
+        console.log('Transaction broadcasted. TxID:', txid);
 
         // Record transaction in database
         const transaction = await base44.entities.Transaction.create({
@@ -131,12 +141,34 @@ Deno.serve(async (req) => {
             confirmations: 0,
             status: 'pending'
         });
+        console.log('Transaction recorded in DB:', transaction.id);
 
-        // Update account balance
-        const newBalance = account.balance - amount - fee;
+        // Update account balance - fetch fresh data first to avoid stale balance
+        const freshAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
+        const currentBalance = freshAccounts[0]?.balance || 0;
+        const newBalance = currentBalance - amount - fee;
+        
         await base44.asServiceRole.entities.WalletAccount.update(account.id, {
             balance: newBalance
         });
+        console.log('Balance updated:', currentBalance, '->', newBalance);
+        
+        // Also update individual wallet balance if sending from specific wallet
+        if (fromAddress) {
+            const wallets = await base44.entities.Wallet.filter({
+                account_id: account.id,
+                wallet_address: fromAddress
+            });
+            
+            if (wallets.length > 0) {
+                const wallet = wallets[0];
+                const newWalletBalance = (wallet.balance || 0) - amount - fee;
+                await base44.asServiceRole.entities.Wallet.update(wallet.id, {
+                    balance: newWalletBalance
+                });
+                console.log('Wallet balance updated:', wallet.balance, '->', newWalletBalance);
+            }
+        }
 
         return Response.json({ 
             success: true,

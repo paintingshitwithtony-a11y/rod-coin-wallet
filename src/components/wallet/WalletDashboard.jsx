@@ -349,12 +349,16 @@ export default function WalletDashboard({ account, onLogout }) {
   const fetchWalletData = async () => {
     setLoading(true);
     try {
+      console.log('=== FETCHING WALLET DATA ===');
+      console.log('Account ID:', account.id);
+
       // Fetch actual transactions from database
       const txs = await base44.entities.Transaction.filter(
         { account_id: account.id },
         '-created_date',
         50
       );
+      console.log('Transactions fetched:', txs.length);
 
       // Format transactions for display
       const formattedTxs = txs.map((tx) => ({
@@ -372,6 +376,7 @@ export default function WalletDashboard({ account, onLogout }) {
       // Update balance from account
       const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
       if (accounts.length > 0) {
+        console.log('Fresh balance from DB:', accounts[0].balance);
         setBalance({
           confirmed: accounts[0].balance || 0,
           unconfirmed: 0
