@@ -89,6 +89,34 @@ Deno.serve(async (req) => {
         const rpcUrl = `http://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
         
+        // If sending from specific wallet, verify it's imported to RPC first
+        if (fromAddress) {
+            console.log('Verifying address is imported:', fromAddress);
+            
+            const validateResponse = await fetch(rpcUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${rpcAuth}`
+                },
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: 'validateAddress',
+                    method: 'validateaddress',
+                    params: [fromAddress]
+                })
+            });
+            
+            const validateData = await validateResponse.json();
+            console.log('Address validation:', validateData.result);
+            
+            if (!validateData.result?.ismine) {
+                return Response.json({ 
+                    error: 'Address not imported to RPC node. Please import it first using "Import to Chain" button.'
+                }, { status: 400 });
+            }
+        }
+        
         // Always use sendtoaddress (sendfrom is deprecated and doesn't work properly)
         const rpcMethod = 'sendtoaddress';
         const rpcParams = [recipient, amount, memo || '', '', false];
@@ -178,9 +206,12 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        console.error('Send transaction error:', error);
+        console.error('=== SEND TRANSACTION ERROR ===');
+        console.error('Error:', error);
+        console.error('Stack:', error.stack);
         return Response.json({ 
-            error: error.message
+            error: error.message,
+            details: error.stack
         }, { status: 500 });
     }
 });
