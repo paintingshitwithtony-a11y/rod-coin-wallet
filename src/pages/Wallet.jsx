@@ -103,9 +103,7 @@ export default function Wallet() {
                             <div className="bg-gradient-to-br my-16 rounded-2xl w-14 h-14 from-purple-500 via-purple-600 to-amber-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
                                 <span className="text-2xl font-black text-white">R</span>
                             </div>
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
-                                <span className="text-[8px] font-bold text-slate-900">◆</span>
-                            </div>
+
                         </div>
                         <div className="text-left">
                             <h1 className="text-3xl font-bold text-white tracking-tight">ROD Wallet</h1>
