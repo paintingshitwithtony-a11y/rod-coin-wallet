@@ -131,23 +131,27 @@ export default function WalletDashboard({ account, onLogout }) {
   const fetchAllWallets = async () => {
     setWalletsLoading(true);
     try {
+      // Fetch fresh account data
+      const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+      const freshAccount = accounts.length > 0 ? accounts[0] : account;
+
       const walletList = await base44.entities.Wallet.filter(
         { account_id: account.id },
         '-created_date'
       );
 
-      // Always include main account wallet
+      // Always include main account wallet with fresh balance
       const mainWallet = {
         id: 'main-account',
         account_id: account.id,
         name: 'Main Wallet',
-        wallet_address: account.wallet_address,
-        balance: account.balance || 0,
+        wallet_address: freshAccount.wallet_address,
+        balance: freshAccount.balance || 0,
         is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
         wallet_type: 'standard',
         color: 'from-purple-500 to-purple-700',
         importStatus: addresses.some(addr => 
-          addr.address === account.wallet_address && addr.importStatus === 'imported'
+          addr.address === freshAccount.wallet_address && addr.importStatus === 'imported'
         ) ? 'imported' : null
       };
 
@@ -164,15 +168,27 @@ export default function WalletDashboard({ account, onLogout }) {
       const allWallets = [mainWallet, ...walletsWithImportStatus];
       setAllWallets(allWallets);
 
-      // Set current wallet to active one
+      // Set current wallet to active one or keep existing if still valid
       const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
-      setCurrentWallet(activeWallet);
-
-      // Update balance to show active wallet's balance
-      setBalance({
-        confirmed: activeWallet.balance || 0,
-        unconfirmed: 0
-      });
+      
+      // Only update currentWallet if it's not set or if active wallet changed
+      if (!currentWallet || currentWallet.id !== activeWallet.id) {
+        setCurrentWallet(activeWallet);
+        setBalance({
+          confirmed: activeWallet.balance || 0,
+          unconfirmed: 0
+        });
+      } else {
+        // Update the balance for current wallet
+        const updatedCurrent = allWallets.find(w => w.id === currentWallet.id);
+        if (updatedCurrent) {
+          setCurrentWallet(updatedCurrent);
+          setBalance({
+            confirmed: updatedCurrent.balance || 0,
+            unconfirmed: 0
+          });
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch wallets:', err);
     } finally {
@@ -196,17 +212,31 @@ export default function WalletDashboard({ account, onLogout }) {
         await base44.entities.Wallet.update(wallet.id, { is_active: true });
       }
 
+      // Fetch fresh balance from database
+      let freshBalance = 0;
+      if (wallet.id === 'main-account') {
+        const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+        if (accounts.length > 0) {
+          freshBalance = accounts[0].balance || 0;
+        }
+      } else {
+        const wallets = await base44.entities.Wallet.filter({ id: wallet.id });
+        if (wallets.length > 0) {
+          freshBalance = wallets[0].balance || 0;
+        }
+      }
+
       setCurrentWallet(wallet);
       setBalance({
-        confirmed: wallet.balance || 0,
+        confirmed: freshBalance,
         unconfirmed: 0
       });
-      toast.success(`Switched to ${wallet.name}`);
+      toast.success(`Switched to ${wallet.name} (${freshBalance.toFixed(4)} ROD)`);
 
       // Refresh data
       fetchAllWallets();
-      fetchWalletData();
     } catch (err) {
+      console.error('Failed to switch wallet:', err);
       toast.error('Failed to switch wallet');
     }
   };
@@ -755,11 +785,18 @@ export default function WalletDashboard({ account, onLogout }) {
                                                             className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg mt-1`} />
 
                                                         <div className="flex-1">
-                                                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>Total Balance</p>
+                                                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>
+                                                                {currentWallet ? currentWallet.name : 'Total Balance'}
+                                                            </p>
                                                             <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold text-white mb-2`}>
                                                                 {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
                                                                 <span className={`${isMobile ? 'text-sm' : 'text-xl'} text-slate-400 ml-2`}>ROD</span>
                                                             </h2>
+                                                            {currentWallet && (
+                                                                <p className="text-xs text-slate-500 font-mono truncate">
+                                                                    {currentWallet.wallet_address}
+                                                                </p>
+                                                            )}
                                                             {rodPrice &&
                                                                 <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-green-400 mb-2`}>
                                                                     ≈ ${(balance.confirmed * rodPrice).toFixed(2)} USD
