@@ -158,9 +158,18 @@ Deno.serve(async (req) => {
         const txid = rpcData.result;
         console.log('Transaction broadcasted. TxID:', txid);
 
+        // Determine which wallet this is being sent from
+        const senderWallets = await base44.entities.Wallet.filter({
+            account_id: account.id,
+            wallet_address: fromAddress
+        });
+        const walletId = senderWallets.length > 0 ? senderWallets[0].id : null;
+        
         // Record transaction in database
         const transaction = await base44.entities.Transaction.create({
             account_id: account.id,
+            wallet_id: walletId,
+            wallet_address: fromAddress || account.wallet_address,
             type: 'send',
             amount: -amount,
             fee: fee,
