@@ -921,34 +921,6 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 <CardContent className="space-y-2">
                                                     {walletsLoading ? (
                                                         <p className="text-center text-slate-400 py-4">Loading wallets...</p>
-                                                    ) : allWallets.length === 0 ? (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            className="p-3 rounded-lg border bg-purple-900/30 border-purple-500/50 ring-1 ring-purple-500/30">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shrink-0">
-                                                                    <Wallet className="w-5 h-5 text-white" />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <p className="font-medium text-white">Main Wallet</p>
-                                                                        <Badge className="bg-green-500/20 text-green-400 border-green-500/50 text-xs">
-                                                                            Active
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <p className="text-xs text-slate-500 font-mono truncate">
-                                                                        {account.wallet_address}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-lg font-bold text-green-400">
-                                                                        +{getWalletDeposits(account.wallet_address).toFixed(4)}
-                                                                    </p>
-                                                                    <p className="text-xs text-slate-500">Deposits</p>
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
                                                     ) : (
                                                         allWallets.map((wallet, index) => (
                                                             <motion.div
@@ -981,15 +953,15 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                             )}
                                                                             </div>
                                                                         <p className="text-xs text-slate-500 font-mono truncate">
-                                                                            {wallet.wallet_address}
+                                                                        {wallet.wallet_address}
                                                                         </p>
-                                                                    </div>
-                                                                    <div className="text-right">
-                                                                        <p className="text-lg font-bold text-green-400">
-                                                                            +{getWalletDeposits(wallet.wallet_address).toFixed(4)}
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                        <p className="text-lg font-bold text-white">
+                                                                        {wallet.balance?.toFixed(4) || '0.0000'}
                                                                         </p>
-                                                                        <p className="text-xs text-slate-500">Deposits</p>
-                                                                    </div>
+                                                                        <p className="text-xs text-slate-500">Balance</p>
+                                                                        </div>
                                                                 </div>
                                                             </motion.div>
                                                         ))
