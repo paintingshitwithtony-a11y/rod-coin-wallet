@@ -16,10 +16,27 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Invalid transaction parameters' }, { status: 400 });
         }
 
-        // Get user's wallet account
-        const accounts = await base44.entities.WalletAccount.filter({ 
-            email: user.email 
-        });
+        // Get user's wallet account - use session ID from localStorage
+        const savedSession = req.headers.get('cookie');
+        let accountId = null;
+        
+        // Try to parse account ID from session
+        try {
+            const sessionMatch = savedSession?.match(/rod_wallet_session=([^;]+)/);
+            if (sessionMatch) {
+                const sessionData = JSON.parse(decodeURIComponent(sessionMatch[1]));
+                accountId = sessionData.id;
+            }
+        } catch (e) {
+            // Fallback to user email
+        }
+
+        let accounts;
+        if (accountId) {
+            accounts = await base44.entities.WalletAccount.filter({ id: accountId });
+        } else {
+            accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        }
 
         if (accounts.length === 0) {
             return Response.json({ error: 'Wallet not found' }, { status: 404 });
@@ -27,15 +44,27 @@ Deno.serve(async (req) => {
 
         const account = accounts[0];
 
-        // Get RPC credentials from user account (fallback to env)
-        const rpcHost = account.rpc_host || Deno.env.get('ROD_RPC_HOST');
-        const rpcPort = account.rpc_port || Deno.env.get('ROD_RPC_PORT');
-        const rpcUser = account.rpc_username || Deno.env.get('ROD_RPC_USERNAME');
-        const rpcPass = account.rpc_password || Deno.env.get('ROD_RPC_PASSWORD');
+        // Get active RPC configuration
+        const rpcConfigs = await base44.entities.RPCConfiguration.filter({ 
+            account_id: account.id,
+            is_active: true 
+        });
+
+        if (rpcConfigs.length === 0) {
+            return Response.json({ 
+                error: 'No active RPC configuration found. Please configure an RPC connection in Admin panel.'
+            }, { status: 500 });
+        }
+
+        const rpcConfig = rpcConfigs[0];
+        const rpcHost = rpcConfig.host;
+        const rpcPort = rpcConfig.port;
+        const rpcUser = rpcConfig.username;
+        const rpcPass = rpcConfig.password;
 
         if (!rpcHost || !rpcPort || !rpcUser || !rpcPass) {
             return Response.json({ 
-                error: 'RPC credentials not configured. Please set up ROD Core RPC connection.'
+                error: 'RPC credentials incomplete. Please check your RPC configuration.'
             }, { status: 500 });
         }
 
