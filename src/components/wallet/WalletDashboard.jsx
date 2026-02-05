@@ -163,6 +163,16 @@ export default function WalletDashboard({ account, onLogout }) {
 
       const allWallets = [mainWallet, ...walletsWithImportStatus];
       setAllWallets(allWallets);
+
+      // Set current wallet to active one
+      const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
+      setCurrentWallet(activeWallet);
+
+      // Update balance to show active wallet's balance
+      setBalance({
+        confirmed: activeWallet.balance || 0,
+        unconfirmed: 0
+      });
     } catch (err) {
       console.error('Failed to fetch wallets:', err);
     } finally {
@@ -172,19 +182,27 @@ export default function WalletDashboard({ account, onLogout }) {
 
   const handleWalletClick = async (wallet) => {
     try {
-      // Update all wallets to inactive
-      await Promise.all(
-        allWallets.map(w => 
-          base44.entities.Wallet.update(w.id, { is_active: false })
-        )
-      );
-      
-      // Set clicked wallet as active
-      await base44.entities.Wallet.update(wallet.id, { is_active: true });
-      
+      // Update all wallets to inactive (only for non-main wallets)
+      const updatePromises = allWallets
+        .filter(w => w.id !== 'main-account')
+        .map(w => base44.entities.Wallet.update(w.id, { is_active: false }));
+
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+      }
+
+      // Set clicked wallet as active (only if not main wallet)
+      if (wallet.id !== 'main-account') {
+        await base44.entities.Wallet.update(wallet.id, { is_active: true });
+      }
+
       setCurrentWallet(wallet);
+      setBalance({
+        confirmed: wallet.balance || 0,
+        unconfirmed: 0
+      });
       toast.success(`Switched to ${wallet.name}`);
-      
+
       // Refresh data
       fetchAllWallets();
       fetchWalletData();
@@ -373,14 +391,29 @@ export default function WalletDashboard({ account, onLogout }) {
 
       setTransactions(formattedTxs);
 
-      // Update balance from account
-      const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
-      if (accounts.length > 0) {
-        console.log('Fresh balance from DB:', accounts[0].balance);
-        setBalance({
-          confirmed: accounts[0].balance || 0,
-          unconfirmed: 0
-        });
+      // Update balance from active wallet
+      if (currentWallet) {
+        console.log('Active wallet:', currentWallet.name);
+        // Fetch fresh wallet data
+        if (currentWallet.id === 'main-account') {
+          const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+          if (accounts.length > 0) {
+            console.log('Fresh main wallet balance:', accounts[0].balance);
+            setBalance({
+              confirmed: accounts[0].balance || 0,
+              unconfirmed: 0
+            });
+          }
+        } else {
+          const wallets = await base44.entities.Wallet.filter({ id: currentWallet.id });
+          if (wallets.length > 0) {
+            console.log('Fresh wallet balance:', wallets[0].balance);
+            setBalance({
+              confirmed: wallets[0].balance || 0,
+              unconfirmed: 0
+            });
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch transactions:', err);
