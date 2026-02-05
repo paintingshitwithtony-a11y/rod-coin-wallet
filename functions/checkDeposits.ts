@@ -107,8 +107,17 @@ Deno.serve(async (req) => {
 
                         // If not already recorded, add it
                         if (existing.length === 0 || !alreadyExists) {
+                            // Determine which wallet this belongs to
+                            const wallets = await base44.entities.Wallet.filter({
+                                account_id: account.id,
+                                wallet_address: tx.address
+                            });
+                            const walletId = wallets.length > 0 ? wallets[0].id : null;
+                            
                             const newTx = await base44.entities.Transaction.create({
                                 account_id: account.id,
+                                wallet_id: walletId,
+                                wallet_address: tx.address,
                                 type: 'receive',
                                 amount: tx.amount,
                                 fee: 0,

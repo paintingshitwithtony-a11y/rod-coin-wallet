@@ -101,30 +101,45 @@ Deno.serve(async (req) => {
 
         // Recalculate individual wallet balances
         const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        const walletBalances = {};
+        
         for (const wallet of wallets) {
-            let walletBalance = 0;
+            walletBalances[wallet.id] = 0;
+        }
+        
+        // Also track main wallet balance (transactions without wallet_id)
+        let mainWalletBalance = 0;
 
-            // Get all addresses for this wallet
-            const walletAddresses = [wallet.wallet_address];
-            if (wallet.additional_addresses) {
-                walletAddresses.push(...wallet.additional_addresses.map(a => a.address));
-            }
-
-            // Sum transactions for this wallet's addresses
-            for (const tx of remainingTxs) {
-                if (walletAddresses.includes(tx.address)) {
-                    if (tx.type === 'receive') {
-                        walletBalance += tx.amount;
-                    } else if (tx.type === 'send') {
-                        walletBalance -= Math.abs(tx.amount);
-                    }
+        // Sum transactions by wallet_id and wallet_address
+        for (const tx of remainingTxs) {
+            if (tx.wallet_id && walletBalances.hasOwnProperty(tx.wallet_id)) {
+                // Transaction belongs to a specific wallet
+                if (tx.type === 'receive') {
+                    walletBalances[tx.wallet_id] += tx.amount;
+                } else if (tx.type === 'send') {
+                    walletBalances[tx.wallet_id] -= Math.abs(tx.amount);
+                }
+            } else if (!tx.wallet_id || tx.wallet_address === account.wallet_address) {
+                // Transaction belongs to main wallet (no wallet_id or matches main address)
+                if (tx.type === 'receive') {
+                    mainWalletBalance += tx.amount;
+                } else if (tx.type === 'send') {
+                    mainWalletBalance -= Math.abs(tx.amount);
                 }
             }
+        }
 
+        // Update wallet balances
+        for (const wallet of wallets) {
             await base44.asServiceRole.entities.Wallet.update(wallet.id, {
-                balance: walletBalance
+                balance: walletBalances[wallet.id]
             });
         }
+        
+        // Update main account wallet balance
+        await base44.asServiceRole.entities.WalletAccount.update(account.id, {
+            balance: mainWalletBalance
+        });
 
         // Get sample transactions for debugging
         const sampleTxs = remainingTxs.slice(0, 10).map(tx => ({
