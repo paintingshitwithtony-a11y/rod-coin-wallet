@@ -10,8 +10,16 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Fetch the trading page
-        const response = await fetch('https://klingex.io/trade/ROD-USDT');
+        // Fetch the trading page with headers to avoid blocking
+        const response = await fetch('https://klingex.io/trade/ROD-USDT', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`Failed to fetch page: ${response.status}`);
@@ -19,30 +27,52 @@ Deno.serve(async (req) => {
 
         const html = await response.text();
         
-        // Multiple patterns to try
-        const patterns = [
-            /ROD\/USDT.*?(0\.\d{8})/s,
-            /"price":\s*"?(0\.\d{8})"?/i,
-            /lastPrice[":"]\s*"?(0\.\d{8})"?/i,
-            /<h1[^>]*>.*?ROD\/USDT.*?(0\.\d{8})/si,
-            /data-price[=:"']*\s*(0\.\d{8})/i
-        ];
-        
+        // Try to extract from script tags containing price data
+        const scriptMatches = html.match(/<script[^>]*>(.*?)<\/script>/gis);
         let price = null;
-        for (const pattern of patterns) {
-            const match = html.match(pattern);
-            if (match && match[1]) {
-                price = parseFloat(match[1]);
-                break;
+        
+        if (scriptMatches) {
+            for (const script of scriptMatches) {
+                // Look for price in various JSON formats
+                const jsonPricePatterns = [
+                    /"lastPrice":\s*"?([\d.]+)"?/i,
+                    /"price":\s*"?([\d.]+)"?/i,
+                    /lastPrice:\s*"?([\d.]+)"?/i,
+                    /"last":\s*"?([\d.]+)"?/i
+                ];
+                
+                for (const pattern of jsonPricePatterns) {
+                    const match = script.match(pattern);
+                    if (match && match[1]) {
+                        const candidate = parseFloat(match[1]);
+                        if (candidate > 0 && candidate < 1) {
+                            price = candidate;
+                            break;
+                        }
+                    }
+                }
+                if (price) break;
             }
         }
         
+        // Fallback patterns in HTML
         if (!price) {
-            // Last resort: find any 8-decimal number that looks like a price
-            const allMatches = html.match(/0\.0{4,6}\d{1,2}/g);
-            if (allMatches && allMatches.length > 0) {
-                // Take the first reasonable looking price
-                price = parseFloat(allMatches[0]);
+            const patterns = [
+                /class="price[^"]*"[^>]*>([\d.]+)<\/[^>]+>/i,
+                /ROD\/USDT.*?(0\.\d{4,8})/s,
+                /"price":\s*"?(0\.\d{4,8})"?/i,
+                /data-price[=:"']*\s*(0\.\d{4,8})/i
+            ];
+            
+            for (const pattern of patterns) {
+                const match = html.match(pattern);
+                if (match && match[1]) {
+                    const candidate = parseFloat(match[1]);
+                    if (candidate > 0 && candidate < 1) {
+                        price = candidate;
+                        break;
+                    }
+                }
             }
         }
 

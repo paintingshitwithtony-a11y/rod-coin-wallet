@@ -125,11 +125,25 @@ Deno.serve(async (req) => {
                                 txid: tx.txid
                             });
 
-                            // Update account balance
-                            const currentBalance = account.balance || 0;
+                            // Update account balance - fetch fresh account data first
+                            const freshAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
+                            const currentBalance = freshAccounts[0]?.balance || 0;
                             await base44.asServiceRole.entities.WalletAccount.update(account.id, {
                                 balance: currentBalance + tx.amount
                             });
+                            
+                            // Also update individual wallet balance if it exists
+                            const wallets = await base44.entities.Wallet.filter({
+                                account_id: account.id,
+                                wallet_address: tx.address
+                            });
+                            
+                            if (wallets.length > 0) {
+                                const wallet = wallets[0];
+                                await base44.asServiceRole.entities.Wallet.update(wallet.id, {
+                                    balance: (wallet.balance || 0) + tx.amount
+                                });
+                            }
                         }
                     }
                 }
