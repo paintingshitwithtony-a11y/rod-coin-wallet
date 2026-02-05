@@ -47,20 +47,20 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import RPCMonitor from './pages/RPCMonitor';
 import SecuritySettings from './pages/SecuritySettings';
 import Wallet from './pages/Wallet';
-import Admin from './pages/Admin';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Admin": Admin,
     "Analytics": Analytics,
     "RPCMonitor": RPCMonitor,
     "SecuritySettings": SecuritySettings,
     "Wallet": Wallet,
-    "Admin": Admin,
 }
 
 export const pagesConfig = {

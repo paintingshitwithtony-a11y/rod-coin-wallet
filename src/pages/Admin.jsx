@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import PortForwardingGuide from '../components/admin/PortForwardingGuide';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
@@ -262,6 +263,18 @@ export default function Admin() {
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Port Forwarding Guide */}
+                        <PortForwardingGuide 
+                            onConfigCreated={(configData) => {
+                                setNewConfig({
+                                    ...newConfig,
+                                    ...configData
+                                });
+                                setShowNewConfig(true);
+                                toast.success('Config template created - please add your RPC credentials');
+                            }}
+                        />
 
                         {/* Create New Config */}
                         {!showNewConfig ? (
