@@ -634,6 +634,15 @@ export default function WalletDashboard({ account, onLogout }) {
 
                                 <Wallet className="w-4 h-4" />
                             </Button>
+                            <Link to={createPageUrl('Admin')}>
+                                <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-400 hover:text-purple-400"
+                            title="Admin Panel">
+                                    <Settings className="w-4 h-4" />
+                                </Button>
+                            </Link>
                             <Link to={createPageUrl('SecuritySettings')}>
                                 <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
                                     <Shield className="w-5 h-5 text-white" />
