@@ -272,7 +272,7 @@ export default function Analytics() {
                 </div>
 
                 {/* Key Metrics */}
-                <div className="grid gap-4 md:grid-cols-4 lg:grid-cols-5">
+                <div className="grid gap-3 grid-cols-5">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                         <Card className="bg-gradient-to-br from-purple-500/10 to-slate-900/80 border-purple-500/30">
                             <CardContent className="p-4">
