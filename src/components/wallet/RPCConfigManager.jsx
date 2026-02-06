@@ -22,6 +22,7 @@ import {
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import RPCTroubleshooter from './RPCTroubleshooter';
 
 export default function RPCConfigManager({ account, onClose, onConnectionSuccess }) {
     const [configs, setConfigs] = useState([]);
@@ -53,6 +54,8 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     const [checkingPorts, setCheckingPorts] = useState(false);
     const [showPortOpener, setShowPortOpener] = useState(false);
     const [portToOpen, setPortToOpen] = useState('9650');
+    const [troubleshootingError, setTroubleshootingError] = useState(null);
+    const [troubleshootingConfig, setTroubleshootingConfig] = useState(null);
     const [scanConfig, setScanConfig] = useState({
         ports: '9650, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
@@ -138,7 +141,12 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                     connection_status: 'error',
                     last_connected: null
                 });
-                toast.error(`Connection failed: ${response.data.error || 'Unknown error'}`);
+                const errorMsg = response.data.error || 'Unknown error';
+                toast.error(`Connection failed: ${errorMsg}`);
+                
+                // Show troubleshooter for connection errors
+                setTroubleshootingError(errorMsg);
+                setTroubleshootingConfig(config);
             }
 
             await loadConfigurations();
@@ -148,6 +156,11 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 last_connected: null
             });
             toast.error(`Test failed: ${err.message}`);
+            
+            // Show troubleshooter for connection errors
+            setTroubleshootingError(err.message);
+            setTroubleshootingConfig(config);
+            
             await loadConfigurations();
         } finally {
             setTesting(prev => ({ ...prev, [config.id]: false }));
@@ -595,7 +608,25 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     };
 
     return (
-        <Dialog open onOpenChange={onClose}>
+        <>
+            {troubleshootingError && (
+                <RPCTroubleshooter
+                    error={troubleshootingError}
+                    config={troubleshootingConfig}
+                    onRetry={() => {
+                        setTroubleshootingError(null);
+                        setTroubleshootingConfig(null);
+                        if (troubleshootingConfig) {
+                            testConnection(troubleshootingConfig);
+                        }
+                    }}
+                    onClose={() => {
+                        setTroubleshootingError(null);
+                        setTroubleshootingConfig(null);
+                    }}
+                />
+            )}
+            <Dialog open onOpenChange={onClose}>
             <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] md:max-w-5xl max-h-[80vh] overflow-y-auto overflow-x-hidden">
                 <DialogHeader>
                     <div className="flex items-center justify-between">
@@ -2331,5 +2362,6 @@ rpcallowip=127.0.0.1`}
                 </div>
             </DialogContent>
         </Dialog>
+        </>
     );
 }
