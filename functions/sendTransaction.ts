@@ -162,6 +162,40 @@ Deno.serve(async (req) => {
             }
         }
         
+        // Auto-unlock wallet if passphrase is stored
+        const passphrase = Deno.env.get('WALLET_PASSPHRASE');
+        if (passphrase) {
+            try {
+                console.log('Attempting to unlock wallet...');
+                const unlockResponse = await fetch(rpcUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${rpcAuth}`
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '1.0',
+                        id: 'unlockWallet',
+                        method: 'walletpassphrase',
+                        params: [passphrase, 300] // Unlock for 5 minutes
+                    })
+                });
+                
+                const unlockData = await unlockResponse.json();
+                if (unlockData.error) {
+                    console.error('Wallet unlock failed:', unlockData.error);
+                } else {
+                    console.log('Wallet unlocked successfully');
+                }
+            } catch (unlockErr) {
+                console.error('Failed to unlock wallet:', unlockErr);
+                return Response.json({ 
+                    error: 'Failed to unlock wallet',
+                    details: unlockErr.message
+                }, { status: 500 });
+            }
+        }
+        
         // Always use sendtoaddress (sendfrom is deprecated and doesn't work properly)
         const rpcMethod = 'sendtoaddress';
         const rpcParams = [recipient, amount, memo || '', '', false];
