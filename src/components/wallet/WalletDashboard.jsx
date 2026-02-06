@@ -408,13 +408,20 @@ export default function WalletDashboard({ account, onLogout }) {
 
   const handleManualRefresh = async () => {
     setLoading(true);
-    toast.info('Syncing transactions...');
+    toast.info('Syncing...');
     try {
-      console.log('Starting manual refresh...');
+      // Get fresh balance directly from RPC
+      const balResponse = await base44.functions.invoke('getRPCBalance', {});
+      if (balResponse.data.success) {
+        console.log('RPC Balance:', balResponse.data.balance);
+        setBalance({
+          confirmed: balResponse.data.balance,
+          unconfirmed: 0
+        });
+      }
+
       await checkForDeposits(false);
-      console.log('Deposits checked, current balance:', balance.confirmed);
       await fetchWalletData();
-      console.log('Wallet data fetched, balance should be:', balance.confirmed);
       await checkRPCStatus();
       if (rpcConnected) {
         await importAllAddresses(true);
@@ -422,7 +429,6 @@ export default function WalletDashboard({ account, onLogout }) {
       toast.success('Sync complete!');
     } catch (err) {
       console.error('Refresh failed:', err);
-      console.error('Error details:', err.response?.data || err.message);
       toast.error('Sync failed: ' + err.message);
     } finally {
       setLoading(false);
