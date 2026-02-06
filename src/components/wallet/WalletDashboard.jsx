@@ -409,9 +409,11 @@ export default function WalletDashboard({ account, onLogout }) {
     setLoading(true);
     toast.info('Syncing transactions...');
     try {
-      await checkForDeposits(false); // Show notifications
+      console.log('Starting manual refresh...');
+      await checkForDeposits(false);
+      console.log('Deposits checked, current balance:', balance.confirmed);
       await fetchWalletData();
-      await fetchAllWallets();
+      console.log('Wallet data fetched, balance should be:', balance.confirmed);
       await checkRPCStatus();
       if (rpcConnected) {
         await importAllAddresses(true);
@@ -419,6 +421,7 @@ export default function WalletDashboard({ account, onLogout }) {
       toast.success('Sync complete!');
     } catch (err) {
       console.error('Refresh failed:', err);
+      console.error('Error details:', err.response?.data || err.message);
       toast.error('Sync failed: ' + err.message);
     } finally {
       setLoading(false);
