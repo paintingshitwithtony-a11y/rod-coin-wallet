@@ -190,7 +190,8 @@ export default function WalletDashboard({ account, onLogout }) {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch wallets:', err);
+        console.error('Failed to fetch wallets:', err);
+        toast.error('Failed to fetch wallets: ' + err.message);
     } finally {
       setWalletsLoading(false);
     }
@@ -236,8 +237,8 @@ export default function WalletDashboard({ account, onLogout }) {
       // Refresh data
       fetchAllWallets();
     } catch (err) {
-      console.error('Failed to switch wallet:', err);
-      toast.error('Failed to switch wallet');
+        console.error('Failed to switch wallet:', err);
+        toast.error('Failed to switch wallet: ' + err.message);
     }
   };
 
@@ -250,6 +251,7 @@ export default function WalletDashboard({ account, onLogout }) {
           }
       } catch (err) {
           console.error('Failed to fetch ROD price:', err);
+          toast.error('Failed to fetch ROD price: ' + err.message);
           setRodPrice(0.00049952);
       } finally {
           setPriceLoading(false);
@@ -371,8 +373,8 @@ export default function WalletDashboard({ account, onLogout }) {
         await fetchWalletData();
       }
     } catch (err) {
-      console.error('Failed to check deposits:', err);
-      toast.error('Failed to check for deposits');
+        console.error('Failed to check deposits:', err);
+        toast.error('Failed to check for deposits: ' + err.message);
     }
   };
 
@@ -448,7 +450,8 @@ export default function WalletDashboard({ account, onLogout }) {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch transactions:', err);
+        console.error('Failed to fetch transactions:', err);
+        toast.error('Failed to fetch transactions: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -472,8 +475,8 @@ export default function WalletDashboard({ account, onLogout }) {
         });
       }
     } catch (err) {
-      console.error('Failed to save address:', err);
-      toast.error('Failed to save address to account');
+        console.error('Failed to save address:', err);
+        toast.error('Failed to save address to account: ' + err.message);
     }
 
     // Trigger import check after a short delay
@@ -509,7 +512,8 @@ export default function WalletDashboard({ account, onLogout }) {
         });
       }
     } catch (err) {
-      console.error('Failed to save imported address:', err);
+        console.error('Failed to save imported address:', err);
+        toast.error('Failed to save imported address: ' + err.message);
     }
 
     await fetchWalletData();
@@ -537,7 +541,8 @@ export default function WalletDashboard({ account, onLogout }) {
         setAddresses(prev => [...prev]);
       }
     } catch (err) {
-      toast.error('Failed to set primary address');
+        console.error('Failed to set primary address:', err);
+        toast.error('Failed to set primary address: ' + err.message);
     }
   };
 
@@ -568,7 +573,8 @@ export default function WalletDashboard({ account, onLogout }) {
       }
       setEditingAddress(null);
     } catch (err) {
-      toast.error('Failed to update label');
+        console.error('Failed to update label:', err);
+        toast.error('Failed to update label: ' + err.message);
     }
   };
 
