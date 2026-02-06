@@ -278,8 +278,8 @@ export default function Analytics() {
                              <CardContent className="p-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs text-slate-400 mb-1">Current Balance</p>
-                                        <p className="text-xl font-bold text-purple-400">
+                                        <p className="text-xs text-slate-400 mb-0.5">Current Balance</p>
+                                        <p className="text-lg font-bold text-purple-400">
                                             {account ? account.balance.toFixed(4) : '0.0000'} ROD
                                         </p>
                                         {account && rodPrice && (
