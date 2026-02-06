@@ -43,6 +43,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [duplicates, setDuplicates] = useState([]);
     const [rpcBalances, setRpcBalances] = useState({});
     const [loadingRPC, setLoadingRPC] = useState(false);
+    const [canSwitch, setCanSwitch] = useState(true);
+    const switchTimeoutRef = useRef(null);
 
     useEffect(() => {
         if (mode === 'send' && account) {
