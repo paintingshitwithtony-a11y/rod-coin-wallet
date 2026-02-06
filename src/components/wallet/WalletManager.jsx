@@ -41,18 +41,22 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
     const fetchWallets = async () => {
         setLoading(true);
         try {
+            // Fetch fresh account data
+            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            const freshAccount = accounts.length > 0 ? accounts[0] : account;
+
             const walletList = await base44.entities.Wallet.filter(
                 { account_id: account.id },
                 '-created_date'
             );
             
-            // Always include main account wallet
+            // Always include main account wallet with fresh balance
             const mainWallet = {
                 id: 'main-account',
                 account_id: account.id,
                 name: 'Main Wallet',
-                wallet_address: account.wallet_address,
-                balance: account.balance || 0,
+                wallet_address: freshAccount.wallet_address,
+                balance: freshAccount.balance || 0,
                 is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
                 wallet_type: 'standard',
                 color: 'from-purple-500 to-purple-700'
