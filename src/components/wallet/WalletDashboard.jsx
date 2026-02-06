@@ -323,12 +323,9 @@ export default function WalletDashboard({ account, onLogout }) {
       }
 
       await checkForDeposits(false);
-      await fetchWalletData();
-      await checkRPCStatus();
-      if (rpcConnected) {
-        await importAllAddresses(true);
-      }
-      toast.success('Sync complete!');
+       await fetchWalletData();
+       await checkRPCStatus();
+       toast.success('Sync complete!');
     } catch (err) {
       console.error('Refresh failed:', err);
       toast.error('Sync failed: ' + err.message);
@@ -1197,18 +1194,15 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <CardTitle className="text-white text-lg">My Addresses</CardTitle>
                                 <div className="flex gap-2">
                                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-amber-400 hover:text-amber-300"
-                      onClick={async () => {
-                        await importAllAddresses(true);
-                      }}
-                      disabled={!rpcConnected || loading}
-                      title="Import all addresses to blockchain">
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-gray-300"
+                                    disabled={true}
+                                    title="Import currently disabled">
 
-                                        <Plug className="w-4 h-4 mr-1" />
-                                        Import to Chain
-                                    </Button>
+                                         <Plug className="w-4 h-4 mr-1" />
+                                         Import to Chain
+                                     </Button>
                                     <Button
                       variant="ghost"
                       size="sm"
