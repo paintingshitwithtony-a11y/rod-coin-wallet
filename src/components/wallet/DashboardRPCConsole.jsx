@@ -25,17 +25,19 @@ export default function DashboardRPCConsole({ selectedAddress, account }) {
     setRpcOutput('Querying RPC for: ' + selectedAddress);
 
     try {
-      // Call getRPCBalance which will use the wallet_address from the context
-      const response = await base44.functions.invoke('getRPCBalance', {});
+       const response = await base44.functions.invoke('executeRPCCommand', {
+         method: 'getreceivedbyaddress',
+         params: [selectedAddress, 0]
+       });
 
-      if (response.data.success) {
-        setBalance(response.data.balance);
-        const output = `✓ Balance: ${response.data.balance.toFixed(8)} ROD\n✓ Address: ${response.data.address}\n✓ Received: ${(response.data.received || 0).toFixed(8)}\n✓ Sent: ${(response.data.sent || 0).toFixed(8)}`;
-        setRpcOutput(output);
-      } else {
-        setError(response.data.error || 'RPC query failed');
-        setRpcOutput(`✗ Error: ${response.data.error}`);
-      }
+       if (response.data.success) {
+         const balance = response.data.result || 0;
+         setBalance(balance);
+         setRpcOutput(`✓ Balance: ${balance.toFixed(8)} ROD\n✓ Address: ${selectedAddress}\n✓ Method: getreceivedbyaddress`);
+       } else {
+         setError(response.data.error || 'RPC query failed');
+         setRpcOutput(`✗ Error: ${response.data.error}`);
+       }
     } catch (err) {
       setError(err.message);
       setRpcOutput(`✗ Error: ${err.message}`);
