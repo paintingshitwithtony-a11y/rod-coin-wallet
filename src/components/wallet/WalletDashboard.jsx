@@ -68,6 +68,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [showConfEditor, setShowConfEditor] = useState(false);
   const [lastImportTime, setLastImportTime] = useState(0);
+  const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -386,7 +387,15 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleManualRefresh = async () => {
+    // Prevent rapid clicking - 5 second cooldown
+    const now = Date.now();
+    if (now - lastManualSyncTime < 5000) {
+      toast.info('Sync in progress...', { duration: 2000 });
+      return;
+    }
+
     setLoading(true);
+    setLastManualSyncTime(now);
     toast.info('Syncing...');
     try {
       // Get fresh balance directly from RPC
