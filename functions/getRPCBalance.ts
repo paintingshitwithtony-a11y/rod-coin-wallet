@@ -1,67 +1,71 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        const base44 = createClientFromRequest(req);
+        const user = await base44.auth.me();
+
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const rpcHost = Deno.env.get('ROD_RPC_HOST');
+        const rpcPort = Deno.env.get('ROD_RPC_PORT');
+        const rpcUsername = Deno.env.get('ROD_RPC_USERNAME');
+        const rpcPassword = Deno.env.get('ROD_RPC_PASSWORD');
+
+        if (!rpcHost || !rpcPort || !rpcUsername || !rpcPassword) {
+            return Response.json({ success: false, error: 'RPC not configured' }, { status: 400 });
+        }
+
+        // Get user's main wallet address
+        const accounts = await base44.entities.WalletAccount.filter({ id: user.id });
+        if (accounts.length === 0) {
+            return Response.json({ success: false, error: 'No account found' }, { status: 404 });
+        }
+
+        const account = accounts[0];
+        const address = account.wallet_address;
+
+        const auth = btoa(`${rpcUsername}:${rpcPassword}`);
+        const url = `http://${rpcHost}:${rpcPort}/`;
+
+        const makeRPCCall = async (method, params) => {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: method,
+                    params: params
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error.message || 'RPC error');
+            }
+            return data.result;
+        };
+
+        const received = await makeRPCCall('getreceivedbyaddress', [address, 0]);
+        const sent = await makeRPCCall('getsentbyaddress', [address]);
+        
+        const balance = received - sent;
+
+        return Response.json({
+            success: true,
+            balance: balance > 0 ? balance : 0,
+            address: address,
+            received: received,
+            sent: sent
+        });
+    } catch (error) {
+        console.error('getRPCBalance error:', error);
+        return Response.json({ success: false, error: error.message }, { status: 500 });
     }
-
-    // Get user's RPC config from WalletAccount
-    const accounts = await base44.asServiceRole.entities.WalletAccount.filter({
-      id: user.id
-    });
-
-    if (!accounts || accounts.length === 0) {
-      return Response.json({ error: 'Account not found' }, { status: 404 });
-    }
-
-    const account = accounts[0];
-    const { rpc_host, rpc_port, rpc_username, rpc_password } = account;
-
-    if (!rpc_host || !rpc_port) {
-      return Response.json({ error: 'RPC not configured', balance: 0, success: false });
-    }
-
-    // Call RPC getbalance
-    const rpcUrl = `http://${rpc_host}:${rpc_port}`;
-    const auth = btoa(`${rpc_username}:${rpc_password}`);
-
-    const response = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'getbalance',
-        params: [],
-        id: 1
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      return Response.json({ error: data.error.message, success: false }, { status: 400 });
-    }
-
-    const rpcBalance = data.result;
-
-    // Update account balance in database
-    await base44.asServiceRole.entities.WalletAccount.update(user.id, {
-      balance: rpcBalance
-    });
-
-    return Response.json({
-      success: true,
-      balance: rpcBalance
-    });
-  } catch (error) {
-    console.error('getRPCBalance error:', error);
-    return Response.json({ error: error.message, success: false }, { status: 500 });
-  }
 });
