@@ -928,10 +928,39 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     title="Reset all balances to 0 and recalculate from transactions">
                                                                     {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
                                                                     Reset & Recheck
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                                    </Button>
+                                                                    <Button
+                                                                    variant="outline"
+                                                                    onClick={async () => {
+                                                                        if (!confirm('Import full transaction history from RPC? This may take a few minutes.')) return;
+                                                                        setLoading(true);
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('importFullTransactionHistory', {});
+                                                                            if (response.data.success) {
+                                                                                toast.success(`Imported ${response.data.imported} transactions!`, {
+                                                                                    description: `Skipped ${response.data.skipped} duplicates, scanned ${response.data.addressesScanned} addresses`
+                                                                                });
+                                                                                await fetchWalletData();
+                                                                                await fetchAllWallets();
+                                                                            } else {
+                                                                                toast.error('Import failed: ' + (response.data.error || 'Unknown error'));
+                                                                            }
+                                                                        } catch (err) {
+                                                                            console.error('Import error:', err);
+                                                                            toast.error('Failed to import: ' + err.message);
+                                                                        } finally {
+                                                                            setLoading(false);
+                                                                        }
+                                                                    }}
+                                                                    disabled={loading || !rpcConnected}
+                                                                    className={`text-purple-400 hover:text-purple-300 border-purple-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                    title="Import full transaction history from RPC node">
+                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
+                                                                    Import Full History
+                                                                    </Button>
+                                                                    </div>
+                                                                    </div>
+                                                                    </div>
                                                     <div className={`flex ${isMobile ? 'flex-row w-full justify-between' : 'flex-col items-end'} gap-3`}>
                                                         {priceLoading ?
                                                             <div className={`flex items-center gap-2 text-slate-400 ${isMobile ? 'text-xs' : ''}`}>
