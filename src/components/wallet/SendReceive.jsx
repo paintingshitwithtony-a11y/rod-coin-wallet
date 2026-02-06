@@ -209,8 +209,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
         
-        const walletBalance = selectedFromWallet?.balance || balance;
-        if (amountNum > walletBalance) {
+        const rpcBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? balance;
+        if (amountNum > rpcBalance) {
             toast.error('Insufficient balance');
             return;
         }
@@ -347,7 +347,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             <div>
                                 <CardTitle className="text-white">Send ROD</CardTitle>
                                 <CardDescription className="text-slate-400">
-                                    {selectedFromWallet ? `${selectedFromWallet.name}: ${selectedFromWallet.balance?.toLocaleString() || '0'} ROD` : `Available: ${balance.toLocaleString()} ROD`}
+                                    {selectedFromWallet ? `${selectedFromWallet.name}: ${(rpcBalances[selectedFromWallet.wallet_address] ?? balance)?.toLocaleString() || '0'} ROD` : `Available: ${balance.toLocaleString()} ROD`}
                                 </CardDescription>
                             </div>
                         </div>
@@ -409,35 +409,32 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                         </div>
                                     </SelectItem>
                                     {myWallets.map((wallet) => {
-                                        const rpcBal = rpcBalances[wallet.wallet_address];
-                                        const isDuplicate = duplicates.includes(wallet.wallet_address);
-                                        return (
-                                            <SelectItem key={wallet.id} value={wallet.id} className={isDuplicate ? 'bg-red-500/10' : ''}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span>{wallet.name}</span>
-                                                        <span className="text-xs text-amber-400/80 font-mono">
-                                                            {wallet.wallet_address}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-1">
-                                                        <span className="text-xs text-slate-400">
-                                                            DB: {wallet.balance?.toFixed(4) || '0.0000'} ROD
-                                                        </span>
-                                                        {rpcBal !== null && rpcBal !== undefined ? (
-                                                            <span className="text-xs text-purple-400">
-                                                                RPC: {rpcBal.toFixed(4)} ROD
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs text-slate-500">
-                                                                {loadingRPC ? 'RPC: loading...' : 'RPC: error'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </SelectItem>
-                                        );
-                                    })}
+                                             const rpcBal = rpcBalances[wallet.wallet_address];
+                                             const isDuplicate = duplicates.includes(wallet.wallet_address);
+                                             return (
+                                                 <SelectItem key={wallet.id} value={wallet.id} className={isDuplicate ? 'bg-red-500/10' : ''}>
+                                                     <div className="flex items-center gap-3">
+                                                         <div className="flex flex-col gap-1">
+                                                             <span>{wallet.name}</span>
+                                                             <span className="text-xs text-amber-400/80 font-mono">
+                                                                 {wallet.wallet_address}
+                                                             </span>
+                                                         </div>
+                                                         <div className="flex flex-col items-end gap-1">
+                                                             {rpcBal !== null && rpcBal !== undefined ? (
+                                                                 <span className="text-xs text-purple-400 font-semibold">
+                                                                     {rpcBal.toFixed(4)} ROD
+                                                                 </span>
+                                                             ) : (
+                                                                 <span className="text-xs text-slate-500">
+                                                                     {loadingRPC ? 'loading...' : 'error'}
+                                                                 </span>
+                                                             )}
+                                                         </div>
+                                                     </div>
+                                                 </SelectItem>
+                                             );
+                                         })}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -553,7 +550,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => {
-                                            const walletBalance = selectedFromWallet?.balance || balance;
+                                            const walletBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? balance;
                                             const feeAmount = isInternalTransfer ? 0 : parseFloat(fee);
                                             setAmount(String(Math.max(0, walletBalance - feeAmount)));
                                         }}
