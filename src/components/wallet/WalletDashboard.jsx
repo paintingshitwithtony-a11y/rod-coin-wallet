@@ -154,19 +154,10 @@ export default function WalletDashboard({ account, onLogout }) {
         '-created_date'
       );
 
-      // Calculate main wallet balance from its transactions only
-      const mainWalletTxs = await base44.entities.Transaction.filter({
-        account_id: account.id,
-        wallet_address: freshAccount.wallet_address
-      });
-      
-      const mainWalletBalance = mainWalletTxs.reduce((sum, tx) => {
-        if (tx.type === 'receive') return sum + tx.amount;
-        if (tx.type === 'send') return sum - Math.abs(tx.amount);
-        return sum;
-      }, 0);
+      // Use main account balance from database (synced from RPC)
+      const mainWalletBalance = freshAccount.balance || 0;
 
-      // Always include main account wallet with calculated balance
+      // Always include main account wallet with database balance
       const mainWallet = {
         id: 'main-account',
         account_id: account.id,
