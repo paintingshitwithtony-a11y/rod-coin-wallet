@@ -34,7 +34,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         name: '',
         connection_type: 'rpc',
         host: 'localhost',
-        port: '9650',
+        port: '9766',
         username: '',
         password: '',
         api_key: '',
@@ -49,15 +49,15 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     const [showFreeRPCGuide, setShowFreeRPCGuide] = useState(false);
     const [showPortChecker, setShowPortChecker] = useState(false);
     const [portCheckHost, setPortCheckHost] = useState('localhost');
-    const [portCheckPorts, setPortCheckPorts] = useState('9650, 8332, 8333, 18332, 18333');
+    const [portCheckPorts, setPortCheckPorts] = useState('9766, 8332, 8333, 18332, 18333');
     const [portCheckResults, setPortCheckResults] = useState([]);
     const [checkingPorts, setCheckingPorts] = useState(false);
     const [showPortOpener, setShowPortOpener] = useState(false);
-    const [portToOpen, setPortToOpen] = useState('9650');
+    const [portToOpen, setPortToOpen] = useState('9766');
     const [troubleshootingError, setTroubleshootingError] = useState(null);
     const [troubleshootingConfig, setTroubleshootingConfig] = useState(null);
     const [scanConfig, setScanConfig] = useState({
-        ports: '9650, 8332, 8333',
+        ports: '9766, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
         passwords: ', rodpassword, rod'
     });
@@ -219,7 +219,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         const lines = fileContent.split('\n');
         const config = {
             host: 'localhost',
-            port: '9650',
+            port: '9766',
             username: '',
             password: '',
             isCookie: false
@@ -364,7 +364,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         setSaving(true);
         toast.info('Scanning for local ROD Core wallet...');
         
-        // Parse user-provided ports
+        // Parse user-provided ports (default to 9766 if not specified)
         const ports = scanConfig.ports.split(',').map(p => p.trim()).filter(p => p);
         
         // Parse user-provided credentials
@@ -984,10 +984,10 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                 <Input
                                     value={portToOpen}
                                     onChange={(e) => setPortToOpen(e.target.value)}
-                                    placeholder="9650"
+                                    placeholder="9766"
                                     className="bg-slate-900 border-slate-600 font-mono text-sm"
                                 />
-                                <p className="text-xs text-slate-500">ROD Core default: 9650</p>
+                                <p className="text-xs text-slate-500">ROD Core default: 9766</p>
                             </div>
 
                             <Tabs defaultValue="windows" className="w-full">
@@ -1172,7 +1172,7 @@ sudo service iptables save`}</pre>
                                         placeholder="9650, 8332, 8333"
                                         className="bg-slate-900 border-slate-600 font-mono text-sm"
                                     />
-                                    <p className="text-xs text-slate-500">Common ROD ports: 9650 (mainnet), 8332/8333 (Bitcoin-style), 18332/18333 (testnet)</p>
+                                    <p className="text-xs text-slate-500">Common ROD ports: 9766 (mainnet), 8332/8333 (Bitcoin-style), 18332/18333 (testnet)</p>
                                 </div>
 
                                 <Button
@@ -1283,7 +1283,7 @@ sudo service iptables save`}</pre>
                                 <Input
                                     value={scanConfig.ports}
                                     onChange={(e) => setScanConfig({ ...scanConfig, ports: e.target.value })}
-                                    placeholder="9650, 8332, 8333"
+                                    placeholder="9766, 8332, 8333"
                                     className="bg-slate-900 border-slate-600 font-mono text-sm"
                                 />
                                 <p className="text-xs text-slate-500">Comma-separated port numbers</p>
@@ -1711,16 +1711,16 @@ sudo service iptables save`}</pre>
                                         <div className="space-y-3">
                                             <div>
                                                 <Label className="text-slate-300 text-sm mb-2 block">Step 1: Create SSH Tunnel</Label>
-                                                <p className="text-xs text-slate-400 mb-2">Run this command in your terminal to forward localhost:9650 to GetBlock.io:</p>
+                                                <p className="text-xs text-slate-400 mb-2">Run this command in your terminal to forward localhost:9766 to GetBlock.io:</p>
                                                 <div className="relative group">
                                                     <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
-ssh -L 9650:go.getblock.io:443 -N user@your-server.com</pre>
+ssh -L 9766:go.getblock.io:443 -N user@your-server.com</pre>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
                                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
                                                         onClick={() => {
-                                                            navigator.clipboard.writeText('ssh -L 9650:go.getblock.io:443 -N user@your-server.com');
+                                                            navigator.clipboard.writeText('ssh -L 9766:go.getblock.io:443 -N user@your-server.com');
                                                             toast.success('Command copied');
                                                         }}
                                                     >
@@ -1735,14 +1735,14 @@ ssh -L 9650:go.getblock.io:443 -N user@your-server.com</pre>
                                                 <p className="text-xs text-slate-400 mb-2">Or use socat to create a local proxy:</p>
                                                 <div className="relative group">
                                                     <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
-socat TCP-LISTEN:9650,fork,reuseaddr \
+socat TCP-LISTEN:9766,fork,reuseaddr \
   OPENSSL:go.getblock.io:443,verify=0</pre>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
                                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
                                                         onClick={() => {
-                                                            navigator.clipboard.writeText('socat TCP-LISTEN:9650,fork,reuseaddr OPENSSL:go.getblock.io:443,verify=0');
+                                                            navigator.clipboard.writeText('socat TCP-LISTEN:9766,fork,reuseaddr OPENSSL:go.getblock.io:443,verify=0');
                                                             toast.success('Command copied');
                                                         }}
                                                     >
@@ -1759,7 +1759,7 @@ socat TCP-LISTEN:9650,fork,reuseaddr \
                                                             name: 'GetBlock.io (via Tunnel)',
                                                             connection_type: 'rpc',
                                                             host: 'localhost',
-                                                            port: '9650',
+                                                            port: '9766',
                                                             username: '',
                                                             password: '',
                                                             api_key: '',
@@ -1772,7 +1772,7 @@ socat TCP-LISTEN:9650,fork,reuseaddr \
                                                     className="w-full bg-blue-600 hover:bg-blue-700"
                                                 >
                                                     <Plus className="w-4 h-4 mr-2" />
-                                                    Add Localhost:9650 Configuration
+                                                    Add Localhost:9766 Configuration
                                                 </Button>
                                             </div>
 
@@ -1781,8 +1781,8 @@ socat TCP-LISTEN:9650,fork,reuseaddr \
                                                 <AlertDescription className="text-blue-300/80 text-xs">
                                                     <strong>How it works:</strong>
                                                     <ul className="list-disc list-inside mt-2 space-y-1">
-                                                        <li>The tunnel forwards your local port 9650 to GetBlock.io:443</li>
-                                                        <li>Your wallet connects to localhost:9650 as if it's a local node</li>
+                                                        <li>The tunnel forwards your local port 9766 to GetBlock.io:443</li>
+                                                        <li>Your wallet connects to localhost:9766 as if it's a local node</li>
                                                         <li>All traffic is securely forwarded to GetBlock.io</li>
                                                     </ul>
                                                 </AlertDescription>
@@ -1944,14 +1944,14 @@ console.log(data.result);`}
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
-                                        rod-qt.exe -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
+                                        rod-qt.exe -server -rpcport=9766 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
                                     </pre>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
+                                            navigator.clipboard.writeText('rod-qt.exe -server -rpcport=9766 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
                                             toast.success('Command copied');
                                         }}
                                     >
@@ -1963,14 +1963,14 @@ console.log(data.result);`}
                                 </p>
                                 <div className="relative group">
                                     <pre className="bg-slate-900 text-green-400 p-3 rounded text-xs font-mono overflow-x-auto">
-                                        ./rodd -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
+                                        ./rodd -server -rpcport=9766 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1
                                     </pre>
                                     <Button
                                         size="sm"
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('./rodd -server -rpcport=9650 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
+                                            navigator.clipboard.writeText('./rodd -server -rpcport=9766 -rpcbind=127.0.0.1 -rpcallowip=127.0.0.1');
                                             toast.success('Command copied');
                                         }}
                                     >
@@ -1994,7 +1994,7 @@ console.log(data.result);`}
 {`server=1
 rpcuser=roduser
 rpcpassword=rodpassword
-rpcport=9650
+rpcport=9766
 rpcbind=127.0.0.1
 rpcallowip=127.0.0.1`}
                                     </pre>
@@ -2003,7 +2003,7 @@ rpcallowip=127.0.0.1`}
                                         variant="ghost"
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                            navigator.clipboard.writeText('server=1\nrpcuser=roduser\nrpcpassword=rodpassword\nrpcport=9650\nrpcbind=127.0.0.1\nrpcallowip=127.0.0.1');
+                                            navigator.clipboard.writeText('server=1\nrpcuser=roduser\nrpcpassword=rodpassword\nrpcport=9766\nrpcbind=127.0.0.1\nrpcallowip=127.0.0.1');
                                             toast.success('Configuration copied');
                                         }}
                                     >
@@ -2157,7 +2157,7 @@ rpcallowip=127.0.0.1`}
                                         placeholder={
                                             formData.connection_type === 'api' ? '443' :
                                             formData.connection_type === 'electrum' ? '50002' : 
-                                            '9650'
+                                            '9766'
                                         }
                                         className="bg-slate-900 border-slate-600"
                                     />
