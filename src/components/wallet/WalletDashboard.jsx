@@ -154,25 +154,13 @@ export default function WalletDashboard({ account, onLogout }) {
         '-created_date'
       );
 
-      // Calculate main wallet balance from its transactions
-      const mainWalletTxs = await base44.entities.Transaction.filter({
-        account_id: account.id,
-        wallet_address: freshAccount.wallet_address
-      });
-
-      const mainWalletBalance = mainWalletTxs.reduce((sum, tx) => {
-        if (tx.type === 'receive') return sum + tx.amount;
-        if (tx.type === 'send') return sum - Math.abs(tx.amount);
-        return sum;
-      }, 0);
-
-      // Always include main account wallet
+      // Always include main account wallet with database balance
       const mainWallet = {
         id: 'main-account',
         account_id: account.id,
         name: 'Main Wallet',
         wallet_address: freshAccount.wallet_address,
-        balance: mainWalletBalance,
+        balance: freshAccount.balance || 0,
         is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
         wallet_type: 'standard',
         color: 'from-purple-500 to-purple-700',
@@ -181,27 +169,13 @@ export default function WalletDashboard({ account, onLogout }) {
         ) ? 'imported' : null
       };
 
-      // Check which wallets are imported to RPC and calculate their balances
-      const walletsWithImportStatus = await Promise.all(
-        walletList.map(async (wallet) => {
-          // Calculate wallet balance from transactions
-          const walletTxs = await base44.entities.Transaction.filter({
-            account_id: account.id,
-            wallet_id: wallet.id
-          });
-
-          const walletBalance = walletTxs.reduce((sum, tx) => {
-            if (tx.type === 'receive') return sum + tx.amount;
-            if (tx.type === 'send') return sum - Math.abs(tx.amount);
-            return sum;
-          }, 0);
-
+      // Check which wallets are imported to RPC
+      const walletsWithImportStatus = walletList.map((wallet) => {
           const isImported = addresses.some(addr => 
             addr.address === wallet.wallet_address && addr.importStatus === 'imported'
           );
-          return { ...wallet, balance: walletBalance, importStatus: isImported ? 'imported' : null };
-        })
-      );
+          return { ...wallet, importStatus: isImported ? 'imported' : null };
+      });
 
       const allWallets = [mainWallet, ...walletsWithImportStatus];
       setAllWallets(allWallets);
