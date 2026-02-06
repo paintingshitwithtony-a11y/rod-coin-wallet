@@ -44,11 +44,16 @@ Deno.serve(async (req) => {
 
         const account = accounts[0];
 
-        // Get active RPC configuration
-        const rpcConfigs = await base44.entities.RPCConfiguration.filter({ 
-            account_id: account.id,
-            is_active: true 
-        });
+        // Batch fetch all needed data to avoid rate limits
+        const [rpcConfigs, allWallets] = await Promise.all([
+            base44.entities.RPCConfiguration.filter({ 
+                account_id: account.id,
+                is_active: true 
+            }),
+            base44.entities.Wallet.filter({
+                account_id: account.id
+            })
+        ]);
 
         if (rpcConfigs.length === 0) {
             return Response.json({ 
