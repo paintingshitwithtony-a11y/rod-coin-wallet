@@ -607,6 +607,49 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const handleAddressClick = async (address) => {
+    try {
+      // Create a virtual wallet for this address
+      const addressWallet = {
+        id: `address-${address.address}`,
+        name: address.label,
+        wallet_address: address.address,
+        is_active: false,
+        wallet_type: 'address',
+        color: 'from-blue-500 to-blue-700'
+      };
+
+      // Fetch transactions for this specific address
+      const addressTxs = await base44.entities.Transaction.filter({
+        account_id: account.id,
+        wallet_address: address.address
+      });
+
+      // Calculate balance from transactions
+      const addressBalance = addressTxs.reduce((sum, tx) => {
+        if (tx.type === 'receive') return sum + tx.amount;
+        if (tx.type === 'send') return sum - Math.abs(tx.amount);
+        return sum;
+      }, 0);
+
+      addressWallet.balance = addressBalance;
+
+      setCurrentWallet(addressWallet);
+      setBalance({
+        confirmed: addressBalance,
+        unconfirmed: 0
+      });
+
+      // Fetch and display address-specific transactions
+      await fetchWalletData();
+      
+      toast.success(`Viewing ${address.label}`);
+    } catch (err) {
+      console.error('Failed to view address:', err);
+      toast.error('Failed to view address: ' + err.message);
+    }
+  };
+
   const handleStartEditLabel = (address) => {
     setEditingAddress(address.id);
     setEditAddressLabel(address.label);
@@ -1232,7 +1275,8 @@ export default function WalletDashboard({ account, onLogout }) {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors">
+                    onClick={() => handleAddressClick(addr)}
+                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer">
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
