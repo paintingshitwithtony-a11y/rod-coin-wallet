@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Terminal, Send, Trash2, Copy, CheckCircle2, Info, Lightbulb, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Terminal, Send, Trash2, Copy, CheckCircle2, Info, Lightbulb, Loader2, AlertTriangle, AlertCircle, Unlock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -21,6 +21,7 @@ export default function RPCConsole({ account }) {
     const [alerts, setAlerts] = useState([]);
 
     const getCommonCommands = () => [
+        { label: 'Unlock Wallet', cmd: 'unlock-wallet-quick', isSpecial: true },
         { label: 'Get Block Count', cmd: 'getblockcount' },
         { label: 'Get Blockchain Info', cmd: 'getblockchaininfo' },
         { label: 'Get Network Info', cmd: 'getnetworkinfo' },
@@ -39,6 +40,34 @@ export default function RPCConsole({ account }) {
         const timestamp = new Date().toLocaleTimeString();
 
         try {
+            // Handle special unlock command
+            if (cmdToExecute === 'unlock-wallet-quick') {
+                const response = await base44.functions.invoke('executeRPCCommand', {
+                    method: 'walletpassphrase',
+                    params: ['${ROD_RPC_PASSWORD}', 300]
+                });
+                
+                const output = {
+                    timestamp,
+                    command: 'walletpassphrase [password] 300',
+                    result: response.data,
+                    success: response.data.success !== false
+                };
+                
+                setOutputHistory(prev => [...prev, output]);
+                setCommand('');
+                
+                if (response.data.success || !response.data.error) {
+                    toast.success('Wallet unlocked for 5 minutes');
+                } else if (response.data.error && response.data.error.message?.includes('already unlocked')) {
+                    toast.info('Wallet is already unlocked');
+                } else {
+                    toast.error('Failed to unlock wallet');
+                }
+                setLoading(false);
+                return;
+            }
+            
             // Parse command and params
             const parts = cmdToExecute.trim().split(/\s+/);
             const method = parts[0];
@@ -310,7 +339,8 @@ Provide a brief, clear explanation of what this output means and any important i
                                 size="sm"
                                 onClick={() => executeCommand(cmd.cmd)}
                                 disabled={loading}
-                                className="text-xs text-slate-300 border-slate-600 hover:border-purple-500/50">
+                                className={`text-xs ${cmd.isSpecial ? 'text-amber-400 border-amber-500/50 hover:border-amber-400' : 'text-slate-300 border-slate-600 hover:border-purple-500/50'}`}>
+                                {cmd.isSpecial && <Unlock className="w-3 h-3 mr-1" />}
                                 {cmd.label}
                             </Button>
                         ))}
