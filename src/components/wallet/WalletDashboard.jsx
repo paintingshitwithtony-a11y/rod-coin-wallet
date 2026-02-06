@@ -1016,7 +1016,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
                                     <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-green-400`}>
-                                        {isMobile ? '+' : '+'}{transactions.filter((tx) => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                        {isMobile ? '+' : '+'}{(() => {
+                                            const walletTxs = currentWallet ? 
+                                                (currentWallet.id === 'main-account' 
+                                                    ? transactions.filter(tx => !tx.wallet_id || tx.wallet_address === currentWallet.wallet_address)
+                                                    : transactions.filter(tx => tx.wallet_id === currentWallet.id)) 
+                                                : transactions;
+                                            return walletTxs.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 });
+                                        })()}
                                         {!isMobile && ' ROD'}
                                     </p>
                                 </CardContent>
@@ -1025,7 +1032,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Sent' : 'Total Sent'}</p>
                                     <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-red-400`}>
-                                        {transactions.filter((tx) => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                        {(() => {
+                                            const walletTxs = currentWallet ? 
+                                                (currentWallet.id === 'main-account' 
+                                                    ? transactions.filter(tx => !tx.wallet_id || tx.wallet_address === currentWallet.wallet_address)
+                                                    : transactions.filter(tx => tx.wallet_id === currentWallet.id)) 
+                                                : transactions;
+                                            return walletTxs.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 });
+                                        })()}
                                         {!isMobile && ' ROD'}
                                     </p>
                                 </CardContent>
@@ -1034,7 +1048,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'TXs' : 'Transactions'}</p>
                                     <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-white`}>
-                                        {transactions.length}
+                                        {(() => {
+                                            const walletTxs = currentWallet ? 
+                                                (currentWallet.id === 'main-account' 
+                                                    ? transactions.filter(tx => !tx.wallet_id || tx.wallet_address === currentWallet.wallet_address)
+                                                    : transactions.filter(tx => tx.wallet_id === currentWallet.id)) 
+                                                : transactions;
+                                            return walletTxs.length;
+                                        })()}
                                     </p>
                                 </CardContent>
                             </Card>
