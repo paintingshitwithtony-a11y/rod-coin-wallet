@@ -25,13 +25,21 @@ Deno.serve(async (req) => {
 
         for (const account of accounts) {
             try {
-                // Collect all addresses to monitor
+                // Collect all addresses to monitor (from account + all wallets)
                 const addresses = [account.wallet_address];
                 if (account.additional_addresses) {
                     account.additional_addresses.forEach(addr => {
                         addresses.push(addr.address);
                     });
                 }
+                
+                // Also get addresses from all Wallet entities
+                const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
+                wallets.forEach(wallet => {
+                    if (!addresses.includes(wallet.wallet_address)) {
+                        addresses.push(wallet.wallet_address);
+                    }
+                });
 
                 // Check for new transactions on each address
                 for (const address of addresses) {
@@ -79,8 +87,17 @@ Deno.serve(async (req) => {
 
                                 // If not already recorded, add it
                                 if (existing.length === 0) {
+                                    // Determine which wallet this belongs to
+                                    const wallets = await base44.asServiceRole.entities.Wallet.filter({
+                                        account_id: account.id,
+                                        wallet_address: tx.address
+                                    });
+                                    const walletId = wallets.length > 0 ? wallets[0].id : null;
+                                    
                                     await base44.asServiceRole.entities.Transaction.create({
                                         account_id: account.id,
+                                        wallet_id: walletId,
+                                        wallet_address: tx.address,
                                         type: 'receive',
                                         amount: tx.amount,
                                         fee: 0,
@@ -90,11 +107,20 @@ Deno.serve(async (req) => {
                                         status: tx.confirmations >= 6 ? 'confirmed' : 'pending'
                                     });
 
-                                    // Update account balance
-                                    const currentBalance = account.balance || 0;
+                                    // Update account balance - fetch fresh data first
+                                    const freshAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: account.id });
+                                    const currentBalance = freshAccounts[0]?.balance || 0;
                                     await base44.asServiceRole.entities.WalletAccount.update(account.id, {
                                         balance: currentBalance + tx.amount
                                     });
+                                    
+                                    // Also update individual wallet balance if it exists
+                                    if (wallets.length > 0) {
+                                        const wallet = wallets[0];
+                                        await base44.asServiceRole.entities.Wallet.update(wallet.id, {
+                                            balance: (wallet.balance || 0) + tx.amount
+                                        });
+                                    }
 
                                     totalNewDeposits++;
                                 }

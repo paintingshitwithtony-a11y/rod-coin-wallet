@@ -35,13 +35,21 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
         
-        // Collect all addresses to monitor
+        // Collect all addresses to monitor (from account + all wallets)
         const addresses = [account.wallet_address];
         if (account.additional_addresses) {
             account.additional_addresses.forEach(addr => {
                 addresses.push(addr.address);
             });
         }
+        
+        // Also get addresses from all Wallet entities
+        const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        wallets.forEach(wallet => {
+            if (!addresses.includes(wallet.wallet_address)) {
+                addresses.push(wallet.wallet_address);
+            }
+        });
 
         // Check for new transactions on each address
         const newDeposits = [];
