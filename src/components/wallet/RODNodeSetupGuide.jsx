@@ -88,6 +88,20 @@ export default function RODNodeSetupGuide({ onClose }) {
                                         Step 2: Configure RPC Access
                                     </h3>
 
+                                    <Alert className="bg-purple-500/10 border-purple-500/30">
+                                        <AlertDescription className="text-purple-300">
+                                            <strong>RPC Command Reference:</strong> Check out the{' '}
+                                            <a 
+                                                href="http://explorer1.rod.spacexpanse.org:3001/rpc-browser" 
+                                                target="_blank"
+                                                className="underline hover:text-purple-200"
+                                            >
+                                                ROD RPC Browser
+                                            </a>
+                                            {' '}for a complete list of available commands and their documentation.
+                                        </AlertDescription>
+                                    </Alert>
+
                                     <p className="text-slate-300">
                                         Create or edit your <code className="bg-slate-800 px-2 py-1 rounded text-amber-400">rod.conf</code> file:
                                     </p>

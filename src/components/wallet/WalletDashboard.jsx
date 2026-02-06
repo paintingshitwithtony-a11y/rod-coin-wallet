@@ -23,6 +23,7 @@ import TransactionHistory from './TransactionHistory';
 import WalletManager from './WalletManager';
 import RODNodeSetupGuide from './RODNodeSetupGuide';
 import NetworkActivityDashboard from './NetworkActivityDashboard';
+import RPCConsole from './RPCConsole';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -907,10 +908,13 @@ export default function WalletDashboard({ account, onLogout }) {
                       Contacts
                     </TabsTrigger>
                     <TabsTrigger value="network" className="data-[state=active]:bg-purple-600">
-                      Network
+                        Network
                     </TabsTrigger>
-                      </>
-                      }
+                    <TabsTrigger value="console" className="data-[state=active]:bg-purple-600">
+                        RPC Console
+                    </TabsTrigger>
+                        </>
+                        }
                                 </TabsList>
                                 </div>
 
@@ -1483,6 +1487,10 @@ export default function WalletDashboard({ account, onLogout }) {
                         account={account}
                         rpcConnected={rpcConnected}
                     />
+                </TabsContent>
+
+                <TabsContent value="console" className="mt-6">
+                    <RPCConsole account={account} />
                 </TabsContent>
                 </Tabs>
 
