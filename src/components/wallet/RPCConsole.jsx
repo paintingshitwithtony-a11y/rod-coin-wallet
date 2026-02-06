@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, Send, Trash2, Copy, CheckCircle2, Info } from 'lucide-react';
+import { Terminal, Send, Trash2, Copy, CheckCircle2, Info, Lightbulb, Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -14,6 +14,10 @@ export default function RPCConsole({ account }) {
     const [outputHistory, setOutputHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [historyIndex, setHistoryIndex] = useState(-1);
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [aiExplaining, setAiExplaining] = useState(null);
+    const [alerts, setAlerts] = useState([]);
 
     const commonCommands = [
         { label: 'Get Block Count', cmd: 'getblockcount' },
@@ -30,6 +34,7 @@ export default function RPCConsole({ account }) {
         if (!cmdToExecute.trim()) return;
 
         setLoading(true);
+        setShowSuggestions(false);
         const timestamp = new Date().toLocaleTimeString();
 
         try {
@@ -60,6 +65,9 @@ export default function RPCConsole({ account }) {
             setCommandHistory(prev => [...prev, cmdToExecute]);
             setHistoryIndex(-1);
             setCommand('');
+
+            // Check for node issues and create alerts
+            analyzeForIssues(method, response.data);
         } catch (err) {
             const output = {
                 timestamp,
@@ -71,6 +79,121 @@ export default function RPCConsole({ account }) {
             toast.error('Command failed: ' + err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const analyzeForIssues = (method, result) => {
+        const newAlerts = [];
+
+        if (method === 'getblockchaininfo' && result.result) {
+            const data = result.result;
+            if (data.blocks && data.headers && (data.headers - data.blocks) > 10) {
+                newAlerts.push({
+                    type: 'warning',
+                    message: `Node is ${data.headers - data.blocks} blocks behind. Syncing in progress.`
+                });
+            }
+            if (data.verificationprogress && data.verificationprogress < 0.99) {
+                newAlerts.push({
+                    type: 'info',
+                    message: `Chain verification: ${(data.verificationprogress * 100).toFixed(2)}% complete`
+                });
+            }
+        }
+
+        if (method === 'getconnectioncount' && result.result !== undefined) {
+            if (result.result === 0) {
+                newAlerts.push({
+                    type: 'error',
+                    message: 'No peer connections! Node may be isolated from network.'
+                });
+            } else if (result.result < 3) {
+                newAlerts.push({
+                    type: 'warning',
+                    message: `Only ${result.result} peer connections. Consider checking network connectivity.`
+                });
+            }
+        }
+
+        if (method === 'getmempoolinfo' && result.result) {
+            const mempool = result.result;
+            if (mempool.size > 1000) {
+                newAlerts.push({
+                    type: 'warning',
+                    message: `Large mempool detected (${mempool.size} transactions). Network may be congested.`
+                });
+            }
+        }
+
+        if (newAlerts.length > 0) {
+            setAlerts(prev => [...newAlerts, ...prev].slice(0, 5));
+        }
+    };
+
+    const getSuggestions = async (input) => {
+        if (!input.trim() || input.length < 2) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        try {
+            const response = await base44.integrations.Core.InvokeLLM({
+                prompt: `Given the user input "${input}" for a ROD cryptocurrency RPC console, suggest 3 relevant RPC commands they might want to execute. 
+
+Common commands include: getblockcount, getblockchaininfo, getbalance, getnewaddress, listtransactions, getnetworkinfo, getpeerinfo, getmininginfo, getconnectioncount, getmempoolinfo, listaccounts, validateaddress, sendtoaddress, getblock, getblockhash, getrawtransaction.
+
+Return ONLY the command names, one per line, no explanations.`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        commands: {
+                            type: "array",
+                            items: { type: "string" }
+                        }
+                    }
+                }
+            });
+
+            if (response.commands && response.commands.length > 0) {
+                setSuggestions(response.commands.slice(0, 3));
+                setShowSuggestions(true);
+            }
+        } catch (err) {
+            console.error('Failed to get suggestions:', err);
+        }
+    };
+
+    const explainOutput = async (output) => {
+        setAiExplaining(output.timestamp);
+        try {
+            const response = await base44.integrations.Core.InvokeLLM({
+                prompt: `Explain this ROD RPC command output in simple terms for a non-technical user:
+
+Command: ${output.command}
+Output: ${JSON.stringify(output.result, null, 2)}
+
+Provide a brief, clear explanation of what this output means and any important information the user should know. Keep it under 100 words.`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        explanation: { type: "string" }
+                    }
+                }
+            });
+
+            if (response.explanation) {
+                setOutputHistory(prev => prev.map(item => 
+                    item.timestamp === output.timestamp 
+                        ? { ...item, aiExplanation: response.explanation }
+                        : item
+                ));
+                toast.success('Explanation generated');
+            }
+        } catch (err) {
+            toast.error('Failed to generate explanation');
+        } finally {
+            setAiExplaining(null);
         }
     };
 
@@ -97,6 +220,18 @@ export default function RPCConsole({ account }) {
                 setHistoryIndex(-1);
                 setCommand('');
             }
+        } else if (e.key === 'Escape') {
+            setShowSuggestions(false);
+        }
+    };
+
+    const handleCommandChange = (value) => {
+        setCommand(value);
+        if (value.trim().length >= 2) {
+            const timeoutId = setTimeout(() => getSuggestions(value), 500);
+            return () => clearTimeout(timeoutId);
+        } else {
+            setShowSuggestions(false);
         }
     };
 
@@ -139,6 +274,30 @@ export default function RPCConsole({ account }) {
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
+                {/* AI Alerts */}
+                {alerts.length > 0 && (
+                    <div className="space-y-2">
+                        {alerts.map((alert, i) => (
+                            <Alert key={i} className={
+                                alert.type === 'error' ? 'bg-red-500/10 border-red-500/30' :
+                                alert.type === 'warning' ? 'bg-amber-500/10 border-amber-500/30' :
+                                'bg-blue-500/10 border-blue-500/30'
+                            }>
+                                {alert.type === 'error' ? <AlertCircle className="w-4 h-4 text-red-400" /> :
+                                 alert.type === 'warning' ? <AlertTriangle className="w-4 h-4 text-amber-400" /> :
+                                 <Info className="w-4 h-4 text-blue-400" />}
+                                <AlertDescription className={
+                                    alert.type === 'error' ? 'text-red-300' :
+                                    alert.type === 'warning' ? 'text-amber-300' :
+                                    'text-blue-300'
+                                }>
+                                    {alert.message}
+                                </AlertDescription>
+                            </Alert>
+                        ))}
+                    </div>
+                )}
+
                 {/* Quick Commands */}
                 <div>
                     <p className="text-xs text-slate-400 mb-2">Quick Commands:</p>
@@ -192,6 +351,35 @@ export default function RPCConsole({ account }) {
                                             ? output.result 
                                             : JSON.stringify(output.result, null, 2)}
                                     </pre>
+                                    {!output.aiExplanation && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => explainOutput(output)}
+                                            disabled={aiExplaining === output.timestamp}
+                                            className="mt-2 text-purple-400 hover:text-purple-300 h-7 text-xs">
+                                            {aiExplaining === output.timestamp ? (
+                                                <>
+                                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                    Explaining...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Lightbulb className="w-3 h-3 mr-1" />
+                                                    Explain with AI
+                                                </>
+                                            )}
+                                        </Button>
+                                    )}
+                                    {output.aiExplanation && (
+                                        <div className="mt-2 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Lightbulb className="w-4 h-4 text-purple-400" />
+                                                <span className="text-xs font-semibold text-purple-400">AI Explanation</span>
+                                            </div>
+                                            <p className="text-sm text-purple-200">{output.aiExplanation}</p>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -204,12 +392,32 @@ export default function RPCConsole({ account }) {
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-400 font-mono">$</span>
                         <Input
                             value={command}
-                            onChange={(e) => setCommand(e.target.value)}
+                            onChange={(e) => handleCommandChange(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Enter RPC command (e.g., getblockcount)"
                             disabled={loading}
                             className="pl-8 bg-slate-950/50 border-slate-700 text-white font-mono"
                         />
+                        {/* AI Suggestions */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-purple-500/50 rounded-lg shadow-xl z-10">
+                                <div className="p-2 border-b border-slate-700 flex items-center gap-2">
+                                    <Lightbulb className="w-3 h-3 text-purple-400" />
+                                    <span className="text-xs text-purple-400 font-semibold">AI Suggestions</span>
+                                </div>
+                                {suggestions.map((suggestion, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => {
+                                            setCommand(suggestion);
+                                            setShowSuggestions(false);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-purple-500/20 hover:text-white transition-colors">
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <Button
                         onClick={() => executeCommand()}
