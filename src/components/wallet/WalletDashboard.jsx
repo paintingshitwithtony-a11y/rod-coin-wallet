@@ -1165,7 +1165,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         Sync Now
                                                     </Button>
                                                     </div>
-                                                <div className="flex gap-2 pt-2">
+                                                    )}
+                                                    <div className="flex gap-2 pt-2">
                                                     <Button
                                                         onClick={() => setActiveTab('send')}
                                                         className="flex-1 bg-slate-800/50 hover:bg-slate-800">
