@@ -25,6 +25,7 @@ import RODNodeSetupGuide from './RODNodeSetupGuide';
 import NetworkActivityDashboard from './NetworkActivityDashboard';
 import RPCConsole from './RPCConsole';
 import RODConfEditor from './RODConfEditor';
+import NodeStatusCard from './NodeStatusCard';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -1215,8 +1216,17 @@ export default function WalletDashboard({ account, onLogout }) {
                                         </motion.div>
                                     )}
 
-                                    {/* Statistics Cards */}
-                                    <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
+                                    {/* Node Status Card */}
+                                                     <motion.div
+                                                         initial={{ opacity: 0, y: 20 }}
+                                                         animate={{ opacity: 1, y: 0 }}
+                                                         transition={{ delay: 0.15 }}
+                                                         className="mb-6">
+                                                         <NodeStatusCard />
+                                                     </motion.div>
+
+                                                     {/* Statistics Cards */}
+                                                     <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
                                         <Card className="bg-slate-900/80 border-slate-700/50">
                                             <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                                 <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
