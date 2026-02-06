@@ -164,19 +164,13 @@ Deno.serve(async (req) => {
         const txid = rpcData.result;
         console.log('Transaction broadcasted. TxID:', txid);
 
-        // Determine which wallet this is being sent from
-        const senderWallets = await base44.entities.Wallet.filter({
-            account_id: account.id,
-            wallet_address: fromAddress
-        });
-        const senderWalletId = senderWallets.length > 0 ? senderWallets[0].id : null;
+        // Determine which wallet this is being sent from (using already fetched wallets)
+        const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
+        const senderWalletId = senderWallet?.id || null;
         
         // Check if recipient is also owned by this user (internal transfer)
-        const recipientWallets = await base44.entities.Wallet.filter({
-            account_id: account.id,
-            wallet_address: recipient
-        });
-        const recipientWalletId = recipientWallets.length > 0 ? recipientWallets[0].id : null;
+        const recipientWallet = allWallets.find(w => w.wallet_address === recipient);
+        const recipientWalletId = recipientWallet?.id || null;
         const isRecipientMainWallet = recipient === account.wallet_address;
         
         // Record send transaction
