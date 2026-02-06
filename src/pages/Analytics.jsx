@@ -322,15 +322,15 @@ export default function Analytics() {
 
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                         <Card className="bg-gradient-to-br from-green-500/10 to-slate-900/80 border-green-500/30">
-                            <CardContent className="p-4">
+                            <CardContent className="p-3">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs text-slate-400 mb-1">Total Received</p>
-                                        <p className="text-xl font-bold text-green-400">
+                                        <p className="text-xs text-slate-400 mb-0.5">Total Received</p>
+                                        <p className="text-lg font-bold text-green-400">
                                             {totalIncome.toFixed(4)} ROD
                                         </p>
                                     </div>
-                                    <ArrowDownLeft className="w-8 h-8 text-green-400/50" />
+                                    <ArrowDownLeft className="w-7 h-7 text-green-400/50" />
                                 </div>
                             </CardContent>
                         </Card>
