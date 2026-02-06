@@ -375,7 +375,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
   const checkForDeposits = async (silent = false) => {
     if (!rpcConnected) return;
-    
+
     try {
       setIsSyncing(true);
       const response = await base44.functions.invoke('checkDeposits', {});
@@ -388,13 +388,12 @@ export default function WalletDashboard({ account, onLogout }) {
           });
         });
 
-        // Refresh wallet data after new deposits
+        // Refresh wallet data after new deposits (skip fetchAllWallets to avoid rate limits)
         await fetchWalletData();
-        await fetchAllWallets();
       } else if (!silent) {
         toast.info('No new transactions found', { duration: 2000 });
       }
-      
+
       setLastSyncTime(new Date());
     } catch (err) {
         console.error('Failed to check deposits:', err);
