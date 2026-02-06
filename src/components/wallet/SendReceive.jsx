@@ -62,19 +62,20 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 '-created_date'
             );
 
-            // Include main wallet with database balance
+            // Include main wallet with balance from props
             const mainWallet = {
                 id: 'main-account',
                 name: 'Main Wallet',
                 wallet_address: account.wallet_address,
-                balance: account.balance || 0
+                balance: balance
             };
 
-            setMyWallets([mainWallet, ...wallets]);
+            const allWallets = [mainWallet, ...wallets];
+            setMyWallets(allWallets);
             
             // Set default selected wallet
             if (fromAddress) {
-                const wallet = [mainWallet, ...wallets].find(w => w.wallet_address === fromAddress);
+                const wallet = allWallets.find(w => w.wallet_address === fromAddress);
                 setSelectedFromWallet(wallet || mainWallet);
             } else {
                 setSelectedFromWallet(mainWallet);
