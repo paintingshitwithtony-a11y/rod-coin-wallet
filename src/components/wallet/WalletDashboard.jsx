@@ -971,182 +971,164 @@ export default function WalletDashboard({ account, onLogout }) {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="mb-6">
                                         <Card className="bg-slate-900/80 border-slate-700/50">
-                                            <CardContent className="p-4">
+                                            <CardContent className="p-4 space-y-3">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={async () => {
+                                                        const today = new Date().toISOString().split('T')[0];
+                                                        if (!confirm(`Delete all transactions from today (${today})?`)) return;
+                                                        setLoading(true);
+                                                        try {
+                                                            const response = await base44.functions.invoke('deleteTransactionsByDate', {
+                                                                startDate: `${today}T00:00:00`
+                                                            });
+                                                            if (response.data.success) {
+                                                                toast.success(`Deleted ${response.data.deleted} transactions`);
+                                                                await fetchWalletData();
+                                                                await fetchAllWallets();
+                                                            }
+                                                        } catch (err) {
+                                                            toast.error('Failed to delete transactions');
+                                                        } finally {
+                                                            setLoading(false);
+                                                        }
+                                                    }}
+                                                    disabled={loading}
+                                                    className="w-full">
+                                                    {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                                    Clear Today
+                                                </Button>
                                                 <div className="flex gap-2 flex-wrap">
-                                                                <Button
-                                                                    variant="outline"
-                                                                    onClick={async () => {
-                                                                        const today = new Date().toISOString().split('T')[0];
-                                                                        if (!confirm(`Delete all transactions from today (${today})?`)) return;
-                                                                        setLoading(true);
-                                                                        try {
-                                                                            const response = await base44.functions.invoke('deleteTransactionsByDate', {
-                                                                                startDate: `${today}T00:00:00`
-                                                                            });
-                                                                            if (response.data.success) {
-                                                                                toast.success(`Deleted ${response.data.deleted} transactions`);
-                                                                                await fetchWalletData();
-                                                                                await fetchAllWallets();
-                                                                            }
-                                                                        } catch (err) {
-                                                                            toast.error('Failed to delete transactions');
-                                                                        } finally {
-                                                                            setLoading(false);
-                                                                        }
-                                                                    }}
-                                                                    disabled={loading}
-                                                                    className={`text-red-400 hover:text-red-300 border-red-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Delete all today's transactions">
-                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                    Clear Today
-                                                                </Button>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    onClick={async () => {
-                                                                        setLoading(true);
-                                                                        try {
-                                                                            const response = await base44.functions.invoke('debugTransactions', {});
-                                                                            console.log('=== TRANSACTION DEBUG ===', response.data);
-                                                                            toast.info(`Check console for details`, {
-                                                                                description: `${response.data.receiveCount} receives, ${response.data.sendCount} sends`
-                                                                            });
-                                                                        } catch (err) {
-                                                                            toast.error('Debug failed');
-                                                                        } finally {
-                                                                            setLoading(false);
-                                                                        }
-                                                                    }}
-                                                                    disabled={loading}
-                                                                    className={`text-blue-400 hover:text-blue-300 border-blue-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Debug transactions in console">
-                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                    Debug
-                                                                    </Button>
-                                                                    <Button
-                                                                    variant="outline"
-                                                                    onClick={async () => {
-                                                                        setLoading(true);
-                                                                        try {
-                                                                            const response = await base44.functions.invoke('verifyBalancesFromRPC', {});
-                                                                            console.log('=== BALANCE VERIFICATION ===', response.data);
-
-                                                                            const summary = response.data.summary;
-                                                                            if (summary.mismatches > 0) {
-                                                                                toast.error(`Balance Mismatch: ${summary.mismatches} wallet(s) differ from RPC`, {
-                                                                                    description: `Checked ${summary.total_wallets} wallets`
-                                                                                });
-                                                                            } else if (summary.errors > 0) {
-                                                                                toast.warning(`Verification Partial: ${summary.errors} error(s)`, {
-                                                                                    description: `${summary.verified}/${summary.total_wallets} verified`
-                                                                                });
-                                                                            } else {
-                                                                                toast.success(`All ${summary.total_wallets} wallet balances verified from RPC`);
-                                                                            }
-                                                                        } catch (err) {
-                                                                            toast.error('Verification failed');
-                                                                        } finally {
-                                                                            setLoading(false);
-                                                                        }
-                                                                    }}
-                                                                    disabled={loading}
-                                                                    className={`text-cyan-400 hover:text-cyan-300 border-cyan-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Verify all wallet balances against RPC node">
-                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                    Verify RPC
-                                                                    </Button>
-                                                                    <Button
-                                                                    variant="outline"
-                                                                    onClick={async () => {
-                                                                        setLoading(true);
-                                                                        try {
-                                                                            const response = await base44.functions.invoke('recalculateBalance', {});
-                                                                            if (response.data.success) {
-                                                                                const data = response.data;
-                                                                                console.log('Balance Details:', data);
-                                                                                toast.success(`Fixed! ${data.duplicatesRemoved || 0} duplicates removed, ${data.transactionsMigrated || 0} transactions migrated`, {
-                                                                                    description: `${data.walletsUpdated} wallets updated`
-                                                                                });
-                                                                                await fetchWalletData();
-                                                                                await fetchAllWallets();
-                                                                            } else {
-                                                                                toast.error('Failed to recalculate balance');
-                                                                            }
-                                                                        } catch (err) {
-                                                                            console.error('Fix balance error:', err);
-                                                                            toast.error('Failed to recalculate balance');
-                                                                        } finally {
-                                                                            setLoading(false);
-                                                                        }
-                                                                    }}
-                                                                    disabled={loading}
-                                                                    className={`text-amber-400 hover:text-amber-300 border-amber-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Remove duplicate transactions and recalculate balance">
-                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                    Fix Balance
-                                                                </Button>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    onClick={async () => {
-                                                                        if (!confirm('Reset all balances to 0 and recalculate from transactions?')) return;
-                                                                        setLoading(true);
-                                                                        try {
-                                                                            const response = await base44.functions.invoke('resetAndRecalculateBalance', {});
-                                                                            if (response.data.success) {
-                                                                                const data = response.data;
-                                                                                console.log('Reset & Recalculate:', data);
-                                                                                toast.success(`Reset complete! ${data.transactionsProcessed} transactions processed`, {
-                                                                                    description: `Main: ${data.mainWalletBalance.toFixed(4)} ROD, ${data.walletsUpdated} wallets updated`
-                                                                                });
-                                                                                await fetchWalletData();
-                                                                                await fetchAllWallets();
-                                                                            } else {
-                                                                                toast.error('Failed to reset balance');
-                                                                            }
-                                                                        } catch (err) {
-                                                                            console.error('Reset balance error:', err);
-                                                                            toast.error('Failed to reset balance');
-                                                                        } finally {
-                                                                            setLoading(false);
-                                                                        }
-                                                                    }}
-                                                                    disabled={loading}
-                                                                    className={`text-green-400 hover:text-green-300 border-green-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Reset all balances to 0 and recalculate from transactions">
-                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                    Reset & Recheck
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        onClick={async () => {
-                                                                            await checkForDeposits(false);
-                                                                        }}
-                                                                        disabled={loading || isSyncing || !rpcConnected}
-                                                                        className={`text-purple-400 hover:text-purple-300 border-purple-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                        title="Manually sync transactions from blockchain">
-                                                                        {isSyncing ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1`} />}
-                                                                        Sync Now
-                                                                        </Button>
-                                                                    </div>
-                                                                    </div>
-                                                                    </div>
-                                                    <div className={`flex ${isMobile ? 'flex-row w-full justify-between' : 'flex-col items-end'} gap-3`}>
-                                                        <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
-                                                            <Button
-                                                                onClick={() => setActiveTab('send')}
-                                                                className={`bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700 ${isMobile ? 'flex-1 text-sm px-3 h-9' : ''}`}>
-
-                                                                <ArrowUpRight className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} mr-2`} />
-                                                                Send
-                                                            </Button>
-                                                            <Button
-                                                                onClick={() => setActiveTab('receive')}
-                                                                className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50 ${isMobile ? 'flex-1 text-sm px-3 h-9' : ''}`}>
-
-                                                                <ArrowDownLeft className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'} mr-2`} />
-                                                                Receive
-                                                            </Button>
-                                                        </div>
-                                                    </div>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            setLoading(true);
+                                                            try {
+                                                                const response = await base44.functions.invoke('debugTransactions', {});
+                                                                console.log('=== TRANSACTION DEBUG ===', response.data);
+                                                                toast.info(`Check console for details`, {
+                                                                    description: `${response.data.receiveCount} receives, ${response.data.sendCount} sends`
+                                                                });
+                                                            } catch (err) {
+                                                                toast.error('Debug failed');
+                                                            } finally {
+                                                                setLoading(false);
+                                                            }
+                                                        }}
+                                                        disabled={loading}>
+                                                        Debug
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            setLoading(true);
+                                                            try {
+                                                                const response = await base44.functions.invoke('verifyBalancesFromRPC', {});
+                                                                console.log('=== BALANCE VERIFICATION ===', response.data);
+                                                                const summary = response.data.summary;
+                                                                if (summary.mismatches > 0) {
+                                                                    toast.error(`Balance Mismatch: ${summary.mismatches} wallet(s) differ from RPC`, {
+                                                                        description: `Checked ${summary.total_wallets} wallets`
+                                                                    });
+                                                                } else if (summary.errors > 0) {
+                                                                    toast.warning(`Verification Partial: ${summary.errors} error(s)`, {
+                                                                        description: `${summary.verified}/${summary.total_wallets} verified`
+                                                                    });
+                                                                } else {
+                                                                    toast.success(`All ${summary.total_wallets} wallet balances verified from RPC`);
+                                                                }
+                                                            } catch (err) {
+                                                                toast.error('Verification failed');
+                                                            } finally {
+                                                                setLoading(false);
+                                                            }
+                                                        }}
+                                                        disabled={loading}>
+                                                        Verify RPC
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            setLoading(true);
+                                                            try {
+                                                                const response = await base44.functions.invoke('recalculateBalance', {});
+                                                                if (response.data.success) {
+                                                                    const data = response.data;
+                                                                    console.log('Balance Details:', data);
+                                                                    toast.success(`Fixed! ${data.duplicatesRemoved || 0} duplicates removed, ${data.transactionsMigrated || 0} transactions migrated`, {
+                                                                        description: `${data.walletsUpdated} wallets updated`
+                                                                    });
+                                                                    await fetchWalletData();
+                                                                    await fetchAllWallets();
+                                                                } else {
+                                                                    toast.error('Failed to recalculate balance');
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Fix balance error:', err);
+                                                                toast.error('Failed to recalculate balance');
+                                                            } finally {
+                                                                setLoading(false);
+                                                            }
+                                                        }}
+                                                        disabled={loading}>
+                                                        Fix Balance
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            if (!confirm('Reset all balances to 0 and recalculate from transactions?')) return;
+                                                            setLoading(true);
+                                                            try {
+                                                                const response = await base44.functions.invoke('resetAndRecalculateBalance', {});
+                                                                if (response.data.success) {
+                                                                    const data = response.data;
+                                                                    console.log('Reset & Recalculate:', data);
+                                                                    toast.success(`Reset complete! ${data.transactionsProcessed} transactions processed`, {
+                                                                        description: `Main: ${data.mainWalletBalance.toFixed(4)} ROD, ${data.walletsUpdated} wallets updated`
+                                                                    });
+                                                                    await fetchWalletData();
+                                                                    await fetchAllWallets();
+                                                                } else {
+                                                                    toast.error('Failed to reset balance');
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Reset balance error:', err);
+                                                                toast.error('Failed to reset balance');
+                                                            } finally {
+                                                                setLoading(false);
+                                                            }
+                                                        }}
+                                                        disabled={loading}>
+                                                        Reset & Recheck
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            await checkForDeposits(false);
+                                                        }}
+                                                        disabled={loading || isSyncing || !rpcConnected}>
+                                                        {isSyncing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                                        Sync Now
+                                                    </Button>
+                                                </div>
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        onClick={() => setActiveTab('send')}
+                                                        className="flex-1 bg-slate-800/50 hover:bg-slate-800">
+                                                        <ArrowUpRight className="w-4 h-4 mr-2" />
+                                                        Send
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => setActiveTab('receive')}
+                                                        className="flex-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400">
+                                                        <ArrowDownLeft className="w-4 h-4 mr-2" />
+                                                        Receive
+                                                    </Button>
                                                 </div>
                                             </CardContent>
                                         </Card>
