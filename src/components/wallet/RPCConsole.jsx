@@ -259,7 +259,7 @@ Provide a brief, clear explanation of what this output means and any important i
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open('http://explorer1.rod.spacexpanse.org:3001/rpc-browser', '_blank')}
+                            onClick={() => window.open('https://explorer1.rod.spacexpanse.org:3001/rpc-browser', '_blank')}
                             className="text-purple-400 border-purple-500/50">
                             <Info className="w-4 h-4 mr-1" />
                             RPC Docs
@@ -432,7 +432,7 @@ Provide a brief, clear explanation of what this output means and any important i
                 <div className="text-xs text-slate-500">
                     <p>• Use <kbd className="px-1 py-0.5 bg-slate-800 rounded">↑</kbd> <kbd className="px-1 py-0.5 bg-slate-800 rounded">↓</kbd> to navigate command history</p>
                     <p>• Press <kbd className="px-1 py-0.5 bg-slate-800 rounded">Enter</kbd> to execute command</p>
-                    <p>• See <a href="http://explorer1.rod.spacexpanse.org:3001/rpc-browser" target="_blank" className="text-purple-400 hover:underline">RPC Browser</a> for full command reference</p>
+                    <p>• See <a href="https://explorer1.rod.spacexpanse.org:3001/rpc-browser" target="_blank" className="text-purple-400 hover:underline">RPC Browser</a> for full command reference</p>
                 </div>
             </CardContent>
         </Card>
