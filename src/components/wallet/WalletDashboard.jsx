@@ -886,6 +886,37 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
                                                                     Fix Balance
                                                                 </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={async () => {
+                                                                        if (!confirm('Reset all balances to 0 and recalculate from transactions?')) return;
+                                                                        setLoading(true);
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('resetAndRecalculateBalance', {});
+                                                                            if (response.data.success) {
+                                                                                const data = response.data;
+                                                                                console.log('Reset & Recalculate:', data);
+                                                                                toast.success(`Reset complete! ${data.transactionsProcessed} transactions processed`, {
+                                                                                    description: `Main: ${data.mainWalletBalance.toFixed(4)} ROD, ${data.walletsUpdated} wallets updated`
+                                                                                });
+                                                                                await fetchWalletData();
+                                                                                await fetchAllWallets();
+                                                                            } else {
+                                                                                toast.error('Failed to reset balance');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            console.error('Reset balance error:', err);
+                                                                            toast.error('Failed to reset balance');
+                                                                        } finally {
+                                                                            setLoading(false);
+                                                                        }
+                                                                    }}
+                                                                    disabled={loading}
+                                                                    className={`text-green-400 hover:text-green-300 border-green-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                    title="Reset all balances to 0 and recalculate from transactions">
+                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
+                                                                    Reset & Recheck
+                                                                </Button>
                                                             </div>
                                                         </div>
                                                     </div>
