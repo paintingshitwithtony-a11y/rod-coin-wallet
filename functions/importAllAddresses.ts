@@ -84,52 +84,66 @@ Deno.serve(async (req) => {
 
         const results = [];
 
-        // Import each address
+        // Import each address with retry logic
         for (const item of addressesToImport) {
-            try {
-                const importResponse = await fetch(rpcUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        jsonrpc: '1.0',
-                        id: `import-${item.address}`,
-                        method: 'importaddress',
-                        params: [item.address, item.label, false]
-                    }),
-                    signal: AbortSignal.timeout(10000)
-                });
-
-                if (!importResponse.ok) {
-                    const errorText = await importResponse.text();
-                    results.push({
-                        address: item.address,
-                        success: false,
-                        error: `HTTP ${importResponse.status}: ${errorText.slice(0, 100)}`
+            let success = false;
+            let lastError = '';
+            
+            // Try up to 2 times with delay
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    if (attempt > 0) {
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+                    }
+                    
+                    const importResponse = await fetch(rpcUrl, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            jsonrpc: '1.0',
+                            id: `import-${item.address}`,
+                            method: 'importaddress',
+                            params: [item.address, item.label, false]
+                        }),
+                        signal: AbortSignal.timeout(15000) // Increased timeout
                     });
-                    continue;
+
+                    if (!importResponse.ok) {
+                        const errorText = await importResponse.text();
+                        lastError = `HTTP ${importResponse.status}: ${errorText.slice(0, 100)}`;
+                        
+                        // Don't retry on 503 if it's consistent
+                        if (importResponse.status === 503 && attempt === 0) {
+                            continue; // Retry once for 503
+                        }
+                        break; // Don't retry other errors
+                    }
+
+                    const importData = await importResponse.json();
+
+                    if (importData.error) {
+                        // Check if already imported (not actually an error)
+                        if (importData.error.message && importData.error.message.includes('already')) {
+                            success = true;
+                            break;
+                        }
+                        lastError = importData.error.message;
+                        break;
+                    } else {
+                        success = true;
+                        break;
+                    }
+                } catch (err) {
+                    lastError = err.message;
+                    if (attempt === 0) continue; // Retry once
                 }
-
-                const importData = await importResponse.json();
-
-                if (importData.error) {
-                    results.push({
-                        address: item.address,
-                        success: false,
-                        error: importData.error.message
-                    });
-                } else {
-                    results.push({
-                        address: item.address,
-                        success: true
-                    });
-                }
-            } catch (err) {
-                results.push({
-                    address: item.address,
-                    success: false,
-                    error: err.message
-                });
             }
+            
+            results.push({
+                address: item.address,
+                success,
+                error: success ? null : lastError
+            });
         }
 
         const successCount = results.filter(r => r.success).length;
