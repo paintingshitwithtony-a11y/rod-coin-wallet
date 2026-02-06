@@ -86,6 +86,22 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             }));
 
             const allWallets = [mainWallet, ...wallets, ...additionalAddressWallets];
+            
+            // Check for duplicates
+            const addressMap = {};
+            const foundDuplicates = [];
+            allWallets.forEach(w => {
+                if (addressMap[w.wallet_address]) {
+                    foundDuplicates.push(w.wallet_address);
+                } else {
+                    addressMap[w.wallet_address] = w;
+                }
+            });
+            setDuplicates(foundDuplicates);
+            
+            // Fetch RPC balances
+            await fetchRPCBalances(allWallets);
+            
             setMyWallets(allWallets);
             
             // Set default selected wallet
@@ -98,6 +114,26 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         } catch (err) {
             console.error('Failed to load wallets:', err);
         }
+    };
+
+    const fetchRPCBalances = async (wallets) => {
+        setLoadingRPC(true);
+        const balances = {};
+        
+        for (const wallet of wallets) {
+            try {
+                const response = await base44.functions.invoke('getRPCBalance', {});
+                if (response.data.success) {
+                    balances[wallet.wallet_address] = response.data.balance;
+                }
+            } catch (err) {
+                console.error(`Failed to fetch RPC balance for ${wallet.wallet_address}:`, err);
+                balances[wallet.wallet_address] = null;
+            }
+        }
+        
+        setRpcBalances(balances);
+        setLoadingRPC(false);
     };
 
     const loadContacts = async () => {
