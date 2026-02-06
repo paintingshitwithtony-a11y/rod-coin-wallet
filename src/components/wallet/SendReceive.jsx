@@ -356,14 +356,6 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         {/* From Wallet Selector */}
                         <div className="space-y-2">
                             <Label className="text-slate-300">From Wallet</Label>
-                            {duplicates.length > 0 && (
-                                <Alert className="bg-red-500/10 border-red-500/30 py-2 px-3">
-                                    <AlertCircle className="h-4 w-4 text-red-400" />
-                                    <AlertDescription className="text-red-300 text-xs">
-                                        {duplicates.length} duplicate address(es) found: {duplicates.slice(0, 2).map(d => `${d.slice(0, 8)}...`).join(', ')}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
                             <Select 
                                 value={selectedFromWallet?.id} 
                                 disabled={!canSwitch}
