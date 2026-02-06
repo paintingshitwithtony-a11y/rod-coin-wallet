@@ -258,26 +258,46 @@ export default function WalletDashboard({ account, onLogout }) {
       }
   };
 
-  const fetchNetworkHashrate = async () => {
+  const updateMainWalletFromRPC = async () => {
+    if (!rpcConnected) return;
+
     try {
-      const response = await fetch('https://explorer1.rod.spacexpanse.org:3001/');
-      const html = await response.text();
-
-      // Parse SHA256 hashrate - looks for the daily value
-      const sha256Match = html.match(/sha256d Hash Rate:[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
-      const neoscryptMatch = html.match(/neoscrypt Hash Rate[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
-
-      if (sha256Match && neoscryptMatch) {
-        setNetworkHashrate({
-          sha256: `${sha256Match[1]} ${sha256Match[3]}/s`,
-          neoscrypt: `${neoscryptMatch[1]} ${neoscryptMatch[3]}/s`
-        });
+      const response = await base44.functions.invoke('getRPCBalance', {});
+      if (response.data.success) {
+        console.log('Updated Main Wallet from RPC:', response.data.balance);
+        // Only update if viewing main wallet
+        if (!currentWallet || currentWallet.id === 'main-account') {
+          setBalance({
+            confirmed: response.data.balance,
+            unconfirmed: 0
+          });
+        }
       }
     } catch (err) {
+      console.error('Failed to update from RPC:', err);
+    }
+  };
+
+  const fetchNetworkHashrate = async () => {
+      try {
+        const response = await fetch('https://explorer1.rod.spacexpanse.org:3001/');
+        const html = await response.text();
+
+        // Parse SHA256 hashrate - looks for the daily value
+        const sha256Match = html.match(/sha256d Hash Rate:[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
+        const neoscryptMatch = html.match(/neoscrypt Hash Rate[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
+
+        if (sha256Match && neoscryptMatch) {
+          setNetworkHashrate({
+            sha256: `${sha256Match[1]} ${sha256Match[3]}/s`,
+            neoscrypt: `${neoscryptMatch[1]} ${neoscryptMatch[3]}/s`
+          });
+        }
+      } catch (err) {
 
 
-      // Silently fail - explorer may be unreachable
-    }};
+        // Silently fail - explorer may be unreachable
+      }};
   const fetchOnlineUsers = async () => {
     try {
       const response = await base44.functions.invoke('getOnlineUsers', {});
