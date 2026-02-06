@@ -518,7 +518,10 @@ export default function Admin() {
 
             {/* Setup Wizard Dialog */}
             <Dialog open={showWizard} onOpenChange={setShowWizard}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-slate-950 border-slate-700">
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-slate-950 border-slate-700" aria-describedby="wizard-description">
+                    <div className="sr-only" id="wizard-description">
+                        Step-by-step wizard to configure your ROD Core node connection
+                    </div>
                     <RPCSetupWizard 
                         onComplete={(wizardConfig) => {
                             setShowWizard(false);
