@@ -123,21 +123,16 @@ export default function WalletDashboard({ account, onLogout }) {
     setTimeout(() => fetchAllWallets(), 2500);
     setTimeout(() => importAllAddresses(), 3000);
 
-    // Auto-refresh balance, check deposits, and import addresses every 5 minutes
+    // Auto-refresh balance, check deposits, and import addresses every 30 minutes
     const interval = setInterval(() => {
       if (autoSyncEnabled && rpcConnected) {
         checkForDeposits(true); // Silent background sync
       }
-      fetchWalletData();
-      // Space out other calls to avoid rate limits
-      setTimeout(() => fetchNetworkHashrate(), 1000);
-      setTimeout(() => checkRPCStatus(), 2000);
-      setTimeout(() => fetchOnlineUsers(), 3000);
       // Periodically attempt to import any pending addresses
       if (rpcConnected) {
-        setTimeout(() => importAllAddresses(), 4000);
+        importAllAddresses();
       }
-    }, 300000);
+    }, 1800000);
 
     return () => clearInterval(interval);
   }, [account]);
