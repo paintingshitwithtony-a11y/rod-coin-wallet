@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Terminal, Send, Trash2, Copy, CheckCircle2, Info, Lightbulb, Loader2, AlertTriangle, AlertCircle, Unlock } from 'lucide-react';
+import { Terminal, Send, Trash2, Copy, CheckCircle2, Info, Lightbulb, Loader2, AlertTriangle, AlertCircle, Unlock, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -19,6 +19,8 @@ export default function RPCConsole({ account }) {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [aiExplaining, setAiExplaining] = useState(null);
     const [alerts, setAlerts] = useState([]);
+    const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+    const [passphraseInput, setPassphraseInput] = useState('');
 
     const getCommonCommands = () => [
         { label: 'Unlock Wallet', cmd: 'unlock-wallet-quick', isSpecial: true },
@@ -42,9 +44,15 @@ export default function RPCConsole({ account }) {
         try {
             // Handle special unlock command
             if (cmdToExecute === 'unlock-wallet-quick') {
+                if (!passphraseInput.trim()) {
+                    toast.error('Please enter a passphrase');
+                    setLoading(false);
+                    return;
+                }
+                
                 const response = await base44.functions.invoke('executeRPCCommand', {
                     method: 'walletpassphrase',
-                    params: ['${ROD_RPC_PASSWORD}', 300]
+                    params: [passphraseInput, 300]
                 });
                 
                 const output = {
@@ -56,13 +64,15 @@ export default function RPCConsole({ account }) {
                 
                 setOutputHistory(prev => [...prev, output]);
                 setCommand('');
+                setPassphraseInput('');
+                setShowUnlockDialog(false);
                 
                 if (response.data.success || !response.data.error) {
                     toast.success('Wallet unlocked for 5 minutes');
                 } else if (response.data.error && response.data.error.message?.includes('already unlocked')) {
                     toast.info('Wallet is already unlocked');
                 } else {
-                    toast.error('Failed to unlock wallet');
+                    toast.error('Failed to unlock wallet: ' + (response.data.error?.message || 'Unknown error'));
                 }
                 setLoading(false);
                 return;
@@ -337,7 +347,13 @@ Provide a brief, clear explanation of what this output means and any important i
                                 key={i}
                                 variant="outline"
                                 size="sm"
-                                onClick={() => executeCommand(cmd.cmd)}
+                                onClick={() => {
+                                    if (cmd.isSpecial) {
+                                        setShowUnlockDialog(true);
+                                    } else {
+                                        executeCommand(cmd.cmd);
+                                    }
+                                }}
                                 disabled={loading}
                                 className={`text-xs ${cmd.isSpecial ? 'text-amber-400 border-amber-500/50 hover:border-amber-400' : 'text-slate-300 border-slate-600 hover:border-purple-500/50'}`}>
                                 {cmd.isSpecial && <Unlock className="w-3 h-3 mr-1" />}
@@ -464,6 +480,74 @@ Provide a brief, clear explanation of what this output means and any important i
                     <p>• Press <kbd className="px-1 py-0.5 bg-slate-800 rounded">Enter</kbd> to execute command</p>
                     <p>• See <a href="https://explorer1.rod.spacexpanse.org:3001/rpc-browser" target="_blank" className="text-purple-400 hover:underline">RPC Browser</a> for full command reference</p>
                 </div>
+
+                {/* Unlock Wallet Dialog */}
+                {showUnlockDialog && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <Card className="bg-slate-900 border-slate-700 max-w-sm">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="text-white">Unlock Wallet</CardTitle>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                        setShowUnlockDialog(false);
+                                        setPassphraseInput('');
+                                    }}
+                                    className="h-6 w-6">
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm text-slate-300">Wallet Passphrase</label>
+                                    <Input
+                                        type="password"
+                                        value={passphraseInput}
+                                        onChange={(e) => setPassphraseInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                executeCommand('unlock-wallet-quick');
+                                            }
+                                        }}
+                                        placeholder="Enter wallet passphrase"
+                                        className="bg-slate-800/50 border-slate-700 text-white"
+                                        disabled={loading}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowUnlockDialog(false);
+                                            setPassphraseInput('');
+                                        }}
+                                        disabled={loading}
+                                        className="flex-1">
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={() => executeCommand('unlock-wallet-quick')}
+                                        disabled={loading || !passphraseInput.trim()}
+                                        className="flex-1 bg-amber-600 hover:bg-amber-700">
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Unlocking...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Unlock className="w-4 h-4 mr-2" />
+                                                Unlock
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
