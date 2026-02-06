@@ -529,10 +529,12 @@ export default function WalletDashboard({ account, onLogout }) {
       });
       toast.success(`${address.label} is now your primary address`);
       
-      // Refresh account data
+      // Refresh account data and update state
       const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
       if (accounts.length > 0) {
         account.wallet_address = accounts[0].wallet_address;
+        // Trigger re-render by updating addresses state
+        setAddresses(prev => [...prev]);
       }
     } catch (err) {
       toast.error('Failed to set primary address');
