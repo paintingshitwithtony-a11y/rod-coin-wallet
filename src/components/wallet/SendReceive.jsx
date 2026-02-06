@@ -40,6 +40,9 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [selectedFromWallet, setSelectedFromWallet] = useState(null);
     const [showMyWallets, setShowMyWallets] = useState(false);
     const [isInternalTransfer, setIsInternalTransfer] = useState(false);
+    const [duplicates, setDuplicates] = useState([]);
+    const [rpcBalances, setRpcBalances] = useState({});
+    const [loadingRPC, setLoadingRPC] = useState(false);
 
     useEffect(() => {
         if (mode === 'send' && account) {
