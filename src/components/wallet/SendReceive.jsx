@@ -48,6 +48,13 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
     }, [mode, account]);
 
+    // Update main wallet balance when parent updates
+    useEffect(() => {
+        if (selectedFromWallet?.id === 'main-account' && balance !== selectedFromWallet?.balance) {
+            setSelectedFromWallet(prev => prev ? { ...prev, balance } : null);
+        }
+    }, [balance]);
+
     const loadMyWallets = async () => {
         try {
             const wallets = await base44.entities.Wallet.filter(
