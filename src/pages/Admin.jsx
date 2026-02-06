@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Shield, Settings, Plug, CheckCircle2, XCircle, Loader2,
-    Save, Trash2, Plus, ArrowLeft, AlertCircle, Server
+    Save, Trash2, Plus, ArrowLeft, AlertCircle, Server, Copy
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -224,8 +224,67 @@ export default function Admin() {
                     </TabsList>
 
                     <TabsContent value="rpc" className="space-y-6">
+                        {/* Quick Actions */}
+                        <div className="flex gap-3 flex-wrap">
+                            <Button
+                                onClick={async () => {
+                                    try {
+                                        const results = await Promise.all(
+                                            configs.map(config => 
+                                                base44.functions.invoke('checkRPCStatus', {})
+                                                    .then(res => ({ config, ...res.data }))
+                                                    .catch(() => ({ config, connected: false }))
+                                            )
+                                        );
+                                        
+                                        await Promise.all(
+                                            results.map(({ config, connected }) =>
+                                                base44.entities.RPCConfiguration.update(config.id, {
+                                                    connection_status: connected ? 'connected' : 'error',
+                                                    last_connected: connected ? new Date().toISOString() : config.last_connected
+                                                })
+                                            )
+                                        );
+                                        
+                                        toast.success('All connections tested');
+                                        loadConfigs();
+                                    } catch (err) {
+                                        toast.error('Test failed: ' + err.message);
+                                    }
+                                }}
+                                variant="outline"
+                                className="border-blue-500/50 text-blue-400">
+                                <Plug className="w-4 h-4 mr-2" />
+                                Test All Connections
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    const configsData = configs.map(c => ({
+                                        name: c.name,
+                                        connection_type: c.connection_type,
+                                        host: c.host,
+                                        port: c.port,
+                                        use_ssl: c.use_ssl
+                                    }));
+                                    const blob = new Blob([JSON.stringify(configsData, null, 2)], { type: 'application/json' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'rpc-configs-export.json';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('Configurations exported');
+                                }}
+                                variant="outline"
+                                className="border-purple-500/50 text-purple-400">
+                                Export Configs
+                            </Button>
+                        </div>
+
                         {/* RPC Overview */}
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-4">
                             <Card className="bg-gradient-to-br from-purple-900/50 to-slate-900/80 border-purple-500/30">
                                 <CardContent className="p-4">
                                     <div className="flex items-center justify-between">
@@ -262,6 +321,20 @@ export default function Admin() {
                                             </p>
                                         </div>
                                         <Plug className="w-8 h-8 text-blue-400/50" />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-amber-900/50 to-slate-900/80 border-amber-500/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs text-slate-400 mb-1">Offline</p>
+                                            <p className="text-2xl font-bold text-white">
+                                                {configs.filter(c => c.connection_status === 'error' || c.connection_status === 'disconnected').length}
+                                            </p>
+                                        </div>
+                                        <XCircle className="w-8 h-8 text-amber-400/50" />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -458,38 +531,71 @@ export default function Admin() {
                                                     </div>
 
                                                     <div className="flex gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleTestConnection(config)}
-                                                            disabled={testing === config.id}
-                                                            className="border-slate-700">
-                                                            {testing === config.id ? (
-                                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                            ) : (
-                                                                <>
-                                                                    <Plug className="w-4 h-4 mr-1" />
-                                                                    Test
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                        
-                                                        {!config.is_active && (
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => handleSetActive(config)}
-                                                                className="bg-purple-600 hover:bg-purple-700">
-                                                                Set Active
-                                                            </Button>
-                                                        )}
-                                                        
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleDeleteConfig(config)}
-                                                            className="border-slate-700 text-red-400 hover:text-red-300">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
+                                                       <Button
+                                                           size="sm"
+                                                           variant="outline"
+                                                           onClick={() => handleTestConnection(config)}
+                                                           disabled={testing === config.id}
+                                                           className="border-slate-700">
+                                                           {testing === config.id ? (
+                                                               <Loader2 className="w-4 h-4 animate-spin" />
+                                                           ) : (
+                                                               <>
+                                                                   <Plug className="w-4 h-4 mr-1" />
+                                                                   Test
+                                                               </>
+                                                           )}
+                                                       </Button>
+
+                                                       {!config.is_active ? (
+                                                           <Button
+                                                               size="sm"
+                                                               onClick={() => handleSetActive(config)}
+                                                               className="bg-purple-600 hover:bg-purple-700">
+                                                               Activate
+                                                           </Button>
+                                                       ) : (
+                                                           <Button
+                                                               size="sm"
+                                                               variant="outline"
+                                                               onClick={async () => {
+                                                                   try {
+                                                                       await base44.entities.RPCConfiguration.update(config.id, { is_active: false });
+                                                                       toast.success('Configuration deactivated');
+                                                                       loadConfigs();
+                                                                   } catch (err) {
+                                                                       toast.error('Failed to deactivate');
+                                                                   }
+                                                               }}
+                                                               className="border-amber-500/50 text-amber-400">
+                                                               Deactivate
+                                                           </Button>
+                                                       )}
+
+                                                       <Button
+                                                           size="sm"
+                                                           variant="outline"
+                                                           onClick={() => {
+                                                               navigator.clipboard.writeText(JSON.stringify({
+                                                                   name: config.name,
+                                                                   host: config.host,
+                                                                   port: config.port,
+                                                                   connection_type: config.connection_type,
+                                                                   use_ssl: config.use_ssl
+                                                               }, null, 2));
+                                                               toast.success('Config copied to clipboard');
+                                                           }}
+                                                           className="border-slate-700 text-blue-400 hover:text-blue-300">
+                                                           <Copy className="w-4 h-4" />
+                                                       </Button>
+
+                                                       <Button
+                                                           size="sm"
+                                                           variant="outline"
+                                                           onClick={() => handleDeleteConfig(config)}
+                                                           className="border-slate-700 text-red-400 hover:text-red-300">
+                                                           <Trash2 className="w-4 h-4" />
+                                                       </Button>
                                                     </div>
                                                 </div>
                                             </CardContent>
