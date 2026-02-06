@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PortForwardingGuide from '../components/admin/PortForwardingGuide';
 import RPCSetupWizard from '../components/wallet/RPCSetupWizard';
+import LocalProxySetupGuide from '../components/admin/LocalProxySetupGuide';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
