@@ -199,49 +199,39 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleWalletClick = async (wallet) => {
-    try {
-      // Update all wallets to inactive (only for non-main wallets)
-      const updatePromises = allWallets
-        .filter(w => w.id !== 'main-account')
-        .map(w => base44.entities.Wallet.update(w.id, { is_active: false }));
+      try {
+          // Update all wallets to inactive (only for non-main wallets)
+          const updatePromises = allWallets
+              .filter(w => w.id !== 'main-account')
+              .map(w => base44.entities.Wallet.update(w.id, { is_active: false }));
 
-      if (updatePromises.length > 0) {
-        await Promise.all(updatePromises);
+          if (updatePromises.length > 0) {
+              await Promise.all(updatePromises);
+          }
+
+          // Set clicked wallet as active (only if not main wallet)
+          if (wallet.id !== 'main-account') {
+              await base44.entities.Wallet.update(wallet.id, { is_active: true });
+          }
+
+          // Update state with the fresh wallet data
+          const updatedWallet = { ...wallet };
+          setCurrentWallet(updatedWallet);
+          setBalance({
+              confirmed: wallet.balance || 0,
+              unconfirmed: 0
+          });
+          toast.success(`Switched to ${wallet.name} (${(wallet.balance || 0).toFixed(4)} ROD)`);
+
+          // Refresh wallet-specific data and re-fetch all wallets to get fresh balances
+          await Promise.all([
+              fetchWalletData(),
+              fetchAllWallets()
+          ]);
+      } catch (err) {
+          console.error('Failed to switch wallet:', err);
+          toast.error('Failed to switch wallet: ' + err.message);
       }
-
-      // Set clicked wallet as active (only if not main wallet)
-      if (wallet.id !== 'main-account') {
-        await base44.entities.Wallet.update(wallet.id, { is_active: true });
-      }
-
-      // Fetch fresh balance from database
-      let freshBalance = 0;
-      if (wallet.id === 'main-account') {
-        const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
-        if (accounts.length > 0) {
-          freshBalance = accounts[0].balance || 0;
-        }
-      } else {
-        const wallets = await base44.entities.Wallet.filter({ id: wallet.id });
-        if (wallets.length > 0) {
-          freshBalance = wallets[0].balance || 0;
-        }
-      }
-
-      setCurrentWallet(wallet);
-      setBalance({
-        confirmed: freshBalance,
-        unconfirmed: 0
-      });
-      toast.success(`Switched to ${wallet.name} (${freshBalance.toFixed(4)} ROD)`);
-
-      // Refresh wallet-specific data
-      await fetchWalletData();
-      await fetchAllWallets();
-    } catch (err) {
-        console.error('Failed to switch wallet:', err);
-        toast.error('Failed to switch wallet: ' + err.message);
-    }
   };
 
   const fetchRODPrice = async () => {
