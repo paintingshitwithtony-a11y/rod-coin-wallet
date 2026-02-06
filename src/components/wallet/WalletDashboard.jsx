@@ -959,43 +959,20 @@ export default function WalletDashboard({ account, onLogout }) {
                                 </div>
 
                                 <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
-                                    {/* Balance Card */}
+                                    {/* RPC Console - Live Balance Query */}
+                                    <DashboardRPCConsole 
+                                        selectedAddress={currentWallet?.wallet_address || account.wallet_address}
+                                        account={account}
+                                    />
+
+                                    {/* Quick Action Buttons */}
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         className="mb-6">
-
-                                        <Card className="bg-gradient-to-br from-purple-900/80 to-slate-900/80 border-purple-500/30 backdrop-blur-xl overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                                            <CardContent className="px-6 py-3 relative">
-                                                <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-start justify-between'}`}>
-                                                    <div className="flex items-start gap-2 md:gap-3">
-                                                        <img
-                                                            src="https://www.spacexpanse.org/img/about.png"
-                                                            alt="ROD Logo"
-                                                            className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg mt-1`} />
-
-                                                        <div className="flex-1">
-                                                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>
-                                                                {currentWallet ? currentWallet.name : 'Total Balance'}
-                                                            </p>
-                                                            <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold text-white mb-2`}>
-                                                                {balance.confirmed.toLocaleString(undefined, { minimumFractionDigits: 4 })}
-                                                                <span className={`${isMobile ? 'text-sm' : 'text-xl'} text-slate-400 ml-2`}>ROD</span>
-                                                            </h2>
-                                                            {currentWallet && (
-                                                                <p className="text-xs text-slate-500 font-mono truncate">
-                                                                    {currentWallet.wallet_address}
-                                                                </p>
-                                                            )}
-
-                                                            {balance.unconfirmed > 0 &&
-                                                                <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-amber-400`}>
-                                                                    <Clock className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                                                                    +{balance.unconfirmed} ROD pending
-                                                                </div>
-                                                            }
-                                                            <div className="flex gap-2 mt-2 flex-wrap">
+                                        <Card className="bg-slate-900/80 border-slate-700/50">
+                                            <CardContent className="p-4">
+                                                <div className="flex gap-2 flex-wrap">
                                                                 <Button
                                                                     variant="outline"
                                                                     onClick={async () => {
