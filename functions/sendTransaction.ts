@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
         const passphrase = Deno.env.get('WALLET_PASSPHRASE');
         if (passphrase) {
             try {
-                console.log('Attempting to unlock wallet...');
+                console.log('Attempting to unlock wallet with passphrase...');
                 const unlockResponse = await fetch(rpcUrl, {
                     method: 'POST',
                     headers: {
@@ -183,16 +183,14 @@ Deno.serve(async (req) => {
                 
                 const unlockData = await unlockResponse.json();
                 if (unlockData.error) {
-                    console.error('Wallet unlock failed:', unlockData.error);
+                    console.warn('Wallet unlock RPC error:', unlockData.error);
+                    // Don't fail transaction if unlock fails - just warn
                 } else {
                     console.log('Wallet unlocked successfully');
                 }
             } catch (unlockErr) {
-                console.error('Failed to unlock wallet:', unlockErr);
-                return Response.json({ 
-                    error: 'Failed to unlock wallet',
-                    details: unlockErr.message
-                }, { status: 500 });
+                console.warn('Failed to unlock wallet, continuing anyway:', unlockErr.message);
+                // Don't fail transaction if unlock fails - just warn
             }
         }
         
