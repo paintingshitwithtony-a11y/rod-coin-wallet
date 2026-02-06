@@ -57,17 +57,21 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
 
     const loadMyWallets = async () => {
         try {
+            // Fetch fresh account data for main wallet balance
+            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            const freshAccount = accounts.length > 0 ? accounts[0] : account;
+
             const wallets = await base44.entities.Wallet.filter(
                 { account_id: account.id },
                 '-created_date'
             );
 
-            // Include main wallet with balance from props
+            // Include main wallet with balance from database
             const mainWallet = {
                 id: 'main-account',
                 name: 'Main Wallet',
-                wallet_address: account.wallet_address,
-                balance: balance
+                wallet_address: freshAccount.wallet_address,
+                balance: freshAccount.balance || 0
             };
 
             const allWallets = [mainWallet, ...wallets];
