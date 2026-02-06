@@ -26,7 +26,7 @@ export default function RPCConsole({ account }) {
         { label: 'Get Network Info', cmd: 'getnetworkinfo' },
         { label: 'Get Balance (Address)', cmd: `getreceivedbyaddress "${account?.wallet_address || ''}" 0` },
         { label: 'Get New Address', cmd: 'getnewaddress' },
-        { label: 'List Transactions', cmd: 'listtransactions "" 10' },
+        { label: 'List Transactions', cmd: 'listtransactions * 10' },
         { label: 'Get Mining Info', cmd: 'getmininginfo' },
         { label: 'Get Connection Count', cmd: 'getconnectioncount' }
     ];
