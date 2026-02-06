@@ -116,42 +116,13 @@ export default function WalletDashboard({ account, onLogout }) {
       setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
     }
 
-      // Stagger initial data loads to avoid rate limiting
-        fetchWalletData();
-        setTimeout(() => checkRPCStatus(), 1000);
-      setTimeout(() => fetchOnlineUsers(), 1500);
-      setTimeout(() => fetchAllWallets(), 2000);
-      setTimeout(() => importAllAddresses(), 3000);
-      // Fetch RPC balance for main wallet once per session
-      setTimeout(() => updateMainWalletFromRPC(), 3500);
-
-      // Auto-refresh balance, check deposits, and import addresses every 5 minutes
-      const interval = setInterval(() => {
-        if (autoSyncEnabled && rpcConnected) {
-          checkForDeposits(true); // Silent background sync
-        }
-        fetchWalletData();
-        // Space out other calls to avoid rate limits
-        setTimeout(() => checkRPCStatus(), 1000);
-        setTimeout(() => fetchOnlineUsers(), 2000);
-        // Periodically attempt to import any pending addresses
-        if (rpcConnected) {
-          setTimeout(() => importAllAddresses(), 4000);
-        }
-      }, 300000);
-
-      // Update main wallet balance from RPC every 10 minutes
-      const rpcInterval = setInterval(() => {
-        if (rpcConnected && (!currentWallet || currentWallet.id === 'main-account')) {
-          updateMainWalletFromRPC();
-        }
-      }, 600000); // 10 minutes
+      // Initial load: check RPC status only (minimal API load)
+      checkRPCStatus();
 
       return () => {
-        clearInterval(interval);
-        clearInterval(rpcInterval);
+        // No intervals - user will manually sync
       };
-    }, [account, rpcConnected, currentWallet]);
+    }, [account]);
 
   const fetchAllWallets = async () => {
     setWalletsLoading(true);
