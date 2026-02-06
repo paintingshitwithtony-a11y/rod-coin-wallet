@@ -154,10 +154,19 @@ export default function WalletDashboard({ account, onLogout }) {
         '-created_date'
       );
 
-      // Use main account balance from database (synced from RPC)
-      const mainWalletBalance = freshAccount.balance || 0;
+      // Calculate main wallet balance from its transactions
+      const mainWalletTxs = await base44.entities.Transaction.filter({
+        account_id: account.id,
+        wallet_address: freshAccount.wallet_address
+      });
 
-      // Always include main account wallet with database balance
+      const mainWalletBalance = mainWalletTxs.reduce((sum, tx) => {
+        if (tx.type === 'receive') return sum + tx.amount;
+        if (tx.type === 'send') return sum - Math.abs(tx.amount);
+        return sum;
+      }, 0);
+
+      // Always include main account wallet
       const mainWallet = {
         id: 'main-account',
         account_id: account.id,
@@ -172,13 +181,25 @@ export default function WalletDashboard({ account, onLogout }) {
         ) ? 'imported' : null
       };
 
-      // Check which wallets are imported to RPC
+      // Check which wallets are imported to RPC and calculate their balances
       const walletsWithImportStatus = await Promise.all(
         walletList.map(async (wallet) => {
+          // Calculate wallet balance from transactions
+          const walletTxs = await base44.entities.Transaction.filter({
+            account_id: account.id,
+            wallet_id: wallet.id
+          });
+
+          const walletBalance = walletTxs.reduce((sum, tx) => {
+            if (tx.type === 'receive') return sum + tx.amount;
+            if (tx.type === 'send') return sum - Math.abs(tx.amount);
+            return sum;
+          }, 0);
+
           const isImported = addresses.some(addr => 
             addr.address === wallet.wallet_address && addr.importStatus === 'imported'
           );
-          return { ...wallet, importStatus: isImported ? 'imported' : null };
+          return { ...wallet, balance: walletBalance, importStatus: isImported ? 'imported' : null };
         })
       );
 
