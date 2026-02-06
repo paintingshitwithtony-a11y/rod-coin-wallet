@@ -60,6 +60,9 @@ export default function WalletDashboard({ account, onLogout }) {
   const [editingAddress, setEditingAddress] = useState(null);
   const [editAddressLabel, setEditAddressLabel] = useState('');
   const [showNodeGuide, setShowNodeGuide] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -109,16 +112,18 @@ export default function WalletDashboard({ account, onLogout }) {
     fetchWalletData();
     fetchRODPrice();
     fetchNetworkHashrate();
-    checkForDeposits();
+    checkForDeposits(true); // Silent initial check
     checkRPCStatus();
     fetchOnlineUsers();
     fetchAllWallets();
 
     // Auto-refresh balance, check deposits, and import addresses every 2 minutes
     const interval = setInterval(() => {
+      if (autoSyncEnabled && rpcConnected) {
+        checkForDeposits(true); // Silent background sync
+      }
       fetchWalletData();
       fetchNetworkHashrate();
-      checkForDeposits();
       checkRPCStatus();
       fetchOnlineUsers();
       // Periodically attempt to import any pending addresses
@@ -360,39 +365,54 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-  const checkForDeposits = async () => {
+  const checkForDeposits = async (silent = false) => {
+    if (!rpcConnected) return;
+    
     try {
+      setIsSyncing(true);
       const response = await base44.functions.invoke('checkDeposits', {});
 
       if (response.data.newDeposits && response.data.newDeposits.length > 0) {
         response.data.newDeposits.forEach((deposit) => {
           toast.success(`Received ${deposit.amount} ROD!`, {
-            description: `${deposit.confirmations} confirmations`
+            description: `${deposit.confirmations} confirmations`,
+            duration: 5000
           });
         });
 
         // Refresh wallet data after new deposits
         await fetchWalletData();
+        await fetchAllWallets();
+      } else if (!silent) {
+        toast.info('No new transactions found', { duration: 2000 });
       }
+      
+      setLastSyncTime(new Date());
     } catch (err) {
         console.error('Failed to check deposits:', err);
-        toast.error('Failed to check for deposits: ' + err.message);
+        if (!silent) {
+          toast.error('Failed to check for deposits: ' + err.message);
+        }
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   const handleManualRefresh = async () => {
     setLoading(true);
-    toast.info('Refreshing wallet...');
+    toast.info('Syncing transactions...');
     try {
-      await checkForDeposits();
+      await checkForDeposits(false); // Show notifications
       await fetchWalletData();
+      await fetchAllWallets();
       await checkRPCStatus();
       if (rpcConnected) {
         await importAllAddresses(true);
       }
-      toast.success('Wallet refreshed');
+      toast.success('Sync complete!');
     } catch (err) {
       console.error('Refresh failed:', err);
+      toast.error('Sync failed: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -638,28 +658,49 @@ export default function WalletDashboard({ account, onLogout }) {
                                 {onlineUsers}
                             </Badge>
                             {!isMobile && networkHashrate &&
-              <>
-                                    <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-xs">
-                                        SHA256: {networkHashrate.sha256}
-                                    </Badge>
-                                    <Badge variant="outline" className="border-purple-500/50 text-purple-400 text-xs">
-                                        NEO: {networkHashrate.neoscrypt}
-                                    </Badge>
-                                </>
-              }
+                              <>
+                                                    <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-xs">
+                                                        SHA256: {networkHashrate.sha256}
+                                                    </Badge>
+                                                    <Badge variant="outline" className="border-purple-500/50 text-purple-400 text-xs">
+                                                        NEO: {networkHashrate.neoscrypt}
+                                                    </Badge>
+                                                </>
+                              }
+                                            {isSyncing && (
+                                                <Badge variant="outline" className="border-amber-500/50 text-amber-400 text-xs">
+                                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                    Syncing...
+                                                </Badge>
+                                            )}
+                                            {!isSyncing && lastSyncTime && !isMobile && (
+                                                <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
+                                                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                    {new Date(lastSyncTime).toLocaleTimeString()}
+                                                </Badge>
+                                            )}
                         </div>
 
                         {/* Action Buttons */}
                         <div className="flex items-center gap-1 md:gap-2">
                             <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleManualRefresh}
-                disabled={loading}
-                className="h-8 w-8 text-slate-400 hover:text-white"
-                title="Refresh">
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleManualRefresh}
+                            disabled={loading || isSyncing}
+                            className="h-8 w-8 text-slate-400 hover:text-white"
+                            title="Sync Transactions">
 
-                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                                <RefreshCw className={`w-4 h-4 ${(loading || isSyncing) ? 'animate-spin' : ''}`} />
+                            </Button>
+                            <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}
+                            className={`h-8 w-8 ${autoSyncEnabled ? 'text-green-400' : 'text-slate-400'} hover:text-white`}
+                            title={autoSyncEnabled ? 'Auto-sync ON' : 'Auto-sync OFF'}>
+
+                                <Activity className={`w-4 h-4 ${autoSyncEnabled ? 'animate-pulse' : ''}`} />
                             </Button>
                             {!isMobile &&
               <>
@@ -940,34 +981,16 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     Reset & Recheck
                                                                     </Button>
                                                                     <Button
-                                                                    variant="outline"
-                                                                    onClick={async () => {
-                                                                        if (!confirm('Import full transaction history from RPC? This may take a few minutes.')) return;
-                                                                        setLoading(true);
-                                                                        try {
-                                                                            const response = await base44.functions.invoke('importFullTransactionHistory', {});
-                                                                            if (response.data.success) {
-                                                                                toast.success(`Imported ${response.data.imported} transactions!`, {
-                                                                                    description: `Skipped ${response.data.skipped} duplicates, scanned ${response.data.addressesScanned} addresses`
-                                                                                });
-                                                                                await fetchWalletData();
-                                                                                await fetchAllWallets();
-                                                                            } else {
-                                                                                toast.error('Import failed: ' + (response.data.error || 'Unknown error'));
-                                                                            }
-                                                                        } catch (err) {
-                                                                            console.error('Import error:', err);
-                                                                            toast.error('Failed to import: ' + err.message);
-                                                                        } finally {
-                                                                            setLoading(false);
-                                                                        }
-                                                                    }}
-                                                                    disabled={loading || !rpcConnected}
-                                                                    className={`text-purple-400 hover:text-purple-300 border-purple-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Import full transaction history from RPC node">
-                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
-                                                                    Import Full History
-                                                                    </Button>
+                                                                        variant="outline"
+                                                                        onClick={async () => {
+                                                                            await checkForDeposits(false);
+                                                                        }}
+                                                                        disabled={loading || isSyncing || !rpcConnected}
+                                                                        className={`text-purple-400 hover:text-purple-300 border-purple-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                        title="Manually sync transactions from blockchain">
+                                                                        {isSyncing ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1`} />}
+                                                                        Sync Now
+                                                                        </Button>
                                                                     </div>
                                                                     </div>
                                                                     </div>
