@@ -313,6 +313,22 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const testNgrok = async () => {
+    setLoading(true);
+    try {
+      const response = await base44.functions.invoke('checkRPCStatus', {});
+      if (response.data.connected) {
+        toast.success('Ngrok connection working! RPC is reachable.');
+      } else {
+        toast.error('Ngrok test failed: ' + (response.data.error || 'Connection failed'));
+      }
+    } catch (err) {
+      toast.error('Ngrok test failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkRPCStatus = async (isRetry = false) => {
     try {
       const response = await base44.functions.invoke('checkRPCStatus', {});
@@ -330,7 +346,7 @@ export default function WalletDashboard({ account, onLogout }) {
         if (isRetry) {
           toast.success('RPC connection restored!');
         }
-        
+
         // Check wallet unlock status after RPC connects
         setTimeout(() => checkWalletUnlockStatus(), 500);
       } else {
