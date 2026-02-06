@@ -44,8 +44,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [rodPrice, setRodPrice] = useState(null);
-  const [priceLoading, setPriceLoading] = useState(true);
+
   const [networkHashrate, setNetworkHashrate] = useState(null);
   const [rpcConnected, setRpcConnected] = useState(null);
   const [showRPCModal, setShowRPCModal] = useState(false);
@@ -115,9 +114,8 @@ export default function WalletDashboard({ account, onLogout }) {
     }
 
       // Stagger initial data loads to avoid rate limiting
-      fetchWalletData();
-      setTimeout(() => fetchRODPrice(), 500);
-      setTimeout(() => checkRPCStatus(), 1000);
+        fetchWalletData();
+        setTimeout(() => checkRPCStatus(), 1000);
       setTimeout(() => fetchOnlineUsers(), 1500);
       setTimeout(() => fetchNetworkHashrate(), 2000);
       setTimeout(() => fetchAllWallets(), 2500);
@@ -242,21 +240,7 @@ export default function WalletDashboard({ account, onLogout }) {
       }
   };
 
-  const fetchRODPrice = async () => {
-      setPriceLoading(true);
-      try {
-          const response = await base44.functions.invoke('getRODPrice', {});
-          if (response.data.success && response.data.price) {
-              setRodPrice(response.data.price);
-          }
-      } catch (err) {
-          console.error('Failed to fetch ROD price:', err);
-          toast.error('Failed to fetch ROD price: ' + err.message);
-          setRodPrice(0.00049952);
-      } finally {
-          setPriceLoading(false);
-      }
-  };
+
 
   const updateMainWalletFromRPC = async () => {
     if (!rpcConnected) return;
@@ -1001,11 +985,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     {currentWallet.wallet_address}
                                                                 </p>
                                                             )}
-                                                            {rodPrice &&
-                                                                <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-green-400 mb-2`}>
-                                                                    ≈ ${(balance.confirmed * rodPrice).toFixed(2)} USD
-                                                                </div>
-                                                            }
+
                                                             {balance.unconfirmed > 0 &&
                                                                 <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-amber-400`}>
                                                                     <Clock className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
@@ -1170,30 +1150,6 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     </div>
                                                                     </div>
                                                     <div className={`flex ${isMobile ? 'flex-row w-full justify-between' : 'flex-col items-end'} gap-3`}>
-                                                        {priceLoading ?
-                                                            <div className={`flex items-center gap-2 text-slate-400 ${isMobile ? 'text-xs' : ''}`}>
-                                                                <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
-                                                                {!isMobile && <span className="text-sm">Loading price...</span>}
-                                                            </div> :
-                                                            rodPrice ?
-                                                                <a
-                                                                    href="https://klingex.io/trade/ROD-USDT"
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className={`flex flex-col ${isMobile ? 'items-start' : 'items-end'} ${isMobile ? 'p-2' : 'p-3'} rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-purple-500/50 group`}>
-
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-400 group-hover:text-purple-400`}>Current Price</span>
-                                                                        <ExternalLink className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} text-slate-500 group-hover:text-purple-400`} />
-                                                                    </div>
-                                                                    <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-400`}>
-                                                                        ${rodPrice.toFixed(8)}
-                                                                    </div>
-                                                                    <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-500 group-hover:text-purple-400`}>
-                                                                        via KLINGEX.IO
-                                                                    </div>
-                                                                </a> :
-                                                                null}
                                                         <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
                                                             <Button
                                                                 onClick={() => setActiveTab('send')}
