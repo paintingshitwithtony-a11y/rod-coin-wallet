@@ -140,7 +140,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
         
-        if (amountNum > balance) {
+        const walletBalance = selectedFromWallet?.balance || balance;
+        if (amountNum > walletBalance) {
             toast.error('Insufficient balance');
             return;
         }
