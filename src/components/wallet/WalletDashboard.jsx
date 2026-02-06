@@ -114,33 +114,45 @@ export default function WalletDashboard({ account, onLogout }) {
       setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
     }
 
-    // Stagger initial data loads to avoid rate limiting
-    fetchWalletData();
-    setTimeout(() => fetchRODPrice(), 500);
-    setTimeout(() => checkRPCStatus(), 1000);
-    setTimeout(() => fetchOnlineUsers(), 1500);
-    setTimeout(() => fetchNetworkHashrate(), 2000);
-    setTimeout(() => fetchAllWallets(), 2500);
-    setTimeout(() => importAllAddresses(), 3000);
-
-    // Auto-refresh balance, check deposits, and import addresses every 5 minutes
-    const interval = setInterval(() => {
-      if (autoSyncEnabled && rpcConnected) {
-        checkForDeposits(true); // Silent background sync
-      }
+      // Stagger initial data loads to avoid rate limiting
       fetchWalletData();
-      // Space out other calls to avoid rate limits
-      setTimeout(() => fetchNetworkHashrate(), 1000);
-      setTimeout(() => checkRPCStatus(), 2000);
-      setTimeout(() => fetchOnlineUsers(), 3000);
-      // Periodically attempt to import any pending addresses
-      if (rpcConnected) {
-        setTimeout(() => importAllAddresses(), 4000);
-      }
-    }, 300000);
+      setTimeout(() => fetchRODPrice(), 500);
+      setTimeout(() => checkRPCStatus(), 1000);
+      setTimeout(() => fetchOnlineUsers(), 1500);
+      setTimeout(() => fetchNetworkHashrate(), 2000);
+      setTimeout(() => fetchAllWallets(), 2500);
+      setTimeout(() => importAllAddresses(), 3000);
+      // Fetch RPC balance for main wallet once per session
+      setTimeout(() => updateMainWalletFromRPC(), 3500);
 
-    return () => clearInterval(interval);
-  }, [account]);
+      // Auto-refresh balance, check deposits, and import addresses every 5 minutes
+      const interval = setInterval(() => {
+        if (autoSyncEnabled && rpcConnected) {
+          checkForDeposits(true); // Silent background sync
+        }
+        fetchWalletData();
+        // Space out other calls to avoid rate limits
+        setTimeout(() => fetchNetworkHashrate(), 1000);
+        setTimeout(() => checkRPCStatus(), 2000);
+        setTimeout(() => fetchOnlineUsers(), 3000);
+        // Periodically attempt to import any pending addresses
+        if (rpcConnected) {
+          setTimeout(() => importAllAddresses(), 4000);
+        }
+      }, 300000);
+
+      // Update main wallet balance from RPC every 10 minutes
+      const rpcInterval = setInterval(() => {
+        if (rpcConnected && (!currentWallet || currentWallet.id === 'main-account')) {
+          updateMainWalletFromRPC();
+        }
+      }, 600000); // 10 minutes
+
+      return () => {
+        clearInterval(interval);
+        clearInterval(rpcInterval);
+      };
+    }, [account, rpcConnected, currentWallet]);
 
   const fetchAllWallets = async () => {
     setWalletsLoading(true);
