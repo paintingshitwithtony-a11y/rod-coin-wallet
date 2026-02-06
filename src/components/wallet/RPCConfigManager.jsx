@@ -51,6 +51,8 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     const [portCheckPorts, setPortCheckPorts] = useState('9650, 8332, 8333, 18332, 18333');
     const [portCheckResults, setPortCheckResults] = useState([]);
     const [checkingPorts, setCheckingPorts] = useState(false);
+    const [showPortOpener, setShowPortOpener] = useState(false);
+    const [portToOpen, setPortToOpen] = useState('9650');
     const [scanConfig, setScanConfig] = useState({
         ports: '9650, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
@@ -749,6 +751,14 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             <Settings className="w-4 h-4 mr-2" />
                             Advanced
                         </Button>
+                        <Button
+                            onClick={() => setShowPortOpener(!showPortOpener)}
+                            variant="outline"
+                            className="border-green-600 text-green-400 hover:bg-green-600/10"
+                        >
+                            <Plug className="w-4 h-4 mr-2" />
+                            Open Ports
+                        </Button>
                     </div>
 
                     {/* Advanced RPC Settings */}
@@ -916,6 +926,180 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                     </AlertDescription>
                                 </Alert>
                             </div>
+                        </motion.div>
+                    )}
+
+                    {/* Port Opener */}
+                    {showPortOpener && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-gradient-to-br from-green-900/20 to-blue-900/20 border border-green-500/30 space-y-4"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Plug className="w-5 h-5 text-green-400" />
+                                <h4 className="text-white font-medium">Open Local Ports</h4>
+                            </div>
+
+                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                <AlertCircle className="h-4 w-4 text-blue-400" />
+                                <AlertDescription className="text-blue-300/80 text-sm">
+                                    Generate commands to open firewall ports on your local machine. Run these commands with administrator/sudo privileges.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-2">
+                                <Label className="text-slate-300">Port to Open</Label>
+                                <Input
+                                    value={portToOpen}
+                                    onChange={(e) => setPortToOpen(e.target.value)}
+                                    placeholder="9650"
+                                    className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                />
+                                <p className="text-xs text-slate-500">ROD Core default: 9650</p>
+                            </div>
+
+                            <Tabs defaultValue="windows" className="w-full">
+                                <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+                                    <TabsTrigger value="windows">Windows</TabsTrigger>
+                                    <TabsTrigger value="linux">Linux</TabsTrigger>
+                                    <TabsTrigger value="macos">macOS</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="windows" className="space-y-3 mt-3">
+                                    <div>
+                                        <Label className="text-slate-300 text-sm mb-2 block">Windows Firewall Command</Label>
+                                        <p className="text-xs text-slate-400 mb-2">Run as Administrator in PowerShell or Command Prompt:</p>
+                                        <div className="relative group">
+                                            <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+{`netsh advfirewall firewall add rule name="ROD Core RPC" dir=in action=allow protocol=TCP localport=${portToOpen}`}</pre>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`netsh advfirewall firewall add rule name="ROD Core RPC" dir=in action=allow protocol=TCP localport=${portToOpen}`);
+                                                    toast.success('Command copied');
+                                                }}
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <Alert className="bg-amber-500/10 border-amber-500/30">
+                                        <AlertCircle className="h-4 w-4 text-amber-400" />
+                                        <AlertDescription className="text-amber-300/80 text-xs">
+                                            <strong>Steps:</strong>
+                                            <ol className="list-decimal list-inside mt-2 space-y-1">
+                                                <li>Right-click Start menu → "Windows PowerShell (Admin)"</li>
+                                                <li>Paste the command above</li>
+                                                <li>Press Enter and confirm with Yes if prompted</li>
+                                            </ol>
+                                        </AlertDescription>
+                                    </Alert>
+                                </TabsContent>
+
+                                <TabsContent value="linux" className="space-y-3 mt-3">
+                                    <div>
+                                        <Label className="text-slate-300 text-sm mb-2 block">UFW (Ubuntu/Debian)</Label>
+                                        <div className="relative group mb-3">
+                                            <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+{`sudo ufw allow ${portToOpen}/tcp`}</pre>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`sudo ufw allow ${portToOpen}/tcp`);
+                                                    toast.success('Command copied');
+                                                }}
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Label className="text-slate-300 text-sm mb-2 block">iptables (CentOS/RHEL)</Label>
+                                        <div className="relative group">
+                                            <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+{`sudo iptables -A INPUT -p tcp --dport ${portToOpen} -j ACCEPT
+sudo service iptables save`}</pre>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`sudo iptables -A INPUT -p tcp --dport ${portToOpen} -j ACCEPT\nsudo service iptables save`);
+                                                    toast.success('Command copied');
+                                                }}
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <Alert className="bg-blue-500/10 border-blue-500/30">
+                                        <AlertCircle className="h-4 w-4 text-blue-400" />
+                                        <AlertDescription className="text-blue-300/80 text-xs">
+                                            Run in terminal with sudo privileges. Check which firewall you're using with <code className="text-amber-400">sudo ufw status</code> or <code className="text-amber-400">sudo systemctl status firewalld</code>
+                                        </AlertDescription>
+                                    </Alert>
+                                </TabsContent>
+
+                                <TabsContent value="macos" className="space-y-3 mt-3">
+                                    <div>
+                                        <Label className="text-slate-300 text-sm mb-2 block">macOS Firewall (GUI)</Label>
+                                        <Alert className="bg-blue-500/10 border-blue-500/30">
+                                            <AlertCircle className="h-4 w-4 text-blue-400" />
+                                            <AlertDescription className="text-blue-300/80 text-xs">
+                                                <strong>Steps:</strong>
+                                                <ol className="list-decimal list-inside mt-2 space-y-1">
+                                                    <li>Open System Preferences → Security & Privacy → Firewall</li>
+                                                    <li>Click the lock icon to make changes</li>
+                                                    <li>Click "Firewall Options"</li>
+                                                    <li>Click "+" and select ROD Core application</li>
+                                                    <li>Set to "Allow incoming connections"</li>
+                                                </ol>
+                                            </AlertDescription>
+                                        </Alert>
+                                    </div>
+
+                                    <div>
+                                        <Label className="text-slate-300 text-sm mb-2 block">pfctl (Advanced)</Label>
+                                        <div className="relative group">
+                                            <pre className="bg-slate-900 text-green-400 p-3 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
+{`echo "pass in proto tcp from any to any port ${portToOpen}" | sudo pfctl -ef -`}</pre>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`echo "pass in proto tcp from any to any port ${portToOpen}" | sudo pfctl -ef -`);
+                                                    toast.success('Command copied');
+                                                }}
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-2">Note: This is temporary and will reset on reboot</p>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+
+                            <Alert className="bg-red-500/10 border-red-500/30">
+                                <Shield className="h-4 w-4 text-red-400" />
+                                <AlertDescription className="text-red-300/80 text-xs">
+                                    <strong>⚠️ Security Warning:</strong>
+                                    <ul className="list-disc list-inside mt-2 space-y-1">
+                                        <li>Only open ports on trusted networks (home/office)</li>
+                                        <li>Never expose RPC ports to the public internet without authentication</li>
+                                        <li>Use strong passwords/API keys for RPC connections</li>
+                                        <li>Consider using VPN for remote access instead</li>
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
                         </motion.div>
                     )}
 
