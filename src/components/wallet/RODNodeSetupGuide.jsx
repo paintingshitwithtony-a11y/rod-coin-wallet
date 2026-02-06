@@ -297,6 +297,103 @@ rpcbind=0.0.0.0`}
                                 </div>
 
                                 <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Zap className="w-5 h-5 text-purple-400" />
+                                        Method 3: ngrok (Easiest, No Router Config)
+                                    </h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <Alert className="bg-green-500/10 border-green-500/30">
+                                                <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                <AlertDescription className="text-green-300">
+                                                    <strong>Best for Quick Setup:</strong> ngrok creates a secure tunnel without 
+                                                    port forwarding or router configuration!
+                                                </AlertDescription>
+                                            </Alert>
+
+                                            <p className="text-slate-300">
+                                                <strong>What is ngrok?</strong> A service that creates a secure tunnel from a public URL 
+                                                to your local server, bypassing firewall/router configuration entirely.
+                                            </p>
+
+                                            <div className="space-y-2">
+                                                <p className="text-slate-300 font-semibold">Setup Steps:</p>
+                                                <div className="bg-slate-900 p-3 rounded space-y-2 text-sm">
+                                                    <p className="text-slate-300">
+                                                        1. <strong>Sign up:</strong> Create free account at{' '}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="link"
+                                                            onClick={() => window.open('https://ngrok.com', '_blank')}
+                                                            className="text-purple-400 p-0 h-auto"
+                                                        >
+                                                            ngrok.com
+                                                            <ExternalLink className="w-3 h-3 ml-1" />
+                                                        </Button>
+                                                    </p>
+                                                    <p className="text-slate-300">
+                                                        2. <strong>Download ngrok:</strong> Install for your operating system
+                                                    </p>
+                                                    <p className="text-slate-300">
+                                                        3. <strong>Authenticate:</strong> Run the command from your ngrok dashboard
+                                                    </p>
+                                                    <pre className="bg-slate-950 p-2 rounded text-xs text-green-400">
+ngrok config add-authtoken YOUR_AUTH_TOKEN
+                                                    </pre>
+                                                    <p className="text-slate-300">
+                                                        4. <strong>Start tunnel:</strong> Expose your RPC port
+                                                    </p>
+                                                    <pre className="bg-slate-950 p-2 rounded text-xs text-green-400">
+ngrok tcp 7667
+                                                    </pre>
+                                                    <p className="text-slate-300">
+                                                        5. <strong>Get URL:</strong> ngrok will show something like:
+                                                    </p>
+                                                    <div className="bg-slate-950 p-2 rounded text-xs text-amber-400">
+                                                        Forwarding: tcp://0.tcp.ngrok.io:12345 → localhost:7667
+                                                    </div>
+                                                    <p className="text-slate-300">
+                                                        6. <strong>Configure wallet:</strong> Use in RPC settings:
+                                                    </p>
+                                                    <div className="bg-slate-950 p-2 rounded text-xs space-y-1">
+                                                        <div className="text-slate-400">Host: <span className="text-green-400">0.tcp.ngrok.io</span></div>
+                                                        <div className="text-slate-400">Port: <span className="text-green-400">12345</span> (from ngrok output)</div>
+                                                        <div className="text-slate-400">Username: <span className="text-green-400">(from rod.conf)</span></div>
+                                                        <div className="text-slate-400">Password: <span className="text-green-400">(from rod.conf)</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 pt-2">
+                                                <p className="text-slate-300 font-semibold">Advantages:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                        ✓ No port forwarding
+                                                    </Badge>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                        ✓ No router config
+                                                    </Badge>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                        ✓ Works behind firewalls
+                                                    </Badge>
+                                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                        ✓ SSL/TLS encryption
+                                                    </Badge>
+                                                </div>
+                                            </div>
+
+                                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                                <AlertDescription className="text-blue-300 text-sm">
+                                                    <strong>Free Tier:</strong> ngrok free plan includes 1 online tunnel and 40 connections/min. 
+                                                    Perfect for personal wallet use!
+                                                </AlertDescription>
+                                            </Alert>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="space-y-4">
                                     <h3 className="text-xl font-bold text-white">Getting Your Public IP</h3>
 
                                     <Card className="bg-slate-800 border-slate-700">
@@ -444,8 +541,96 @@ rpcbind=0.0.0.0`}
 
                                 <div className="space-y-4">
                                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Zap className="w-5 h-5 text-purple-400" />
+                                        Option 2: ngrok (Easiest, No Configuration)
+                                    </h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <Alert className="bg-green-500/10 border-green-500/30">
+                                                <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                <AlertDescription className="text-green-300 text-sm">
+                                                    <strong>Recommended for Mobile:</strong> No router setup needed, works from anywhere!
+                                                </AlertDescription>
+                                            </Alert>
+
+                                            <p className="text-slate-300">
+                                                <strong>Setup Steps:</strong>
+                                            </p>
+                                            <div className="bg-slate-900 p-3 rounded space-y-2 text-sm">
+                                                <p className="text-slate-300">
+                                                    1. <strong>Download ngrok:</strong> Get it from{' '}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="link"
+                                                        onClick={() => window.open('https://ngrok.com/download', '_blank')}
+                                                        className="text-purple-400 p-0 h-auto"
+                                                    >
+                                                        ngrok.com/download
+                                                        <ExternalLink className="w-3 h-3 ml-1" />
+                                                    </Button>
+                                                </p>
+                                                <p className="text-slate-300">
+                                                    2. <strong>Sign up:</strong> Create a free account to get your auth token
+                                                </p>
+                                                <p className="text-slate-300">
+                                                    3. <strong>Authenticate ngrok:</strong>
+                                                </p>
+                                                <pre className="bg-slate-950 p-2 rounded text-xs text-green-400">
+ngrok config add-authtoken YOUR_TOKEN_HERE
+                                                </pre>
+                                                <p className="text-slate-300">
+                                                    4. <strong>Start tunnel on your PC:</strong>
+                                                </p>
+                                                <pre className="bg-slate-950 p-2 rounded text-xs text-green-400">
+ngrok tcp 7667
+                                                </pre>
+                                                <p className="text-slate-300">
+                                                    5. <strong>Copy the forwarding address:</strong> Example output:
+                                                </p>
+                                                <div className="bg-slate-950 p-2 rounded text-xs text-amber-400">
+                                                    Forwarding: tcp://0.tcp.ngrok.io:15432 → localhost:7667
+                                                </div>
+                                                <p className="text-slate-300">
+                                                    6. <strong>On mobile, configure RPC:</strong>
+                                                </p>
+                                                <div className="bg-slate-950 p-2 rounded text-xs space-y-1">
+                                                    <div className="text-slate-400">Host: <span className="text-green-400">0.tcp.ngrok.io</span></div>
+                                                    <div className="text-slate-400">Port: <span className="text-green-400">15432</span></div>
+                                                    <div className="text-slate-400">Username: <span className="text-green-400">(your rpcuser)</span></div>
+                                                    <div className="text-slate-400">Password: <span className="text-green-400">(your rpcpassword)</span></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                    ✓ No port forwarding
+                                                </Badge>
+                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                    ✓ Works on cellular
+                                                </Badge>
+                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                    ✓ Behind any firewall
+                                                </Badge>
+                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                                                    ✓ Free plan available
+                                                </Badge>
+                                            </div>
+
+                                            <Alert className="bg-blue-500/10 border-blue-500/30">
+                                                <AlertDescription className="text-blue-300 text-sm">
+                                                    <strong>Keep it running:</strong> Leave ngrok running on your PC whenever 
+                                                    you want mobile access. The URL stays the same until you restart ngrok.
+                                                </AlertDescription>
+                                            </Alert>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                         <Globe className="w-5 h-5 text-blue-400" />
-                                        Option 2: Direct Connection (Port Forwarding)
+                                        Option 3: Direct Connection (Port Forwarding)
                                     </h3>
 
                                     <Card className="bg-slate-800 border-slate-700">
