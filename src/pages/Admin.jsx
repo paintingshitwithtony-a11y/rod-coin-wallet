@@ -418,7 +418,7 @@ export default function Admin() {
                                                 <Input
                                                     value={newConfig.port}
                                                     onChange={(e) => setNewConfig({...newConfig, port: e.target.value})}
-                                                    placeholder="e.g., 18374"
+                                                    placeholder="9766"
                                                     className="bg-slate-800 border-slate-700 text-white"
                                                 />
                                             </div>
