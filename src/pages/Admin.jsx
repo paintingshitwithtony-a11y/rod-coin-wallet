@@ -83,7 +83,10 @@ export default function Admin() {
     const handleTestConnection = async (config) => {
         setTesting(config.id);
         try {
+            console.log('Testing RPC connection for:', config);
             const response = await base44.functions.invoke('checkRPCStatus', {});
+            
+            console.log('RPC Status response:', response.data);
             
             if (response.data.connected) {
                 toast.success('Connection successful!');
@@ -94,13 +97,18 @@ export default function Admin() {
                 });
                 loadConfigs();
             } else {
-                toast.error('Connection failed: ' + (response.data.error || 'Unknown error'));
+                const errorMsg = response.data.error || response.data.message || 'Unknown error';
+                console.error('Connection failed:', errorMsg);
+                console.error('Full response:', response.data);
+                toast.error('Connection failed: ' + errorMsg);
                 await base44.entities.RPCConfiguration.update(config.id, {
                     connection_status: 'error'
                 });
                 loadConfigs();
             }
         } catch (err) {
+            console.error('Test connection error:', err);
+            console.error('Error stack:', err.stack);
             toast.error('Test failed: ' + err.message);
         } finally {
             setTesting(null);
