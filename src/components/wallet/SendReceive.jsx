@@ -338,12 +338,20 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         {/* From Wallet Selector */}
                         <div className="space-y-2">
                             <Label className="text-slate-300">From Wallet</Label>
+                            {duplicates.length > 0 && (
+                                <Alert className="bg-red-500/10 border-red-500/30 py-2 px-3">
+                                    <AlertCircle className="h-4 w-4 text-red-400" />
+                                    <AlertDescription className="text-red-300 text-xs">
+                                        {duplicates.length} duplicate address(es) found: {duplicates.slice(0, 2).map(d => `${d.slice(0, 8)}...`).join(', ')}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                             <Select 
                                 value={selectedFromWallet?.id} 
                                 onValueChange={async (id) => {
                                     const wallet = myWallets.find(w => w.id === id);
                                     setSelectedFromWallet(wallet);
-                                    
+
                                     // Update wallet active status
                                     if (wallet && wallet.id !== 'main-account') {
                                         try {
@@ -354,7 +362,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                                     is_active: w.id === id
                                                 });
                                             }).filter(Boolean);
-                                            
+
                                             await Promise.all(updates);
                                         } catch (err) {
                                             console.error('Failed to update wallet status:', err);
@@ -374,16 +382,36 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                             </span>
                                         </div>
                                     </SelectItem>
-                                    {myWallets.map((wallet) => (
-                                        <SelectItem key={wallet.id} value={wallet.id}>
-                                            <div className="flex items-center justify-between w-full gap-4">
-                                                <span>{wallet.name}</span>
-                                                <span className="text-xs text-slate-400">
-                                                    {wallet.balance?.toFixed(4) || '0.0000'} ROD
-                                                </span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
+                                    {myWallets.map((wallet) => {
+                                        const rpcBal = rpcBalances[wallet.wallet_address];
+                                        const isDuplicate = duplicates.includes(wallet.wallet_address);
+                                        return (
+                                            <SelectItem key={wallet.id} value={wallet.id} className={isDuplicate ? 'bg-red-500/10' : ''}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span>{wallet.name}</span>
+                                                        <span className="text-xs text-amber-400/80 font-mono">
+                                                            {wallet.wallet_address}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="text-xs text-slate-400">
+                                                            DB: {wallet.balance?.toFixed(4) || '0.0000'} ROD
+                                                        </span>
+                                                        {rpcBal !== null && rpcBal !== undefined ? (
+                                                            <span className="text-xs text-purple-400">
+                                                                RPC: {rpcBal.toFixed(4)} ROD
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-500">
+                                                                {loadingRPC ? 'RPC: loading...' : 'RPC: error'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </SelectItem>
+                                        );
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>
