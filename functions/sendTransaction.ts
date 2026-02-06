@@ -73,12 +73,24 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // Check balance
-        if (account.balance < (amount + fee)) {
+        // Determine actual sender wallet for balance check
+        const senderAddress = fromAddress || account.wallet_address;
+        let senderWallet = null;
+        let senderBalance = 0;
+        
+        if (senderAddress === account.wallet_address) {
+            senderBalance = account.balance;
+        } else {
+            senderWallet = allWallets.find(w => w.wallet_address === senderAddress);
+            senderBalance = senderWallet?.balance || 0;
+        }
+
+        // Check balance of actual sender
+        if (senderBalance < (amount + fee)) {
             return Response.json({ 
                 error: 'Insufficient balance',
                 required: amount + fee,
-                available: account.balance
+                available: senderBalance
             }, { status: 400 });
         }
 
@@ -192,16 +204,18 @@ Deno.serve(async (req) => {
         console.log('Transaction broadcasted. TxID:', txid);
 
         // Determine which wallet this is being sent from (using already fetched wallets)
-        const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
         const senderWalletId = senderWallet?.id || null;
-        
+
         // Check if recipient is also owned by this user (internal transfer)
         const recipientWallet = allWallets.find(w => w.wallet_address === recipient);
         const recipientWalletId = recipientWallet?.id || null;
         const isRecipientMainWallet = recipient === account.wallet_address;
+
+        // Determine if this is actually an internal transfer
+        const isActuallyInternal = isRecipientMainWallet || !!recipientWallet;
         
         // Record send transaction
-        const memoText = isInternalTransfer ? 
+        const memoText = isActuallyInternal ? 
             `Internal Transfer | ${memo || ''} | TxID: ${txid}`.trim() :
             memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
         
@@ -220,7 +234,7 @@ Deno.serve(async (req) => {
         console.log('Send transaction recorded:', transaction.id);
         
         // If internal transfer, record receive transaction for the recipient wallet
-        if (isInternalTransfer && (recipientWalletId || isRecipientMainWallet)) {
+        if (isActuallyInternal && (recipientWalletId || isRecipientMainWallet)) {
             const receiveTransaction = await base44.entities.Transaction.create({
                 account_id: account.id,
                 wallet_id: recipientWalletId,
