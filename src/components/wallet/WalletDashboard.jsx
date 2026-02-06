@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Server } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -21,6 +21,7 @@ import RPCConfigManager from './RPCConfigManager';
 import AddressSeedModal from './AddressSeedModal';
 import TransactionHistory from './TransactionHistory';
 import WalletManager from './WalletManager';
+import RODNodeSetupGuide from './RODNodeSetupGuide';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -58,6 +59,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [walletsLoading, setWalletsLoading] = useState(true);
   const [editingAddress, setEditingAddress] = useState(null);
   const [editAddressLabel, setEditAddressLabel] = useState('');
+  const [showNodeGuide, setShowNodeGuide] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -682,27 +684,35 @@ export default function WalletDashboard({ account, onLogout }) {
               </>
               }
                             <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (!rpcConnected && !isReconnecting) {
-                    setReconnectAttempts(0);
-                    checkRPCStatus();
-                  }
-                  setShowRPCManager(true);
-                }}
-                className={`relative h-8 w-8 text-slate-400 hover:text-white ${
-                isReconnecting ? 'text-yellow-400' :
-                rpcConnected === false ? 'text-red-400' :
-                rpcConnected ? 'text-green-400' : ''}`
-                }
-                title="RPC Config">
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (!rpcConnected && !isReconnecting) {
+                                    setReconnectAttempts(0);
+                                    checkRPCStatus();
+                                  }
+                                  setShowRPCManager(true);
+                                }}
+                                className={`relative h-8 w-8 text-slate-400 hover:text-white ${
+                                isReconnecting ? 'text-yellow-400' :
+                                rpcConnected === false ? 'text-red-400' :
+                                rpcConnected ? 'text-green-400' : ''}`
+                                }
+                                title="RPC Config">
 
-                                <Plug className={`w-4 h-4 ${isReconnecting ? 'animate-pulse' : ''}`} />
-                                {rpcConnected === false && !isReconnecting &&
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
-                }
-                            </Button>
+                                                <Plug className={`w-4 h-4 ${isReconnecting ? 'animate-pulse' : ''}`} />
+                                                {rpcConnected === false && !isReconnecting &&
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-950 animate-pulse" />
+                                }
+                                            </Button>
+                                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowNodeGuide(true)}
+                                className="h-8 w-8 text-slate-400 hover:text-blue-400"
+                                title="Node Setup Guide">
+                                                <Server className="w-4 h-4" />
+                                            </Button>
                             <Button
                 variant="ghost"
                 size="icon"
@@ -1407,6 +1417,11 @@ export default function WalletDashboard({ account, onLogout }) {
                     }}
                     onClose={() => setShowWalletManager(false)}
                 />
+            )}
+
+            {/* Node Setup Guide */}
+            {showNodeGuide && (
+                <RODNodeSetupGuide onClose={() => setShowNodeGuide(false)} />
             )}
 
             {/* Address Seed Modal */}
