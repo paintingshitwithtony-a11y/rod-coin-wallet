@@ -1010,6 +1010,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                         className="mb-6">
                                         <Card className="bg-slate-900/80 border-slate-700/50">
                                             <CardContent className="p-4 space-y-3">
+                                                {isAdmin && (
                                                 <Button
                                                     variant="outline"
                                                     onClick={async () => {
@@ -1036,6 +1037,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
                                                     Clear Today
                                                 </Button>
+                                                )}
+                                                {isAdmin && (
                                                 <div className="flex gap-2 flex-wrap">
                                                     <Button
                                                         variant="outline"
