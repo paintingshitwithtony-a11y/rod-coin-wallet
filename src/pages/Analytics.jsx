@@ -91,13 +91,15 @@ export default function Analytics() {
                 // Fetch RPC balance for all wallets
                 try {
                     const rpcBalResponse = await base44.functions.invoke('getRPCBalance', {});
-                    if (rpcBalResponse.data.success) {
+                    console.log('RPC Balance Response:', rpcBalResponse.data);
+                    if (rpcBalResponse.data && rpcBalResponse.data.balance !== undefined) {
                         setAllWalletsBalance(rpcBalResponse.data.balance);
                     } else {
+                        console.warn('Invalid RPC balance response:', rpcBalResponse.data);
                         setAllWalletsBalance(0);
                     }
                 } catch (err) {
-                    console.warn('Failed to fetch RPC balance:', err);
+                    console.error('Failed to fetch RPC balance:', err);
                     setAllWalletsBalance(0);
                 }
             }
