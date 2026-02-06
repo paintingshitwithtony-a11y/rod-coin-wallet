@@ -45,7 +45,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const [networkHashrate, setNetworkHashrate] = useState(null);
+
   const [rpcConnected, setRpcConnected] = useState(null);
   const [showRPCModal, setShowRPCModal] = useState(false);
   const [showRPCManager, setShowRPCManager] = useState(false);
@@ -117,8 +117,7 @@ export default function WalletDashboard({ account, onLogout }) {
         fetchWalletData();
         setTimeout(() => checkRPCStatus(), 1000);
       setTimeout(() => fetchOnlineUsers(), 1500);
-      setTimeout(() => fetchNetworkHashrate(), 2000);
-      setTimeout(() => fetchAllWallets(), 2500);
+      setTimeout(() => fetchAllWallets(), 2000);
       setTimeout(() => importAllAddresses(), 3000);
       // Fetch RPC balance for main wallet once per session
       setTimeout(() => updateMainWalletFromRPC(), 3500);
@@ -130,9 +129,8 @@ export default function WalletDashboard({ account, onLogout }) {
         }
         fetchWalletData();
         // Space out other calls to avoid rate limits
-        setTimeout(() => fetchNetworkHashrate(), 1000);
-        setTimeout(() => checkRPCStatus(), 2000);
-        setTimeout(() => fetchOnlineUsers(), 3000);
+        setTimeout(() => checkRPCStatus(), 1000);
+        setTimeout(() => fetchOnlineUsers(), 2000);
         // Periodically attempt to import any pending addresses
         if (rpcConnected) {
           setTimeout(() => importAllAddresses(), 4000);
@@ -262,26 +260,7 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-  const fetchNetworkHashrate = async () => {
-      try {
-        const response = await fetch('https://explorer1.rod.spacexpanse.org:3001/');
-        const html = await response.text();
 
-        // Parse SHA256 hashrate - looks for the daily value
-        const sha256Match = html.match(/sha256d Hash Rate:[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
-        const neoscryptMatch = html.match(/neoscrypt Hash Rate[^>]*>([0-9.]+)[^>]*>[^>]*>([0-9.]+)[^<]*<small[^>]*>(\w+)\/s<\/small>/);
-
-        if (sha256Match && neoscryptMatch) {
-          setNetworkHashrate({
-            sha256: `${sha256Match[1]} ${sha256Match[3]}/s`,
-            neoscrypt: `${neoscryptMatch[1]} ${neoscryptMatch[3]}/s`
-          });
-        }
-      } catch (err) {
-
-
-        // Silently fail - explorer may be unreachable
-      }};
   const fetchOnlineUsers = async () => {
     try {
       const response = await base44.functions.invoke('getOnlineUsers', {});
@@ -770,16 +749,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                 <Users className="w-3 h-3 mr-1" />
                                 {onlineUsers}
                             </Badge>
-                            {!isMobile && networkHashrate &&
-                              <>
-                                                    <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-xs">
-                                                        SHA256: {networkHashrate.sha256}
-                                                    </Badge>
-                                                    <Badge variant="outline" className="border-purple-500/50 text-purple-400 text-xs">
-                                                        NEO: {networkHashrate.neoscrypt}
-                                                    </Badge>
-                                                </>
-                              }
+
                                             {isSyncing && (
                                                 <Badge variant="outline" className="border-amber-500/50 text-amber-400 text-xs">
                                                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
