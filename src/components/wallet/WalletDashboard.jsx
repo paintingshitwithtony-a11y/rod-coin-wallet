@@ -585,22 +585,39 @@ export default function WalletDashboard({ account, onLogout }) {
         wallet_address: address.address
       });
       toast.success(`${address.label} is now your primary address`);
-      
+
       // Refresh account data and update state
       const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
       if (accounts.length > 0) {
         account.wallet_address = accounts[0].wallet_address;
         // Trigger re-render by updating addresses state
         setAddresses(prev => [...prev]);
-        
+
         // Refresh all wallets to recalculate Main Wallet balance with new primary address
         await fetchAllWallets();
-        
-        // Switch to Main Wallet to show the updated balance
-        const mainWallet = allWallets.find(w => w.id === 'main-account');
-        if (mainWallet) {
-          await handleWalletClick({ ...mainWallet, wallet_address: accounts[0].wallet_address });
-        }
+
+        // Switch to Main Wallet to show the updated balance - but wait for fetchAllWallets to complete
+        setTimeout(async () => {
+          const updatedWallets = await base44.entities.Wallet.filter(
+            { account_id: account.id },
+            '-created_date'
+          );
+          const mainWallet = {
+            id: 'main-account',
+            account_id: account.id,
+            name: 'Main Wallet',
+            wallet_address: accounts[0].wallet_address,
+            balance: accounts[0].balance || 0,
+            is_active: updatedWallets.length === 0 || !updatedWallets.some(w => w.is_active),
+            wallet_type: 'standard',
+            color: 'from-purple-500 to-purple-700'
+          };
+          setCurrentWallet(mainWallet);
+          setBalance({
+            confirmed: mainWallet.balance || 0,
+            unconfirmed: 0
+          });
+        }, 100);
       }
     } catch (err) {
         console.error('Failed to set primary address:', err);
