@@ -182,14 +182,10 @@ export default function WalletDashboard({ account, onLogout }) {
 
       // Set current wallet to active one or keep existing if still valid
       const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
-      
-      // Always update the balance for the current wallet
       const updatedCurrent = allWallets.find(w => w.id === (currentWallet?.id || activeWallet.id)) || activeWallet;
+
+      // Update wallet reference but let fetchWalletData() handle balance updates
       setCurrentWallet(updatedCurrent);
-      setBalance({
-        confirmed: updatedCurrent.balance || 0,
-        unconfirmed: 0
-      });
     } catch (err) {
         console.error('Failed to fetch wallets:', err);
         toast.error('Failed to fetch wallets: ' + err.message);
