@@ -814,15 +814,17 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                 <Button
                                                                     variant="outline"
                                                                     onClick={async () => {
-                                                                        if (!confirm('Delete all transactions from Jan 8, 2026?')) return;
+                                                                        const today = new Date().toISOString().split('T')[0];
+                                                                        if (!confirm(`Delete all transactions from today (${today})?`)) return;
                                                                         setLoading(true);
                                                                         try {
                                                                             const response = await base44.functions.invoke('deleteTransactionsByDate', {
-                                                                                startDate: '2026-01-08T00:00:00'
+                                                                                startDate: `${today}T00:00:00`
                                                                             });
                                                                             if (response.data.success) {
-                                                                                toast.success(`Deleted ${response.data.deleted} transactions. New balance: ${response.data.newBalance.toFixed(4)} ROD`);
+                                                                                toast.success(`Deleted ${response.data.deleted} transactions`);
                                                                                 await fetchWalletData();
+                                                                                await fetchAllWallets();
                                                                             }
                                                                         } catch (err) {
                                                                             toast.error('Failed to delete transactions');
@@ -832,7 +834,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     }}
                                                                     disabled={loading}
                                                                     className={`text-red-400 hover:text-red-300 border-red-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
-                                                                    title="Delete all Jan 8 transactions">
+                                                                    title="Delete all today's transactions">
                                                                     {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
                                                                     Clear Today
                                                                 </Button>
