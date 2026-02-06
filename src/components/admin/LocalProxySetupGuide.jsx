@@ -53,19 +53,19 @@ export default function LocalProxySetupGuide() {
                         <CardContent className="space-y-3 text-sm">
                             <div className="flex items-start gap-3">
                                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-1">1</Badge>
-                                <p>Your wallet sends RPC requests to this proxy endpoint</p>
+                                <p className="text-slate-300">Your wallet sends RPC requests to this proxy endpoint</p>
                             </div>
                             <div className="flex items-start gap-3">
                                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-1">2</Badge>
-                                <p>The proxy authenticates your session and retrieves your active RPC configuration</p>
+                                <p className="text-slate-300">The proxy authenticates your session and retrieves your active RPC configuration</p>
                             </div>
                             <div className="flex items-start gap-3">
                                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-1">3</Badge>
-                                <p>It forwards the request to your local ROD Core node using your saved credentials</p>
+                                <p className="text-slate-300">It forwards the request to your local ROD Core node using your saved credentials</p>
                             </div>
                             <div className="flex items-start gap-3">
                                 <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-1">4</Badge>
-                                <p>The response is returned securely to your wallet</p>
+                                <p className="text-slate-300">The response is returned securely to your wallet</p>
                             </div>
                         </CardContent>
                     </Card>
