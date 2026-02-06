@@ -73,73 +73,136 @@ export default function LocalProxySetupGuide() {
                     {/* Setup Instructions */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
-                            <CardTitle className="text-lg text-white">Setup Instructions</CardTitle>
+                            <CardTitle className="text-lg text-white">Complete Setup Guide</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-5">
                             {/* Step 1 */}
-                            <div>
+                            <div className="border-l-4 border-purple-500 pl-4">
                                 <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
                                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">Step 1</Badge>
-                                    Configure Your Local ROD Core Node
+                                    Install and Start ROD Core Node
                                 </h4>
-                                <p className="text-sm text-slate-400 mb-2">
-                                    Ensure your ROD Core node is running locally with RPC enabled:
-                                </p>
-                                <div className="bg-slate-800 p-3 rounded-md font-mono text-xs space-y-1">
-                                    <div>rpcuser=yourusername</div>
-                                    <div>rpcpassword=yourpassword</div>
-                                    <div>rpcport=9766</div>
-                                    <div>server=1</div>
-                                    <div>rpcallowip=127.0.0.1</div>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-slate-400">
+                                        <strong className="text-white">Download:</strong> Get ROD Core from the official repository
+                                    </p>
+                                    <p className="text-sm text-slate-400">
+                                        <strong className="text-white">Extract:</strong> Unzip the downloaded file to a folder (e.g., C:\ROD or ~/rod)
+                                    </p>
+                                    <p className="text-sm text-slate-400">
+                                        <strong className="text-white">Start the node:</strong> Run the rod-qt.exe (Windows) or rod-qt (Mac/Linux)
+                                    </p>
+                                    <Alert className="bg-amber-900/20 border-amber-500/50 mt-2">
+                                        <AlertDescription className="text-xs text-amber-300">
+                                            ⚠️ First launch will take time as it downloads the blockchain. Wait for initial sync to complete.
+                                        </AlertDescription>
+                                    </Alert>
                                 </div>
-                                <p className="text-xs text-slate-500 mt-2">
-                                    ℹ️ Add these to your rod.conf file and restart your node
-                                </p>
                             </div>
 
                             {/* Step 2 */}
-                            <div>
+                            <div className="border-l-4 border-purple-500 pl-4">
                                 <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
                                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">Step 2</Badge>
-                                    Create an RPC Configuration
+                                    Enable RPC Server
                                 </h4>
-                                <p className="text-sm text-slate-400 mb-2">
-                                    Add a new RPC configuration with these settings:
-                                </p>
-                                <div className="bg-slate-800 p-3 rounded-md space-y-2 text-sm">
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <span className="text-slate-500">Name:</span>
-                                        <span className="col-span-2 text-white">Local Node</span>
+                                <div className="space-y-3">
+                                    <p className="text-sm text-slate-400">
+                                        Create or edit your <code className="text-purple-400">rod.conf</code> file with these settings:
+                                    </p>
+                                    <div className="bg-slate-800 p-3 rounded-md font-mono text-xs space-y-1 text-green-400">
+                                        <div><span className="text-slate-500"># Enable RPC Server</span></div>
+                                        <div>server=1</div>
+                                        <div><span className="text-slate-500"># RPC Credentials (choose your own)</span></div>
+                                        <div>rpcuser=<span className="text-amber-400">myusername</span></div>
+                                        <div>rpcpassword=<span className="text-amber-400">mypassword123</span></div>
+                                        <div><span className="text-slate-500"># RPC Port</span></div>
+                                        <div>rpcport=9766</div>
+                                        <div><span className="text-slate-500"># Allow local connections</span></div>
+                                        <div>rpcallowip=127.0.0.1</div>
+                                        <div>rpcbind=127.0.0.1</div>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <span className="text-slate-500">Host:</span>
-                                        <span className="col-span-2 text-white">127.0.0.1</span>
+                                    <div className="space-y-1 text-xs text-slate-500">
+                                        <p><strong className="text-white">Config location:</strong></p>
+                                        <p>• Windows: <code className="text-purple-400">%APPDATA%\ROD\rod.conf</code></p>
+                                        <p>• Mac: <code className="text-purple-400">~/Library/Application Support/ROD/rod.conf</code></p>
+                                        <p>• Linux: <code className="text-purple-400">~/.rod/rod.conf</code></p>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <span className="text-slate-500">Port:</span>
-                                        <span className="col-span-2 text-white">9766</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <span className="text-slate-500">Username:</span>
-                                        <span className="col-span-2 text-white">Your RPC username</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <span className="text-slate-500">Password:</span>
-                                        <span className="col-span-2 text-white">Your RPC password</span>
-                                    </div>
+                                    <Alert className="bg-red-900/20 border-red-500/50">
+                                        <AlertDescription className="text-xs text-red-300">
+                                            🔒 IMPORTANT: After creating rod.conf, completely close and restart ROD Core for changes to take effect!
+                                        </AlertDescription>
+                                    </Alert>
                                 </div>
                             </div>
 
                             {/* Step 3 */}
-                            <div>
+                            <div className="border-l-4 border-purple-500 pl-4">
                                 <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
                                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">Step 3</Badge>
-                                    Activate Configuration & Test
+                                    Create RPC Configuration in Wallet
                                 </h4>
-                                <p className="text-sm text-slate-400">
-                                    Click "Activate" on your configuration, then use "Test" to verify the connection.
-                                    The proxy will automatically route all RPC calls through your active configuration.
-                                </p>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-slate-400 mb-2">
+                                        In the Admin Panel, click <strong className="text-purple-400">"Add New RPC Configuration"</strong> and enter:
+                                    </p>
+                                    <div className="bg-slate-800 p-3 rounded-md space-y-2 text-sm">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">Name:</span>
+                                            <span className="col-span-2 text-white">My Local Node</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">Type:</span>
+                                            <span className="col-span-2 text-white">Full Node RPC</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">Host:</span>
+                                            <span className="col-span-2 text-purple-400">127.0.0.1</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">Port:</span>
+                                            <span className="col-span-2 text-purple-400">9766</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">Username:</span>
+                                            <span className="col-span-2 text-amber-400">Same as rod.conf rpcuser</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">Password:</span>
+                                            <span className="col-span-2 text-amber-400">Same as rod.conf rpcpassword</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <span className="text-slate-500">SSL:</span>
+                                            <span className="col-span-2 text-white">Unchecked (not needed for local)</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        💡 Click <strong>"Create Configuration"</strong> to save
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Step 4 */}
+                            <div className="border-l-4 border-green-500 pl-4">
+                                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/50">Step 4</Badge>
+                                    Activate & Test Connection
+                                </h4>
+                                <div className="space-y-2">
+                                    <ol className="list-decimal list-inside text-sm text-slate-400 space-y-2">
+                                        <li>Find your configuration in the list below</li>
+                                        <li>Click the <strong className="text-blue-400">"Test"</strong> button to verify connection</li>
+                                        <li>If test succeeds, click <strong className="text-purple-400">"Activate"</strong></li>
+                                        <li>The proxy is now enabled! All wallet operations will use your local node</li>
+                                    </ol>
+                                    <Alert className="bg-green-900/20 border-green-500/50 mt-3">
+                                        <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                        <AlertDescription className="text-xs text-green-300">
+                                            ✅ Success! Your wallet is now connected to your local ROD Core node via the built-in proxy.
+                                            No Ngrok or external services needed!
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
