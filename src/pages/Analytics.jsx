@@ -284,7 +284,7 @@ export default function Analytics() {
                                         </p>
                                         {account && rodPrice && (
                                             <div className="flex items-center gap-2 mt-1">
-                                                <p className="text-sm text-green-400">
+                                                <p className="text-xs text-green-400">
                                                     ≈ ${(account.balance * rodPrice).toFixed(2)} USD
                                                 </p>
                                                 <Button
