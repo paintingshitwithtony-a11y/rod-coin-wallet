@@ -116,13 +116,9 @@ export default function WalletDashboard({ account, onLogout }) {
       // Stagger initial data loads to avoid rate limiting
         fetchWalletData();
         setTimeout(() => checkRPCStatus(), 1000);
-      setTimeout(() => fetchOnlineUsers(), 1500);
       setTimeout(() => fetchAllWallets(), 2000);
-      setTimeout(() => importAllAddresses(), 3000);
-      // Fetch RPC balance for main wallet once per session
-      setTimeout(() => updateMainWalletFromRPC(), 3500);
 
-      // Auto-refresh balance, check deposits, and import addresses every 5 minutes
+      // Auto-refresh balance and check deposits every 5 minutes
       const interval = setInterval(() => {
         if (autoSyncEnabled && rpcConnected) {
           checkForDeposits(true); // Silent background sync
@@ -130,23 +126,10 @@ export default function WalletDashboard({ account, onLogout }) {
         fetchWalletData();
         // Space out other calls to avoid rate limits
         setTimeout(() => checkRPCStatus(), 1000);
-        setTimeout(() => fetchOnlineUsers(), 2000);
-        // Periodically attempt to import any pending addresses
-        if (rpcConnected) {
-          setTimeout(() => importAllAddresses(), 4000);
-        }
       }, 300000);
-
-      // Update main wallet balance from RPC every 10 minutes
-      const rpcInterval = setInterval(() => {
-        if (rpcConnected && (!currentWallet || currentWallet.id === 'main-account')) {
-          updateMainWalletFromRPC();
-        }
-      }, 600000); // 10 minutes
 
       return () => {
         clearInterval(interval);
-        clearInterval(rpcInterval);
       };
     }, [account, rpcConnected, currentWallet]);
 
@@ -240,58 +223,10 @@ export default function WalletDashboard({ account, onLogout }) {
 
 
 
-  const updateMainWalletFromRPC = async () => {
-    if (!rpcConnected) return;
-
-    try {
-      const response = await base44.functions.invoke('getRPCBalance', {});
-      if (response.data.success) {
-        console.log('Updated Main Wallet from RPC:', response.data.balance);
-        // Only update if viewing main wallet
-        if (!currentWallet || currentWallet.id === 'main-account') {
-          setBalance({
-            confirmed: response.data.balance,
-            unconfirmed: 0
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Failed to update from RPC:', err);
-    }
-  };
-
-
-  const fetchOnlineUsers = async () => {
-    try {
-      const response = await base44.functions.invoke('getOnlineUsers', {});
-      if (response.data.count !== undefined) {
-        setOnlineUsers(response.data.count);
-      }
-    } catch (err) {
-
-
-      // Silently fail
-    }};
   const importAllAddresses = async (showToast = false) => {
-    try {
-      const response = await base44.functions.invoke('importAllAddresses', {});
-
-      if (response.data.imported > 0) {
-        if (showToast) {
-          toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
-        }
-        // Update addresses with import status
-        setAddresses((prev) => prev.map((addr) => ({
-          ...addr,
-          importStatus: 'imported'
-        })));
-      } else if (response.data.total === 0) {
-
-
-        // No addresses to import yet
-      } else if (response.data.message && showToast) {toast.warning(response.data.message, { duration: 5000 });}
-    } catch (err) {
-      console.error('Background import check failed:', err);
+    // Temporarily disabled - function returning 500 errors
+    if (showToast) {
+      toast.warning('Address import temporarily disabled');
     }
   };
 
