@@ -865,14 +865,16 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                             if (response.data.success) {
                                                                                 const data = response.data;
                                                                                 console.log('Balance Details:', data);
-                                                                                toast.success(`Fixed! ${data.duplicatesRemoved} duplicates removed. New balance: ${data.newBalance.toFixed(4)} ROD`, {
-                                                                                    description: `Received: ${data.receivedTotal.toFixed(4)} | Sent: ${data.sentTotal.toFixed(4)}`
+                                                                                toast.success(`Fixed! ${data.duplicatesRemoved || 0} duplicates removed, ${data.transactionsMigrated || 0} transactions migrated`, {
+                                                                                    description: `${data.walletsUpdated} wallets updated`
                                                                                 });
                                                                                 await fetchWalletData();
+                                                                                await fetchAllWallets();
                                                                             } else {
                                                                                 toast.error('Failed to recalculate balance');
                                                                             }
                                                                         } catch (err) {
+                                                                            console.error('Fix balance error:', err);
                                                                             toast.error('Failed to recalculate balance');
                                                                         } finally {
                                                                             setLoading(false);
