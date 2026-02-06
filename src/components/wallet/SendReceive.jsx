@@ -289,9 +289,26 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             <Label className="text-slate-300">From Wallet</Label>
                             <Select 
                                 value={selectedFromWallet?.id} 
-                                onValueChange={(id) => {
+                                onValueChange={async (id) => {
                                     const wallet = myWallets.find(w => w.id === id);
                                     setSelectedFromWallet(wallet);
+                                    
+                                    // Update wallet active status
+                                    if (wallet && wallet.id !== 'main-account') {
+                                        try {
+                                            // Set selected wallet to active and others to inactive
+                                            const updates = myWallets.map(w => {
+                                                if (w.id === 'main-account') return null;
+                                                return base44.asServiceRole.entities.Wallet.update(w.id, {
+                                                    is_active: w.id === id
+                                                });
+                                            }).filter(Boolean);
+                                            
+                                            await Promise.all(updates);
+                                        } catch (err) {
+                                            console.error('Failed to update wallet status:', err);
+                                        }
+                                    }
                                 }}
                             >
                                 <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
