@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
     Server, Globe, Shield, Terminal, CheckCircle2, 
-    AlertTriangle, Copy, ExternalLink, Network, Lock
+    AlertTriangle, Copy, ExternalLink, Network, Lock, Smartphone
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,9 +35,10 @@ export default function RODNodeSetupGuide({ onClose }) {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="local" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+                            <TabsList className="grid w-full grid-cols-4 bg-slate-800">
                                 <TabsTrigger value="local">Local Setup</TabsTrigger>
                                 <TabsTrigger value="remote">Remote Access</TabsTrigger>
+                                <TabsTrigger value="mobile">Mobile Access</TabsTrigger>
                                 <TabsTrigger value="security">Security</TabsTrigger>
                             </TabsList>
 
@@ -317,6 +318,250 @@ rpcbind=0.0.0.0`}
                                         </CardContent>
                                     </Card>
                                 </div>
+                            </TabsContent>
+
+                            {/* MOBILE ACCESS */}
+                            <TabsContent value="mobile" className="space-y-6">
+                                <Alert className="bg-blue-500/10 border-blue-500/30">
+                                    <Smartphone className="w-4 h-4 text-blue-400" />
+                                    <AlertDescription className="text-blue-300">
+                                        <strong>Connect from Anywhere:</strong> Access your ROD node from your phone 
+                                        on cellular data or any WiFi network.
+                                    </AlertDescription>
+                                </Alert>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Smartphone className="w-5 h-5 text-purple-400" />
+                                        Mobile Connection Overview
+                                    </h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <p className="text-slate-300">
+                                                To access your node from a mobile device on its own internet connection, you need:
+                                            </p>
+                                            <div className="space-y-2">
+                                                <div className="flex items-start gap-2">
+                                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-0.5">1</Badge>
+                                                    <p className="text-slate-300 text-sm">
+                                                        Your home node running ROD Core with RPC enabled
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start gap-2">
+                                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-0.5">2</Badge>
+                                                    <p className="text-slate-300 text-sm">
+                                                        Port forwarding on your router OR a VPN connection
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start gap-2">
+                                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/50 mt-0.5">3</Badge>
+                                                    <p className="text-slate-300 text-sm">
+                                                        Your public IP address or dynamic DNS hostname
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Shield className="w-5 h-5 text-green-400" />
+                                        Option 1: VPN (Most Secure)
+                                    </h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <p className="text-slate-300 font-semibold text-green-400">
+                                                ✓ Recommended for mobile access
+                                            </p>
+                                            
+                                            <div className="space-y-2">
+                                                <p className="text-slate-300">
+                                                    <strong>Setup:</strong>
+                                                </p>
+                                                <div className="bg-slate-900 p-3 rounded space-y-2 text-sm">
+                                                    <p className="text-slate-300">
+                                                        1. Install Tailscale (easiest) or WireGuard on your home computer running ROD Core
+                                                    </p>
+                                                    <p className="text-slate-300">
+                                                        2. Install the VPN app on your phone
+                                                    </p>
+                                                    <p className="text-slate-300">
+                                                        3. Connect both devices to the same VPN network
+                                                    </p>
+                                                    <p className="text-slate-300">
+                                                        4. Use your computer's VPN IP (usually starts with 100.x.x.x for Tailscale)
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex gap-2 mt-3">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => window.open('https://tailscale.com', '_blank')}
+                                                        className="text-purple-400 border-purple-500/50"
+                                                    >
+                                                        Tailscale Setup
+                                                        <ExternalLink className="w-3 h-3 ml-2" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => window.open('https://www.wireguard.com', '_blank')}
+                                                        className="text-purple-400 border-purple-500/50"
+                                                    >
+                                                        WireGuard
+                                                        <ExternalLink className="w-3 h-3 ml-2" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <Alert className="bg-green-500/10 border-green-500/30">
+                                                <AlertDescription className="text-green-300 text-sm">
+                                                    <strong>Benefits:</strong> Encrypted connection, no port forwarding needed, 
+                                                    works on any network (cellular, WiFi, public WiFi)
+                                                </AlertDescription>
+                                            </Alert>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <Globe className="w-5 h-5 text-blue-400" />
+                                        Option 2: Direct Connection (Port Forwarding)
+                                    </h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <Alert className="bg-amber-500/10 border-amber-500/30">
+                                                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                                                <AlertDescription className="text-amber-300 text-sm">
+                                                    <strong>Less Secure:</strong> Exposes your node to the internet. 
+                                                    Only use with a very strong password!
+                                                </AlertDescription>
+                                            </Alert>
+
+                                            <p className="text-slate-300">
+                                                <strong>Setup Steps:</strong>
+                                            </p>
+                                            <div className="bg-slate-900 p-3 rounded space-y-2 text-sm">
+                                                <p className="text-slate-300">
+                                                    1. <strong>Router Port Forwarding:</strong> Forward port 7667 to your computer's local IP
+                                                </p>
+                                                <p className="text-slate-300">
+                                                    2. <strong>Update rod.conf:</strong> Add these lines:
+                                                </p>
+                                                <pre className="bg-slate-950 p-2 rounded text-xs text-green-400">
+{`rpcallowip=0.0.0.0/0
+rpcbind=0.0.0.0`}
+                                                </pre>
+                                                <p className="text-slate-300">
+                                                    3. <strong>Get Your Public IP:</strong> Visit whatismyipaddress.com
+                                                </p>
+                                                <p className="text-slate-300">
+                                                    4. <strong>Mobile RPC Config:</strong>
+                                                </p>
+                                                <div className="bg-slate-950 p-2 rounded text-xs space-y-1">
+                                                    <div className="text-slate-400">Host: <span className="text-green-400">YOUR.PUBLIC.IP.HERE</span></div>
+                                                    <div className="text-slate-400">Port: <span className="text-green-400">7667</span></div>
+                                                    <div className="text-slate-400">Username: <span className="text-green-400">(from rod.conf)</span></div>
+                                                    <div className="text-slate-400">Password: <span className="text-green-400">(from rod.conf)</span></div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white">Dynamic IP Solution</h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <p className="text-slate-300">
+                                                Most home internet connections have dynamic IPs that change periodically. 
+                                                Use a <strong>Dynamic DNS</strong> service to get a permanent hostname:
+                                            </p>
+                                            
+                                            <div className="bg-slate-900 p-3 rounded space-y-2">
+                                                <p className="text-slate-300 text-sm font-semibold">Free Dynamic DNS Services:</p>
+                                                <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
+                                                    <li>No-IP (noip.com) - Free subdomain like mynode.hopto.org</li>
+                                                    <li>DuckDNS (duckdns.org) - Simple and free</li>
+                                                    <li>Afraid.org - Multiple domain options</li>
+                                                </ul>
+                                            </div>
+
+                                            <p className="text-slate-300 text-sm">
+                                                Once set up, use your hostname instead of IP in the mobile RPC configuration.
+                                            </p>
+
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => window.open('https://www.noip.com', '_blank')}
+                                                    className="text-purple-400 border-purple-500/50"
+                                                >
+                                                    No-IP
+                                                    <ExternalLink className="w-3 h-3 ml-2" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => window.open('https://www.duckdns.org', '_blank')}
+                                                    className="text-purple-400 border-purple-500/50"
+                                                >
+                                                    DuckDNS
+                                                    <ExternalLink className="w-3 h-3 ml-2" />
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-white">Troubleshooting Mobile Connection</h3>
+
+                                    <Card className="bg-slate-800 border-slate-700">
+                                        <CardContent className="p-4 space-y-3">
+                                            <div className="space-y-3">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                                                    <div>
+                                                        <p className="text-white font-semibold">Can't connect from mobile?</p>
+                                                        <ul className="text-slate-300 text-sm space-y-1 mt-1 list-disc list-inside">
+                                                            <li>Check that ROD Core is running on your home computer</li>
+                                                            <li>Verify port forwarding is configured correctly</li>
+                                                            <li>Test with your public IP in a browser: http://YOUR.IP:7667</li>
+                                                            <li>Make sure your router firewall allows incoming connections</li>
+                                                            <li>Disable any VPN on your phone that might block connections</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-start gap-2">
+                                                    <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                                                    <div>
+                                                        <p className="text-white font-semibold">ISP Blocking?</p>
+                                                        <p className="text-slate-300 text-sm mt-1">
+                                                            Some ISPs block incoming connections. If nothing works, VPN is your best option.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                <Alert className="bg-blue-500/10 border-blue-500/30">
+                                    <AlertDescription className="text-blue-300 text-sm">
+                                        <strong>Quick Test:</strong> Try connecting from your phone while on home WiFi first. 
+                                        If that works, the issue is likely port forwarding or firewall related.
+                                    </AlertDescription>
+                                </Alert>
                             </TabsContent>
 
                             {/* SECURITY */}
