@@ -271,7 +271,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
   const fetchNetworkHashrate = async () => {
     try {
-      const response = await fetch('http://explorer1.rod.spacexpanse.org:3001/');
+      const response = await fetch('https://explorer1.rod.spacexpanse.org:3001/');
       const html = await response.text();
 
       // Parse SHA256 hashrate - looks for the daily value
