@@ -241,8 +241,9 @@ export default function WalletDashboard({ account, onLogout }) {
       });
       toast.success(`Switched to ${wallet.name} (${freshBalance.toFixed(4)} ROD)`);
 
-      // Refresh data
-      fetchAllWallets();
+      // Refresh wallet-specific data
+      await fetchWalletData();
+      await fetchAllWallets();
     } catch (err) {
         console.error('Failed to switch wallet:', err);
         toast.error('Failed to switch wallet: ' + err.message);
@@ -423,16 +424,44 @@ export default function WalletDashboard({ account, onLogout }) {
     try {
       console.log('=== FETCHING WALLET DATA ===');
       console.log('Account ID:', account.id);
+      console.log('Current Wallet:', currentWallet?.name, currentWallet?.id);
 
-      // Fetch actual transactions from database
-      const txs = await base44.entities.Transaction.filter(
-        { account_id: account.id },
-        '-created_date',
-        50
-      );
-      console.log('Transactions fetched:', txs.length);
+      // Fetch actual transactions from database - filtered by current wallet
+      let txs;
+      if (currentWallet) {
+        if (currentWallet.id === 'main-account') {
+          // Main wallet: transactions with no wallet_id OR matching main wallet address
+          txs = await base44.entities.Transaction.filter(
+            { 
+              account_id: account.id,
+              wallet_address: currentWallet.wallet_address
+            },
+            '-created_date',
+            50
+          );
+        } else {
+          // Other wallets: transactions matching wallet_id
+          txs = await base44.entities.Transaction.filter(
+            { 
+              account_id: account.id,
+              wallet_id: currentWallet.id
+            },
+            '-created_date',
+            50
+          );
+        }
+      } else {
+        // No wallet selected, fetch all
+        txs = await base44.entities.Transaction.filter(
+          { account_id: account.id },
+          '-created_date',
+          50
+        );
+      }
+      
+      console.log('Transactions fetched for wallet:', txs.length);
 
-      // Format transactions for display and include wallet_id and wallet_address for filtering
+      // Format transactions for display
       const formattedTxs = txs.map((tx) => ({
         id: tx.id,
         type: tx.type,
@@ -1116,55 +1145,34 @@ export default function WalletDashboard({ account, onLogout }) {
                                     )}
 
                                     {/* Statistics Cards */}
-                        <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
-                            <Card className="bg-slate-900/80 border-slate-700/50">
-                                <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
-                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
-                                    <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-green-400`}>
-                                        {isMobile ? '+' : '+'}{(() => {
-                                            const walletTxs = currentWallet ? 
-                                                (currentWallet.id === 'main-account' 
-                                                    ? transactions.filter(tx => !tx.wallet_id || tx.wallet_address === currentWallet.wallet_address)
-                                                    : transactions.filter(tx => tx.wallet_id === currentWallet.id)) 
-                                                : transactions;
-                                            return walletTxs.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 });
-                                        })()}
-                                        {!isMobile && ' ROD'}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-slate-900/80 border-slate-700/50">
-                                <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
-                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Sent' : 'Total Sent'}</p>
-                                    <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-red-400`}>
-                                        {(() => {
-                                            const walletTxs = currentWallet ? 
-                                                (currentWallet.id === 'main-account' 
-                                                    ? transactions.filter(tx => !tx.wallet_id || tx.wallet_address === currentWallet.wallet_address)
-                                                    : transactions.filter(tx => tx.wallet_id === currentWallet.id)) 
-                                                : transactions;
-                                            return walletTxs.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 });
-                                        })()}
-                                        {!isMobile && ' ROD'}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-slate-900/80 border-slate-700/50">
-                                <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
-                                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'TXs' : 'Transactions'}</p>
-                                    <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-white`}>
-                                        {(() => {
-                                            const walletTxs = currentWallet ? 
-                                                (currentWallet.id === 'main-account' 
-                                                    ? transactions.filter(tx => !tx.wallet_id || tx.wallet_address === currentWallet.wallet_address)
-                                                    : transactions.filter(tx => tx.wallet_id === currentWallet.id)) 
-                                                : transactions;
-                                            return walletTxs.length;
-                                        })()}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                                    <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
+                                        <Card className="bg-slate-900/80 border-slate-700/50">
+                                            <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
+                                                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
+                                                <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-green-400`}>
+                                                    {isMobile ? '+' : '+'}{transactions.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                                    {!isMobile && ' ROD'}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                        <Card className="bg-slate-900/80 border-slate-700/50">
+                                            <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
+                                                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Sent' : 'Total Sent'}</p>
+                                                <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-red-400`}>
+                                                    {transactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                                    {!isMobile && ' ROD'}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                        <Card className="bg-slate-900/80 border-slate-700/50">
+                                            <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
+                                                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'TXs' : 'Transactions'}</p>
+                                                <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-white`}>
+                                                    {transactions.length}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
 
             <div className={`grid ${isMobile ? 'gap-4 mt-6' : 'gap-6 lg:grid-cols-2 mt-8'}`}>
     {/* My Addresses */}
