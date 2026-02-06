@@ -36,12 +36,46 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [mfaVerified, setMfaVerified] = useState(false);
     const [txidInput, setTxidInput] = useState('');
     const [importingTxid, setImportingTxid] = useState(false);
+    const [myWallets, setMyWallets] = useState([]);
+    const [selectedFromWallet, setSelectedFromWallet] = useState(null);
+    const [showMyWallets, setShowMyWallets] = useState(false);
+    const [isInternalTransfer, setIsInternalTransfer] = useState(false);
 
     useEffect(() => {
         if (mode === 'send' && account) {
             loadContacts();
+            loadMyWallets();
         }
     }, [mode, account]);
+
+    const loadMyWallets = async () => {
+        try {
+            const wallets = await base44.entities.Wallet.filter(
+                { account_id: account.id },
+                '-created_date'
+            );
+
+            // Include main wallet
+            const mainWallet = {
+                id: 'main-account',
+                name: 'Main Wallet',
+                wallet_address: account.wallet_address,
+                balance: account.balance || 0
+            };
+
+            setMyWallets([mainWallet, ...wallets]);
+            
+            // Set default selected wallet
+            if (fromAddress) {
+                const wallet = [mainWallet, ...wallets].find(w => w.wallet_address === fromAddress);
+                setSelectedFromWallet(wallet || mainWallet);
+            } else {
+                setSelectedFromWallet(mainWallet);
+            }
+        } catch (err) {
+            console.error('Failed to load wallets:', err);
+        }
+    };
 
     const loadContacts = async () => {
         try {
@@ -65,16 +99,24 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const validateAddress = async (address) => {
         if (!address || address.length < 26) {
             setAddressValid(null);
+            setIsInternalTransfer(false);
             return;
         }
         
         setValidating(true);
         const result = await validateRODAddress(address);
         setAddressValid(result.valid);
+        
+        // Check if this is an internal transfer (recipient is one of user's wallets)
+        const isMyWallet = myWallets.some(w => w.wallet_address === address);
+        setIsInternalTransfer(isMyWallet);
+        
         setValidating(false);
         
         if (!result.valid) {
             toast.error(`Invalid address: ${result.error}`);
+        } else if (isMyWallet) {
+            toast.info('Internal transfer - no network fee required', { duration: 3000 });
         }
     };
 
@@ -126,18 +168,20 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             const feeNum = parseFloat(fee);
             
             console.log('=== SENDING TRANSACTION ===');
-            console.log('From:', fromAddress || account.wallet_address);
+            console.log('From:', selectedFromWallet?.wallet_address || account.wallet_address);
             console.log('To:', recipient);
             console.log('Amount:', amountNum);
             console.log('Fee:', feeNum);
+            console.log('Internal Transfer:', isInternalTransfer);
             
             // Call backend function to broadcast transaction via ROD Core RPC
             const response = await base44.functions.invoke('sendTransaction', {
                 recipient,
                 amount: amountNum,
-                fee: feeNum,
+                fee: isInternalTransfer ? 0 : feeNum, // No fee for internal transfers
                 memo: memo || '',
-                fromAddress: fromAddress || account.wallet_address
+                fromAddress: selectedFromWallet?.wallet_address || account.wallet_address,
+                isInternalTransfer
             });
             
             console.log('Response:', response.data);
@@ -225,26 +269,66 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             <div>
                                 <CardTitle className="text-white">Send ROD</CardTitle>
                                 <CardDescription className="text-slate-400">
-                                    Available: {balance.toLocaleString()} ROD
+                                    {selectedFromWallet ? `${selectedFromWallet.name}: ${selectedFromWallet.balance?.toLocaleString() || '0'} ROD` : `Available: ${balance.toLocaleString()} ROD`}
                                 </CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-5">
+                        {/* From Wallet Selector */}
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">From Wallet</Label>
+                            <Select 
+                                value={selectedFromWallet?.id} 
+                                onValueChange={(id) => {
+                                    const wallet = myWallets.find(w => w.id === id);
+                                    setSelectedFromWallet(wallet);
+                                }}
+                            >
+                                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700">
+                                    {myWallets.map((wallet) => (
+                                        <SelectItem key={wallet.id} value={wallet.id}>
+                                            <div className="flex items-center justify-between w-full gap-4">
+                                                <span>{wallet.name}</span>
+                                                <span className="text-xs text-slate-400">
+                                                    {wallet.balance?.toFixed(4) || '0.0000'} ROD
+                                                </span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-slate-300">Recipient Address</Label>
-                                {contacts.length > 0 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setShowContacts(!showContacts)}
-                                        className="text-purple-400 hover:text-purple-300 h-auto py-1"
-                                    >
-                                        <BookUser className="w-4 h-4 mr-1" />
-                                        {showContacts ? 'Hide' : 'Address Book'}
-                                    </Button>
-                                )}
+                                <div className="flex gap-2">
+                                    {myWallets.length > 0 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowMyWallets(!showMyWallets)}
+                                            className="text-amber-400 hover:text-amber-300 h-auto py-1"
+                                        >
+                                            <Wallet className="w-4 h-4 mr-1" />
+                                            {showMyWallets ? 'Hide' : 'My Wallets'}
+                                        </Button>
+                                    )}
+                                    {contacts.length > 0 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowContacts(!showContacts)}
+                                            className="text-purple-400 hover:text-purple-300 h-auto py-1"
+                                        >
+                                            <BookUser className="w-4 h-4 mr-1" />
+                                            {showContacts ? 'Hide' : 'Contacts'}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <div className="relative">
                                 <Input
@@ -266,6 +350,29 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     ) : null}
                                 </div>
                             </div>
+
+                            {showMyWallets && myWallets.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="p-3 rounded-lg bg-amber-900/20 border border-amber-500/30 space-y-2"
+                                >
+                                    <p className="text-xs text-amber-400 mb-2">Transfer to My Wallet (No Fee)</p>
+                                    {myWallets.filter(w => w.id !== selectedFromWallet?.id).map((wallet) => (
+                                        <button
+                                            key={wallet.id}
+                                            onClick={() => handleSelectContact(wallet.wallet_address)}
+                                            className="w-full text-left p-2 rounded hover:bg-amber-700/30 transition-colors"
+                                        >
+                                            <p className="text-sm text-white font-medium">{wallet.name}</p>
+                                            <p className="text-xs text-amber-400/80 font-mono truncate">
+                                                {wallet.wallet_address}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
 
                             {showContacts && contacts.length > 0 && (
                                 <motion.div
@@ -306,7 +413,11 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setAmount(String(balance - parseFloat(fee)))}
+                                        onClick={() => {
+                                            const walletBalance = selectedFromWallet?.balance || balance;
+                                            const feeAmount = isInternalTransfer ? 0 : parseFloat(fee);
+                                            setAmount(String(Math.max(0, walletBalance - feeAmount)));
+                                        }}
                                         className="h-6 px-2 text-xs text-purple-400"
                                     >
                                         MAX
@@ -340,20 +451,26 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         </div>
 
                         {amount && parseFloat(amount) > 0 && (
-                            <div className="p-4 rounded-lg bg-slate-800/30 border border-slate-700">
+                            <div className={`p-4 rounded-lg ${isInternalTransfer ? 'bg-green-900/20 border-green-500/30' : 'bg-slate-800/30 border-slate-700'} border`}>
+                                {isInternalTransfer && (
+                                    <div className="flex items-center gap-2 mb-3 text-green-400">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span className="text-xs font-medium">Internal Transfer - No Network Fee</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-sm mb-2">
                                     <span className="text-slate-400">Amount</span>
                                     <span className="text-white">{amount} ROD</span>
                                 </div>
                                 <div className="flex justify-between text-sm mb-2">
                                     <span className="text-slate-400">Fee</span>
-                                    <span className="text-white">{fee} ROD</span>
+                                    <span className="text-white">{isInternalTransfer ? '0 ROD (internal)' : `${fee} ROD`}</span>
                                 </div>
                                 <div className="border-t border-slate-700 pt-2 mt-2">
                                     <div className="flex justify-between text-sm font-semibold">
                                         <span className="text-slate-300">Total</span>
                                         <span className="text-amber-400">
-                                            {(parseFloat(amount || 0) + parseFloat(fee)).toFixed(8)} ROD
+                                            {(parseFloat(amount || 0) + (isInternalTransfer ? 0 : parseFloat(fee))).toFixed(8)} ROD
                                         </span>
                                     </div>
                                 </div>

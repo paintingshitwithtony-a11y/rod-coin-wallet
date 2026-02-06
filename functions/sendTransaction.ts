@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { recipient, amount, fee, memo, fromAddress } = await req.json();
+        const { recipient, amount, fee, memo, fromAddress, isInternalTransfer } = await req.json();
 
         // Validate inputs
         if (!recipient || !amount || amount <= 0) {
@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
         console.log('Amount:', amount);
         console.log('Fee:', fee);
         console.log('Current Balance:', account.balance);
+        console.log('Internal Transfer:', isInternalTransfer);
 
         // Send transaction via ROD Core RPC
         const rpcUrl = `http://${rpcHost}:${rpcPort}`;
@@ -163,22 +164,61 @@ Deno.serve(async (req) => {
             account_id: account.id,
             wallet_address: fromAddress
         });
-        const walletId = senderWallets.length > 0 ? senderWallets[0].id : null;
+        const senderWalletId = senderWallets.length > 0 ? senderWallets[0].id : null;
         
-        // Record transaction in database
+        // Check if recipient is also owned by this user (internal transfer)
+        const recipientWallets = await base44.entities.Wallet.filter({
+            account_id: account.id,
+            wallet_address: recipient
+        });
+        const recipientWalletId = recipientWallets.length > 0 ? recipientWallets[0].id : null;
+        const isRecipientMainWallet = recipient === account.wallet_address;
+        
+        // Record send transaction
+        const memoText = isInternalTransfer ? 
+            `Internal Transfer | ${memo || ''} | TxID: ${txid}`.trim() :
+            memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
+        
         const transaction = await base44.entities.Transaction.create({
             account_id: account.id,
-            wallet_id: walletId,
+            wallet_id: senderWalletId,
             wallet_address: fromAddress || account.wallet_address,
             type: 'send',
             amount: -amount,
             fee: fee,
             address: recipient,
-            memo: memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`,
+            memo: memoText,
             confirmations: 0,
-            status: 'pending'
+            status: 'confirmed'
         });
-        console.log('Transaction recorded in DB:', transaction.id);
+        console.log('Send transaction recorded:', transaction.id);
+        
+        // If internal transfer, record receive transaction for the recipient wallet
+        if (isInternalTransfer && (recipientWalletId || isRecipientMainWallet)) {
+            const receiveTransaction = await base44.entities.Transaction.create({
+                account_id: account.id,
+                wallet_id: recipientWalletId,
+                wallet_address: recipient,
+                type: 'receive',
+                amount: amount,
+                fee: 0,
+                address: fromAddress || account.wallet_address,
+                memo: `Internal Transfer | ${memo || ''} | TxID: ${txid}`.trim(),
+                confirmations: 1,
+                status: 'confirmed'
+            });
+            console.log('Receive transaction recorded:', receiveTransaction.id);
+            
+            // Update recipient wallet balance
+            if (recipientWalletId) {
+                const recipientWallet = recipientWallets[0];
+                const newRecipientBalance = (recipientWallet.balance || 0) + amount;
+                await base44.asServiceRole.entities.Wallet.update(recipientWallet.id, {
+                    balance: newRecipientBalance
+                });
+                console.log('Recipient wallet balance updated:', recipientWallet.balance, '->', newRecipientBalance);
+            }
+        }
 
         // Update account balance - fetch fresh data first to avoid stale balance
         const freshAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
