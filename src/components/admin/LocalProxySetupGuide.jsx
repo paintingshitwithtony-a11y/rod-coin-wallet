@@ -180,23 +180,23 @@ export default function LocalProxySetupGuide() {
                             <div className="grid gap-3 text-sm">
                                 <div className="flex items-start gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5" />
-                                    <span>No external tunneling services required (no Ngrok, LocalTunnel, etc.)</span>
+                                    <span className="text-slate-300">No external tunneling services required (no Ngrok, LocalTunnel, etc.)</span>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5" />
-                                    <span>Built-in authentication and session management</span>
+                                    <span className="text-slate-300">Built-in authentication and session management</span>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5" />
-                                    <span>Automatically uses your active RPC configuration</span>
+                                    <span className="text-slate-300">Automatically uses your active RPC configuration</span>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5" />
-                                    <span>Secure credential storage in RPC configurations</span>
+                                    <span className="text-slate-300">Secure credential storage in RPC configurations</span>
                                 </div>
                                 <div className="flex items-start gap-2">
                                     <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5" />
-                                    <span>Works seamlessly with all wallet operations</span>
+                                    <span className="text-slate-300">Works seamlessly with all wallet operations</span>
                                 </div>
                             </div>
                         </CardContent>
