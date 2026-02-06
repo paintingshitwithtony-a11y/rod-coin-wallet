@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
             headers['X-API-Key'] = config.api_key;
         }
 
-        // Collect all addresses to import
+        // Collect all addresses to import (from account + all wallets)
         const addressesToImport = [
             { address: account.wallet_address, label: 'Primary Address' }
         ];
@@ -69,6 +69,18 @@ Deno.serve(async (req) => {
                 });
             });
         }
+        
+        // Also get addresses from all Wallet entities
+        const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        wallets.forEach(wallet => {
+            const alreadyIncluded = addressesToImport.some(a => a.address === wallet.wallet_address);
+            if (!alreadyIncluded) {
+                addressesToImport.push({
+                    address: wallet.wallet_address,
+                    label: wallet.name || 'Wallet Address'
+                });
+            }
+        });
 
         const results = [];
 
