@@ -92,22 +92,24 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
 
             const allWallets = [mainWallet, ...wallets, ...additionalAddressWallets];
             
-            // Check for duplicates
+            // Check for duplicates and remove them
             const addressMap = {};
             const foundDuplicates = [];
+            const uniqueWallets = [];
             allWallets.forEach(w => {
                 if (addressMap[w.wallet_address]) {
                     foundDuplicates.push(w.wallet_address);
                 } else {
                     addressMap[w.wallet_address] = w;
+                    uniqueWallets.push(w);
                 }
             });
             setDuplicates(foundDuplicates);
             
-            // Fetch RPC balances
-            await fetchRPCBalances(allWallets);
+            // Fetch RPC balances only for unique wallets
+            await fetchRPCBalances(uniqueWallets);
             
-            setMyWallets(allWallets);
+            setMyWallets(uniqueWallets);
             
             // Set default selected wallet
             if (fromAddress) {
@@ -127,9 +129,12 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         
         for (const wallet of wallets) {
             try {
-                const response = await base44.functions.invoke('getRPCBalance', {});
+                const response = await base44.functions.invoke('executeRPCCommand', {
+                    method: 'getreceivedbyaddress',
+                    params: [wallet.wallet_address, 0]
+                });
                 if (response.data.success) {
-                    balances[wallet.wallet_address] = response.data.balance;
+                    balances[wallet.wallet_address] = response.data.result || 0;
                 }
             } catch (err) {
                 console.error(`Failed to fetch RPC balance for ${wallet.wallet_address}:`, err);
