@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Copy, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 
 export default function DashboardRPCConsole({ selectedAddress, account }) {
