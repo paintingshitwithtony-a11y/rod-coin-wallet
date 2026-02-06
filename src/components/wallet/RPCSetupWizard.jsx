@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
     ArrowRight, ArrowLeft, Download, Copy, CheckCircle2, 
-    AlertTriangle, Info, Loader2, Server, Network, Shield, Terminal, Zap
+    AlertTriangle, Info, Loader2, Server, Network, Shield, Terminal, Zap, Cloud, Globe
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -271,9 +271,11 @@ rpcallowip=${config.rpcallowip}
                             </div>
 
                             <Tabs value={config.accessMethod} onValueChange={(value) => setConfig({ ...config, accessMethod: value })}>
-                                <TabsList className="grid grid-cols-4 bg-slate-800">
-                                    <TabsTrigger value="local">Local Only</TabsTrigger>
-                                    <TabsTrigger value="ngrok">ngrok (Easy)</TabsTrigger>
+                                <TabsList className="grid grid-cols-3 md:grid-cols-6 bg-slate-800">
+                                    <TabsTrigger value="local">Local</TabsTrigger>
+                                    <TabsTrigger value="ngrok">ngrok</TabsTrigger>
+                                    <TabsTrigger value="cloudflare">Cloudflare</TabsTrigger>
+                                    <TabsTrigger value="vps">VPS</TabsTrigger>
                                     <TabsTrigger value="portforward">Port Forward</TabsTrigger>
                                     <TabsTrigger value="vpn">VPN</TabsTrigger>
                                 </TabsList>
@@ -374,6 +376,72 @@ rpcallowip=${config.rpcallowip}
                                     </div>
                                 </TabsContent>
 
+                                <TabsContent value="cloudflare" className="space-y-4">
+                                    <div className="p-6 bg-slate-800/50 rounded-lg border border-orange-500/30">
+                                        <div className="flex items-start gap-3 mb-4">
+                                            <Cloud className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" />
+                                            <div>
+                                                <h3 className="text-white font-semibold mb-2">Cloudflare Tunnel</h3>
+                                                <p className="text-slate-400 text-sm mb-3">
+                                                    Free secure tunnel service from Cloudflare. Alternative to ngrok with better reliability.
+                                                </p>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                        <span className="text-sm text-slate-300">Free forever</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                        <span className="text-sm text-slate-300">DDoS protection included</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                        <span className="text-sm text-slate-300">No router configuration</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Info className="w-4 h-4 text-blue-400" />
+                                                        <span className="text-sm text-slate-300">Requires Cloudflare account</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Badge className="bg-orange-500/20 text-orange-300">Free & Reliable</Badge>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="vps" className="space-y-4">
+                                    <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+                                        <div className="flex items-start gap-3 mb-4">
+                                            <Globe className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
+                                            <div>
+                                                <h3 className="text-white font-semibold mb-2">Remote VPS</h3>
+                                                <p className="text-slate-400 text-sm mb-3">
+                                                    Run ROD Core on a cloud server (DigitalOcean, AWS, etc.). Always accessible with public IP.
+                                                </p>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                        <span className="text-sm text-slate-300">24/7 uptime</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                        <span className="text-sm text-slate-300">Professional reliability</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                        <span className="text-sm text-slate-300">Public IP address</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <AlertTriangle className="w-4 h-4 text-amber-400" />
+                                                        <span className="text-sm text-slate-300">Monthly cost ($5-20)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Badge className="bg-emerald-500/20 text-emerald-300">Professional</Badge>
+                                    </div>
+                                </TabsContent>
+
                                 <TabsContent value="vpn" className="space-y-4">
                                     <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700">
                                         <div className="flex items-start gap-3 mb-4">
@@ -417,6 +485,8 @@ rpcallowip=${config.rpcallowip}
                             <div>
                                 <h2 className="text-2xl font-bold text-white mb-2">
                                     {config.accessMethod === 'ngrok' && 'ngrok Setup Instructions'}
+                                    {config.accessMethod === 'cloudflare' && 'Cloudflare Tunnel Setup'}
+                                    {config.accessMethod === 'vps' && 'Remote VPS Setup Guide'}
                                     {config.accessMethod === 'portforward' && 'Port Forwarding Instructions'}
                                     {config.accessMethod === 'vpn' && 'VPN Setup Instructions'}
                                     {config.accessMethod === 'local' && 'Download rod.conf File'}
@@ -532,6 +602,134 @@ rpcallowip=${config.rpcallowip}
                                         <AlertDescription className="text-amber-300">
                                             <strong>Security Warning:</strong> Port forwarding exposes your node to the internet. 
                                             Use strong credentials and consider IP whitelisting.
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
+                            )}
+
+                            {config.accessMethod === 'cloudflare' && (
+                                <div className="space-y-4">
+                                    <Alert className="bg-orange-500/10 border-orange-500/30">
+                                        <Cloud className="w-4 h-4 text-orange-400" />
+                                        <AlertDescription className="text-orange-300">
+                                            <strong>Free Forever:</strong> Cloudflare Tunnels are completely free with no usage limits
+                                        </AlertDescription>
+                                    </Alert>
+
+                                    <div className="space-y-4">
+                                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 text-white font-bold">1</div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-white font-semibold mb-2">Install cloudflared</h3>
+                                                    <p className="text-slate-400 text-sm mb-3">
+                                                        Download and install cloudflared (Cloudflare's tunnel client)
+                                                    </p>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => window.open('https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation', '_blank')}
+                                                        className="text-orange-400 border-orange-500/50">
+                                                        Download cloudflared
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 text-white font-bold">2</div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-white font-semibold mb-2">Authenticate</h3>
+                                                    <p className="text-slate-400 text-sm mb-3">
+                                                        Run this command to authenticate with Cloudflare:
+                                                    </p>
+                                                    <div className="bg-slate-950 rounded-lg p-3 font-mono text-sm text-green-400 flex items-center justify-between">
+                                                        <code>cloudflared tunnel login</code>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText('cloudflared tunnel login');
+                                                                toast.success('Command copied');
+                                                            }}
+                                                            className="h-6 w-6 text-slate-400 hover:text-white">
+                                                            <Copy className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 text-white font-bold">3</div>
+                                                <div className="flex-1">
+                                                    <h3 className="text-white font-semibold mb-2">Create Tunnel</h3>
+                                                    <p className="text-slate-400 text-sm mb-3">
+                                                        Create a tunnel named "rod-node":
+                                                    </p>
+                                                    <div className="bg-slate-950 rounded-lg p-3 font-mono text-sm text-green-400 flex items-center justify-between mb-3">
+                                                        <code>cloudflared tunnel create rod-node</code>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText('cloudflared tunnel create rod-node');
+                                                                toast.success('Command copied');
+                                                            }}
+                                                            className="h-6 w-6 text-slate-400 hover:text-white">
+                                                            <Copy className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                    <p className="text-slate-400 text-sm mb-3">
+                                                        Then run the tunnel:
+                                                    </p>
+                                                    <div className="bg-slate-950 rounded-lg p-3 font-mono text-sm text-green-400 flex items-center justify-between">
+                                                        <code>cloudflared tunnel --url tcp://localhost:{config.rpcport} run rod-node</code>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(`cloudflared tunnel --url tcp://localhost:${config.rpcport} run rod-node`);
+                                                                toast.success('Command copied');
+                                                            }}
+                                                            className="h-6 w-6 text-slate-400 hover:text-white">
+                                                            <Copy className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {config.accessMethod === 'vps' && (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                        <h3 className="text-white font-semibold mb-3">Setting up ROD Core on VPS:</h3>
+                                        <ol className="space-y-3 text-slate-400 text-sm list-decimal list-inside">
+                                            <li>Choose a VPS provider:
+                                                <ul className="ml-6 mt-2 space-y-1">
+                                                    <li>• <a href="https://www.digitalocean.com" target="_blank" className="text-purple-400 hover:underline">DigitalOcean</a> - $6/month minimum</li>
+                                                    <li>• <a href="https://www.vultr.com" target="_blank" className="text-purple-400 hover:underline">Vultr</a> - $6/month minimum</li>
+                                                    <li>• <a href="https://www.linode.com" target="_blank" className="text-purple-400 hover:underline">Linode</a> - $5/month minimum</li>
+                                                </ul>
+                                            </li>
+                                            <li>Create an Ubuntu 22.04 server with at least 2GB RAM</li>
+                                            <li>SSH into your server and install ROD Core</li>
+                                            <li>Configure rod.conf with the settings from this wizard</li>
+                                            <li>Set rpcbind=0.0.0.0 to allow external connections</li>
+                                            <li>Use a firewall to restrict access (allow only your IP)</li>
+                                            <li>Use your VPS's public IP address in the RPC configuration</li>
+                                        </ol>
+                                    </div>
+
+                                    <Alert className="bg-amber-500/10 border-amber-500/30">
+                                        <AlertTriangle className="w-4 h-4 text-amber-400" />
+                                        <AlertDescription className="text-amber-300">
+                                            <strong>Security:</strong> Always use a firewall and strong passwords. Consider using SSH key authentication only.
                                         </AlertDescription>
                                     </Alert>
                                 </div>
