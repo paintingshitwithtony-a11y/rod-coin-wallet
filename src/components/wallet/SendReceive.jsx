@@ -62,45 +62,15 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 '-created_date'
             );
 
-            // Calculate main wallet balance from transactions
-            const mainWalletTxs = await base44.entities.Transaction.filter({
-                account_id: account.id,
-                wallet_address: account.wallet_address
-            });
-            
-            const mainWalletBalance = mainWalletTxs.reduce((sum, tx) => {
-                if (tx.type === 'receive') return sum + tx.amount;
-                if (tx.type === 'send') return sum - Math.abs(tx.amount);
-                return sum;
-            }, 0);
-
-            // Include main wallet with calculated balance
+            // Include main wallet with database balance
             const mainWallet = {
                 id: 'main-account',
                 name: 'Main Wallet',
                 wallet_address: account.wallet_address,
-                balance: mainWalletBalance
+                balance: account.balance || 0
             };
 
-            // Calculate balances for other wallets
-            const walletsWithBalances = await Promise.all(
-                wallets.map(async (wallet) => {
-                    const walletTxs = await base44.entities.Transaction.filter({
-                        account_id: account.id,
-                        wallet_id: wallet.id
-                    });
-                    
-                    const walletBalance = walletTxs.reduce((sum, tx) => {
-                        if (tx.type === 'receive') return sum + tx.amount;
-                        if (tx.type === 'send') return sum - Math.abs(tx.amount);
-                        return sum;
-                    }, 0);
-                    
-                    return { ...wallet, balance: walletBalance };
-                })
-            );
-
-            setMyWallets([mainWallet, ...walletsWithBalances]);
+            setMyWallets([mainWallet, ...wallets]);
             
             // Set default selected wallet
             if (fromAddress) {
