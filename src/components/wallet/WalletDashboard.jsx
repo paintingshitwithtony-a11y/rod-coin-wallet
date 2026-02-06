@@ -22,6 +22,7 @@ import AddressSeedModal from './AddressSeedModal';
 import TransactionHistory from './TransactionHistory';
 import WalletManager from './WalletManager';
 import RODNodeSetupGuide from './RODNodeSetupGuide';
+import NetworkActivityDashboard from './NetworkActivityDashboard';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -895,18 +896,21 @@ export default function WalletDashboard({ account, onLogout }) {
                         Receive
                     </TabsTrigger>
                     {!isMobile &&
-          <>
-                            <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
-                                Generate
-                            </TabsTrigger>
-                            <TabsTrigger value="import" className="data-[state=active]:bg-purple-600">
-                                Import
-                            </TabsTrigger>
-                            <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
-                                Contacts
-                                </TabsTrigger>
-                                </>
-                                }
+                    <>
+                    <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
+                      Generate
+                    </TabsTrigger>
+                    <TabsTrigger value="import" className="data-[state=active]:bg-purple-600">
+                      Import
+                    </TabsTrigger>
+                    <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
+                      Contacts
+                    </TabsTrigger>
+                    <TabsTrigger value="network" className="data-[state=active]:bg-purple-600">
+                      Network
+                    </TabsTrigger>
+                      </>
+                      }
                                 </TabsList>
                                 </div>
 
@@ -1463,15 +1467,22 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 <TabsContent value="contacts" className="mt-6">
                     <AddressBook
-            account={account}
-            onSelectAddress={(address) => {
-              setActiveTab('send');
-              setTimeout(() => {
+                account={account}
+                onSelectAddress={(address) => {
+                setActiveTab('send');
+                setTimeout(() => {
                 const event = new CustomEvent('selectContact', { detail: address });
                 window.dispatchEvent(event);
-              }, 100);
-            }} />
+                }, 100);
+                }} />
 
+                </TabsContent>
+
+                <TabsContent value="network" className="mt-6">
+                    <NetworkActivityDashboard 
+                        account={account}
+                        rpcConnected={rpcConnected}
+                    />
                 </TabsContent>
                 </Tabs>
 
