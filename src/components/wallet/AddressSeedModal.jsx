@@ -20,18 +20,15 @@ export default function AddressSeedModal({ address, account, onClose, onSaved })
     const [showSeed, setShowSeed] = useState(false);
 
     const handleSave = async () => {
+        if (!seedPhrase.trim()) {
+            toast.error('Please enter a seed phrase');
+            return;
+        }
+
         setSaving(true);
         try {
-            // Get current account data
-            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
-            if (accounts.length === 0) {
-                toast.error('Account not found');
-                return;
-            }
-
-            const currentAccount = accounts[0];
-            const additionalAddresses = currentAccount.additional_addresses || [];
-
+            const additionalAddresses = account.additional_addresses || [];
+            
             // Find and update the address
             const addressIndex = additionalAddresses.findIndex(addr => addr.address === address.address);
             
@@ -39,7 +36,7 @@ export default function AddressSeedModal({ address, account, onClose, onSaved })
                 additionalAddresses[addressIndex].seed_phrase = seedPhrase.trim();
             }
 
-            // Update account
+            // Update account with only the field that changed
             await base44.entities.WalletAccount.update(account.id, {
                 additional_addresses: additionalAddresses
             });
@@ -50,7 +47,7 @@ export default function AddressSeedModal({ address, account, onClose, onSaved })
             }
             onClose();
         } catch (error) {
-            toast.error('Failed to save seed phrase');
+            toast.error('Failed to save seed phrase: ' + (error.message || 'Unknown error'));
             console.error(error);
         } finally {
             setSaving(false);
