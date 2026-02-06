@@ -118,18 +118,18 @@ Deno.serve(async (req) => {
                             // Determine which wallet this belongs to
                             const wallets = await base44.entities.Wallet.filter({
                                 account_id: account.id,
-                                wallet_address: tx.address
+                                wallet_address: address
                             });
                             const walletId = wallets.length > 0 ? wallets[0].id : null;
                             
                             const newTx = await base44.entities.Transaction.create({
                                 account_id: account.id,
                                 wallet_id: walletId,
-                                wallet_address: tx.address,
+                                wallet_address: address,
                                 type: 'receive',
                                 amount: tx.amount,
                                 fee: 0,
-                                address: tx.address,
+                                address: address,
                                 memo: `TxID: ${tx.txid}`,
                                 confirmations: tx.confirmations,
                                 status: tx.confirmations >= 6 ? 'confirmed' : 'pending'
@@ -150,12 +150,7 @@ Deno.serve(async (req) => {
                             });
                             
                             // Also update individual wallet balance if it exists
-                            const wallets = await base44.entities.Wallet.filter({
-                                account_id: account.id,
-                                wallet_address: tx.address
-                            });
-                            
-                            if (wallets.length > 0) {
+                            if (walletId && wallets.length > 0) {
                                 const wallet = wallets[0];
                                 await base44.asServiceRole.entities.Wallet.update(wallet.id, {
                                     balance: (wallet.balance || 0) + tx.amount
