@@ -491,7 +491,8 @@ export default function WalletDashboard({ account, onLogout }) {
               unconfirmed: 0
             });
           }
-        } else {
+        } else if (!currentWallet.id.startsWith('address-')) {
+          // Only fetch from database if it's not a virtual address wallet
           const wallets = await base44.entities.Wallet.filter({ id: currentWallet.id });
           if (wallets.length > 0) {
             console.log('Fresh wallet balance:', wallets[0].balance);
