@@ -150,8 +150,8 @@ export default function RODConfEditor({ account, onClose }) {
                         ROD Core Config Editor
                     </CardTitle>
                     <Button variant="ghost" size="icon" onClick={onClose}>
-                        <X className="w-5 h-5" />
-                    </Button>
+                         <X className="w-5 h-5 text-white" />
+                     </Button>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* File Path Section */}
