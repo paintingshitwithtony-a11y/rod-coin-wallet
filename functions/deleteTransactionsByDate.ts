@@ -63,18 +63,46 @@ Deno.serve(async (req) => {
             10000
         );
 
-        let newBalance = 0;
+        // Get all wallets
+        const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        const walletBalances = {};
+        
+        for (const wallet of wallets) {
+            walletBalances[wallet.id] = 0;
+        }
+        
+        // Track main wallet balance (transactions without wallet_id)
+        let mainWalletBalance = 0;
+
+        // Sum transactions by wallet_id
         for (const tx of remainingTxs) {
-            if (tx.type === 'receive') {
-                newBalance += tx.amount;
-            } else if (tx.type === 'send') {
-                newBalance -= Math.abs(tx.amount);
+            if (tx.wallet_id && walletBalances.hasOwnProperty(tx.wallet_id)) {
+                // Transaction belongs to a specific wallet
+                if (tx.type === 'receive') {
+                    walletBalances[tx.wallet_id] += tx.amount;
+                } else if (tx.type === 'send') {
+                    walletBalances[tx.wallet_id] -= Math.abs(tx.amount);
+                }
+            } else if (!tx.wallet_id || tx.wallet_address === account.wallet_address) {
+                // Transaction belongs to main wallet
+                if (tx.type === 'receive') {
+                    mainWalletBalance += tx.amount;
+                } else if (tx.type === 'send') {
+                    mainWalletBalance -= Math.abs(tx.amount);
+                }
             }
         }
 
-        // Update account balance
+        // Update wallet balances
+        for (const wallet of wallets) {
+            await base44.asServiceRole.entities.Wallet.update(wallet.id, {
+                balance: walletBalances[wallet.id]
+            });
+        }
+        
+        // Update main account wallet balance
         await base44.asServiceRole.entities.WalletAccount.update(account.id, {
-            balance: newBalance
+            balance: mainWalletBalance
         });
 
         return Response.json({
