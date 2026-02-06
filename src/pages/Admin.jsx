@@ -15,7 +15,9 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PortForwardingGuide from '../components/admin/PortForwardingGuide';
+import RPCSetupWizard from '../components/wallet/RPCSetupWizard';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
@@ -23,6 +25,7 @@ export default function Admin() {
     const [configs, setConfigs] = useState([]);
     const [testing, setTesting] = useState(null);
     const [showNewConfig, setShowNewConfig] = useState(false);
+    const [showWizard, setShowWizard] = useState(false);
     
     // New config form
     const [newConfig, setNewConfig] = useState({
@@ -264,17 +267,25 @@ export default function Admin() {
                             </Card>
                         </div>
 
-                        {/* Port Forwarding Guide */}
-                        <PortForwardingGuide 
-                            onConfigCreated={(configData) => {
-                                setNewConfig({
-                                    ...newConfig,
-                                    ...configData
-                                });
-                                setShowNewConfig(true);
-                                toast.success('Config template created - please add your RPC credentials');
-                            }}
-                        />
+                        {/* Setup Wizard and Port Forwarding Guide */}
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => setShowWizard(true)}
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                                <Server className="w-4 h-4 mr-2" />
+                                Setup Wizard
+                            </Button>
+                            <PortForwardingGuide 
+                                onConfigCreated={(configData) => {
+                                    setNewConfig({
+                                        ...newConfig,
+                                        ...configData
+                                    });
+                                    setShowNewConfig(true);
+                                    toast.success('Config template created - please add your RPC credentials');
+                                }}
+                            />
+                        </div>
 
                         {/* Create New Config */}
                         {!showNewConfig ? (
@@ -504,6 +515,28 @@ export default function Admin() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Setup Wizard Dialog */}
+            <Dialog open={showWizard} onOpenChange={setShowWizard}>
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-slate-950 border-slate-700">
+                    <RPCSetupWizard 
+                        onComplete={(wizardConfig) => {
+                            setShowWizard(false);
+                            setNewConfig({
+                                name: wizardConfig.name || 'Wizard Config',
+                                connection_type: 'rpc',
+                                host: wizardConfig.host || wizardConfig.rpcbind || '127.0.0.1',
+                                port: wizardConfig.port || wizardConfig.rpcport || '9766',
+                                username: wizardConfig.username || wizardConfig.rpcuser || '',
+                                password: wizardConfig.password || wizardConfig.rpcpassword || '',
+                                use_ssl: false
+                            });
+                            setShowNewConfig(true);
+                            toast.success('Configuration ready - review and save below');
+                        }}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
