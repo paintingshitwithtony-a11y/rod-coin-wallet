@@ -65,7 +65,7 @@ export default function NgrokPersistenceGuide() {
                                         <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">2</div>
                                         <h3 className="text-white font-semibold">Create Batch Script</h3>
                                     </div>
-                                    <p className="text-sm text-slate-400 mb-3">Create a file called <code className="bg-slate-950 px-2 py-1 rounded text-green-400">start-ngrok.bat</code></p>
+                                    <p className="text-sm text-slate-400 mb-3">Create a file called <code className="bg-slate-950 px-2 py-1 rounded text-green-400">start-ngrok.bat</code> in a permanent location</p>
                                     <div className="relative group">
                                         <pre className="bg-slate-950 text-green-400 p-4 rounded-lg text-xs font-mono overflow-x-auto border border-green-500/20">
 {`@echo off
