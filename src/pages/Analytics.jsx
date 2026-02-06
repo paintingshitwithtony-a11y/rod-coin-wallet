@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import {
     TrendingUp, TrendingDown, Activity, DollarSign, ArrowUpRight,
-    ArrowDownLeft, Calendar, Zap, Database, Network, ArrowLeft, RefreshCw, Wallet
+    ArrowDownLeft, Calendar, Zap, Database, Network, ArrowLeft, Wallet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -25,16 +25,11 @@ export default function Analytics() {
      const [loading, setLoading] = useState(true);
      const [networkStats, setNetworkStats] = useState(null);
      const [timeRange, setTimeRange] = useState('30d');
-     const [rodPrice, setRodPrice] = useState(null);
      const [allWalletsBalance, setAllWalletsBalance] = useState(0);
 
     useEffect(() => {
         loadData();
         fetchNetworkStats();
-        fetchRODPrice();
-
-        // Auto-refresh price every 30 seconds
-        const priceInterval = setInterval(fetchRODPrice, 30000);
 
         // Subscribe to account updates for real-time balance
         const savedSession = localStorage.getItem('rod_wallet_session');
@@ -47,25 +42,9 @@ export default function Analytics() {
             });
             return () => {
                 unsubscribe();
-                clearInterval(priceInterval);
             };
         }
-
-        return () => clearInterval(priceInterval);
     }, []);
-
-    const fetchRODPrice = async () => {
-        try {
-            const response = await base44.functions.invoke('getRODPrice', {});
-            if (response.data.success && response.data.price) {
-                setRodPrice(response.data.price);
-            }
-        } catch (err) {
-            console.error('Failed to fetch ROD price:', err);
-            // Fallback to last known price
-            setRodPrice(0.00049952);
-        }
-    };
 
     const loadData = async () => {
         setLoading(true);
@@ -282,21 +261,6 @@ export default function Analytics() {
                                         <p className="text-lg font-bold text-purple-400">
                                             {account ? account.balance.toFixed(4) : '0.0000'} ROD
                                         </p>
-                                        {account && rodPrice && (
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <p className="text-xs text-green-400">
-                                                    ≈ ${(account.balance * rodPrice).toFixed(2)} USD
-                                                </p>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={fetchRODPrice}
-                                                    className="h-5 w-5 text-slate-400 hover:text-green-400"
-                                                    title="Refresh ROD price">
-                                                    <RefreshCw className="w-3 h-3" />
-                                                </Button>
-                                            </div>
-                                        )}
                                     </div>
                                     <Wallet className="w-8 h-8 text-purple-400/50" />
                                 </div>
