@@ -9,66 +9,107 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get RPC credentials from environment
-        const rpcHost = Deno.env.get('ROD_RPC_HOST');
-        const rpcPort = Deno.env.get('ROD_RPC_PORT');
-        const rpcUsername = Deno.env.get('ROD_RPC_USERNAME');
-        const rpcPassword = Deno.env.get('ROD_RPC_PASSWORD');
-
-        if (!rpcHost || !rpcPort || !rpcUsername || !rpcPassword) {
-            return Response.json({ error: 'RPC not configured', success: false }, { status: 500 });
+        // Get user's wallet account
+        let accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        
+        if (accounts.length === 0) {
+            accounts = await base44.entities.WalletAccount.filter({ id: user.id });
         }
 
-        const rpcUrl = `http://${rpcHost}:${rpcPort}`;
-        const auth = btoa(`${rpcUsername}:${rpcPassword}`);
+        if (accounts.length === 0) {
+            return Response.json({ 
+                success: false,
+                error: 'Wallet not found'
+            }, { status: 404 });
+        }
 
-        // Get wallet info
-        const response = await fetch(rpcUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${auth}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: '1',
-                method: 'getwalletinfo',
-                params: []
-            })
+        const account = accounts[0];
+
+        // Get active RPC configuration
+        const configs = await base44.entities.RPCConfiguration.filter({
+            account_id: account.id,
+            is_active: true
         });
 
-        if (!response.ok) {
+        if (configs.length === 0) {
             return Response.json({ 
-                error: `RPC error: ${response.statusText}`, 
-                success: false 
-            }, { status: 500 });
+                success: false,
+                error: 'No active RPC configuration'
+            }, { status: 400 });
         }
 
-        const data = await response.json();
+        const config = configs[0];
 
-        if (data.error) {
-            return Response.json({ 
-                error: data.error.message, 
-                success: false 
-            }, { status: 500 });
+        // Build RPC URL
+        const protocol = config.use_ssl ? 'https' : 'http';
+        const rpcUrl = !config.port || config.port === ''
+            ? `${protocol}://${config.host}`
+            : `${protocol}://${config.host}:${config.port}`;
+
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (config.connection_type === 'api' && config.api_key) {
+            headers['X-API-Key'] = config.api_key;
+        } else if (config.connection_type === 'rpc' && config.username && config.password) {
+            headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
-
-        if (data.result && data.result.balance !== undefined) {
-            return Response.json({ 
-                success: true, 
-                balance: data.result.balance 
+        
+        try {
+            const rpcResponse = await fetch(rpcUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: 'getBalance',
+                    method: 'getwalletinfo',
+                    params: []
+                }),
+                signal: AbortSignal.timeout(15000)
             });
+
+            if (!rpcResponse.ok) {
+                return Response.json({ 
+                    success: false,
+                    error: 'RPC connection failed'
+                }, { status: 500 });
+            }
+
+            const rpcData = await rpcResponse.json();
+            
+            if (rpcData.error) {
+                return Response.json({ 
+                    success: false,
+                    error: rpcData.error.message
+                }, { status: 500 });
+            }
+
+            if (rpcData.result && rpcData.result.balance !== undefined) {
+                return Response.json({ 
+                    success: true, 
+                    balance: rpcData.result.balance 
+                });
+            }
+
+            return Response.json({ 
+                success: false,
+                error: 'Invalid RPC response'
+            }, { status: 500 });
+
+        } catch (err) {
+            return Response.json({ 
+                success: false,
+                error: 'RPC connection timeout or unreachable'
+            }, { status: 500 });
         }
 
-        return Response.json({ 
-            error: 'Invalid RPC response', 
-            success: false 
-        }, { status: 500 });
     } catch (error) {
         console.error('getRPCBalance error:', error);
         return Response.json({ 
-            error: error.message, 
-            success: false 
+            success: false,
+            error: error.message || 'Unknown error'
         }, { status: 500 });
     }
 });
