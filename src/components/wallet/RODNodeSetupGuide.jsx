@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
     Server, Globe, Shield, Terminal, CheckCircle2, 
-    AlertTriangle, Copy, ExternalLink, Network, Lock, Smartphone
+    AlertTriangle, Copy, ExternalLink, Network, Lock, Smartphone, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 
