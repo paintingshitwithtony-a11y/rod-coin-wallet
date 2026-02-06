@@ -67,6 +67,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [showConfEditor, setShowConfEditor] = useState(false);
+  const [lastImportTime, setLastImportTime] = useState(0);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -273,10 +274,21 @@ export default function WalletDashboard({ account, onLogout }) {
       // Silently fail
     }};
   const importAllAddresses = async (showToast = false) => {
+    // Only allow imports once every 3 minutes (180000 ms)
+    const now = Date.now();
+    if (now - lastImportTime < 180000) {
+      if (showToast) {
+        const secondsLeft = Math.ceil((180000 - (now - lastImportTime)) / 1000);
+        toast.info(`Import available again in ${secondsLeft}s`, { duration: 3000 });
+      }
+      return;
+    }
+
     try {
       const response = await base44.functions.invoke('importAllAddresses', {});
 
       if (response.data.imported > 0) {
+        setLastImportTime(now);
         if (showToast) {
           toast.success(`Imported ${response.data.imported} address(es) to RPC node`);
         }
