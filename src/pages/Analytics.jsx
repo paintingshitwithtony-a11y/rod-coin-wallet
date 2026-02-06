@@ -354,15 +354,15 @@ export default function Analytics() {
 
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                          <Card className="bg-gradient-to-br from-blue-500/10 to-slate-900/80 border-blue-500/30">
-                             <CardContent className="p-4">
+                             <CardContent className="p-3">
                                  <div className="flex items-center justify-between">
                                      <div>
-                                         <p className="text-xs text-slate-400 mb-1">Avg Transaction</p>
-                                         <p className="text-xl font-bold text-blue-400">
+                                         <p className="text-xs text-slate-400 mb-0.5">Avg Transaction</p>
+                                         <p className="text-lg font-bold text-blue-400">
                                              {avgTxSize.toFixed(4)} ROD
                                          </p>
                                      </div>
-                                     <DollarSign className="w-8 h-8 text-blue-400/50" />
+                                     <DollarSign className="w-7 h-7 text-blue-400/50" />
                                  </div>
                              </CardContent>
                          </Card>
