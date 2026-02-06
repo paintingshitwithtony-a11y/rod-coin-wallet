@@ -20,12 +20,13 @@ import { createPageUrl } from '@/utils';
 const COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899'];
 
 export default function Analytics() {
-    const [account, setAccount] = useState(null);
-    const [transactions, setTransactions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [networkStats, setNetworkStats] = useState(null);
-    const [timeRange, setTimeRange] = useState('30d');
-    const [rodPrice, setRodPrice] = useState(null);
+     const [account, setAccount] = useState(null);
+     const [transactions, setTransactions] = useState([]);
+     const [loading, setLoading] = useState(true);
+     const [networkStats, setNetworkStats] = useState(null);
+     const [timeRange, setTimeRange] = useState('30d');
+     const [rodPrice, setRodPrice] = useState(null);
+     const [allWalletsBalance, setAllWalletsBalance] = useState(0);
 
     useEffect(() => {
         loadData();

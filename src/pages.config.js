@@ -49,20 +49,20 @@
  */
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
+import NgrokSetupGuide from './pages/NgrokSetupGuide';
 import RPCMonitor from './pages/RPCMonitor';
 import SecuritySettings from './pages/SecuritySettings';
 import Wallet from './pages/Wallet';
-import NgrokSetupGuide from './pages/NgrokSetupGuide';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Admin": Admin,
     "Analytics": Analytics,
+    "NgrokSetupGuide": NgrokSetupGuide,
     "RPCMonitor": RPCMonitor,
     "SecuritySettings": SecuritySettings,
     "Wallet": Wallet,
-    "NgrokSetupGuide": NgrokSetupGuide,
 }
 
 export const pagesConfig = {
