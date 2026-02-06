@@ -134,7 +134,15 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                     params: [wallet.wallet_address, 0]
                 });
                 if (response.data.success) {
-                    balances[wallet.wallet_address] = response.data.result || 0;
+                    const rpcBalance = response.data.result || 0;
+                    balances[wallet.wallet_address] = rpcBalance;
+                    
+                    // Update database to match RPC balance
+                    if (wallet.id === 'main-account') {
+                        await base44.entities.WalletAccount.update(account.id, { balance: rpcBalance });
+                    } else if (!wallet.id.startsWith('address-')) {
+                        await base44.entities.Wallet.update(wallet.id, { balance: rpcBalance });
+                    }
                 }
             } catch (err) {
                 console.error(`Failed to fetch RPC balance for ${wallet.wallet_address}:`, err);
