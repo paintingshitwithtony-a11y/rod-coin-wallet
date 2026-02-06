@@ -408,7 +408,7 @@ export default function WalletDashboard({ account, onLogout }) {
       );
       console.log('Transactions fetched:', txs.length);
 
-      // Format transactions for display
+      // Format transactions for display and include wallet_id and wallet_address for filtering
       const formattedTxs = txs.map((tx) => ({
         id: tx.id,
         type: tx.type,
@@ -416,7 +416,9 @@ export default function WalletDashboard({ account, onLogout }) {
         address: tx.address.slice(0, 8) + '...' + tx.address.slice(-6),
         confirmations: tx.confirmations,
         timestamp: tx.created_date,
-        status: tx.status
+        status: tx.status,
+        wallet_id: tx.wallet_id,
+        wallet_address: tx.wallet_address
       }));
 
       setTransactions(formattedTxs);
