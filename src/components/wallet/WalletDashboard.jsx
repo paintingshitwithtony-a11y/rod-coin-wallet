@@ -45,6 +45,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAdmin, setIsAdmin] = useState(false);
 
 
   const [rpcConnected, setRpcConnected] = useState(null);
