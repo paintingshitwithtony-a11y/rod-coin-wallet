@@ -463,54 +463,62 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const fetchWalletData = async () => {
-    setLoading(true);
-    try {
-      console.log('=== FETCHING WALLET DATA ===');
-      console.log('Account ID:', account.id);
-      console.log('Current Wallet:', currentWallet?.name, currentWallet?.id);
+     setLoading(true);
+     try {
+       console.log('=== FETCHING WALLET DATA ===');
+       console.log('Account ID:', account.id);
+       console.log('Current Wallet:', currentWallet?.name, currentWallet?.id);
 
-      // Fetch actual transactions from database - filtered by current wallet
-      let txs;
-      if (currentWallet) {
-        if (currentWallet.id === 'main-account') {
-          // Main wallet: transactions with no wallet_id OR matching main wallet address
-          txs = await base44.entities.Transaction.filter(
-            { 
-              account_id: account.id,
-              wallet_address: currentWallet.wallet_address
-            },
-            '-created_date',
-            50
-          );
-        } else if (currentWallet.id.startsWith('address-')) {
-          // Virtual address wallet: filter by wallet_address
-          txs = await base44.entities.Transaction.filter(
-            { 
-              account_id: account.id,
-              wallet_address: currentWallet.wallet_address
-            },
-            '-created_date',
-            50
-          );
-        } else {
-          // Other wallets: transactions matching wallet_id
-          txs = await base44.entities.Transaction.filter(
-            { 
-              account_id: account.id,
-              wallet_id: currentWallet.id
-            },
-            '-created_date',
-            50
-          );
-        }
-      } else {
-        // No wallet selected, fetch all
-        txs = await base44.entities.Transaction.filter(
-          { account_id: account.id },
-          '-created_date',
-          50
-        );
-      }
+       // Fetch ALL account transactions for summary stats
+       const allTxs = await base44.entities.Transaction.filter(
+         { account_id: account.id },
+         '-created_date',
+         1000
+       );
+       setAllAccountTransactions(allTxs);
+
+       // Fetch actual transactions from database - filtered by current wallet
+       let txs;
+       if (currentWallet) {
+         if (currentWallet.id === 'main-account') {
+           // Main wallet: transactions with no wallet_id OR matching main wallet address
+           txs = await base44.entities.Transaction.filter(
+             { 
+               account_id: account.id,
+               wallet_address: currentWallet.wallet_address
+             },
+             '-created_date',
+             50
+           );
+         } else if (currentWallet.id.startsWith('address-')) {
+           // Virtual address wallet: filter by wallet_address
+           txs = await base44.entities.Transaction.filter(
+             { 
+               account_id: account.id,
+               wallet_address: currentWallet.wallet_address
+             },
+             '-created_date',
+             50
+           );
+         } else {
+           // Other wallets: transactions matching wallet_id
+           txs = await base44.entities.Transaction.filter(
+             { 
+               account_id: account.id,
+               wallet_id: currentWallet.id
+             },
+             '-created_date',
+             50
+           );
+         }
+       } else {
+         // No wallet selected, fetch all
+         txs = await base44.entities.Transaction.filter(
+           { account_id: account.id },
+           '-created_date',
+           50
+         );
+       }
       
       console.log('Transactions fetched for wallet:', txs.length);
 
