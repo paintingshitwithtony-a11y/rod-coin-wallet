@@ -70,6 +70,8 @@ export default function WalletDashboard({ account, onLogout }) {
   const [showConfEditor, setShowConfEditor] = useState(false);
   const [lastImportTime, setLastImportTime] = useState(0);
   const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
+  const [walletUnlocked, setWalletUnlocked] = useState(false);
+  const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -291,6 +293,26 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const checkWalletUnlockStatus = async () => {
+    if (!rpcConnected) return;
+    
+    try {
+      setCheckingUnlockStatus(true);
+      const response = await base44.functions.invoke('executeRPCCommand', {
+        method: 'getwalletinfo',
+        params: []
+      });
+      
+      if (response.data && response.data.result) {
+        setWalletUnlocked(!response.data.result.unlocked_until || response.data.result.unlocked_until > 0);
+      }
+    } catch (err) {
+      console.error('Failed to check unlock status:', err);
+    } finally {
+      setCheckingUnlockStatus(false);
+    }
+  };
+
   const checkRPCStatus = async (isRetry = false) => {
     try {
       const response = await base44.functions.invoke('checkRPCStatus', {});
@@ -308,6 +330,9 @@ export default function WalletDashboard({ account, onLogout }) {
         if (isRetry) {
           toast.success('RPC connection restored!');
         }
+        
+        // Check wallet unlock status after RPC connects
+        setTimeout(() => checkWalletUnlockStatus(), 500);
       } else {
         setRpcConnected(false);
         setRpcNodeInfo(null);
@@ -744,6 +769,18 @@ export default function WalletDashboard({ account, onLogout }) {
                 rpcConnected ? 'RPC OK' : 'RPC Off'}
                                 </Badge>
               }
+                            {rpcConnected && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  walletUnlocked
+                                    ? 'border-green-500/50 text-green-400'
+                                    : 'border-red-500/50 text-red-400'
+                                }`}>
+                                <Unlock className="w-3 h-3 mr-1" />
+                                {walletUnlocked ? 'Unlocked' : 'Locked'}
+                              </Badge>
+                            )}
                             {!isMobile &&
               <span className="text-xs text-slate-400 hidden md:inline">
                                     {account?.email}
