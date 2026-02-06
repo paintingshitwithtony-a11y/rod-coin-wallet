@@ -42,6 +42,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
   const [addresses, setAddresses] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [allAccountTransactions, setAllAccountTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
