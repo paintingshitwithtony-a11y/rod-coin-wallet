@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         let imported = 0;
         let skipped = 0;
 
-        // Import ALL transactions (10000 limit)
+        // Import ALL transactions (limit to 1000 to avoid timeout)
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -75,14 +75,18 @@ Deno.serve(async (req) => {
                 jsonrpc: '1.0',
                 id: 'importFullHistory',
                 method: 'listtransactions',
-                params: ['*', 10000, 0, true]
-            })
+                params: ['*', 1000, 0, true]
+            }),
+            signal: AbortSignal.timeout(30000) // 30 second timeout
         });
 
         if (!rpcResponse.ok) {
+            const errorText = await rpcResponse.text();
+            console.error('RPC Error:', errorText);
             return Response.json({ 
                 error: 'RPC request failed',
-                status: rpcResponse.status
+                status: rpcResponse.status,
+                details: errorText
             }, { status: 500 });
         }
 
