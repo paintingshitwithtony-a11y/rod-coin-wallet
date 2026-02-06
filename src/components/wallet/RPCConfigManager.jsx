@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson, Link
+    Trash2, RefreshCw, Activity, Server, Wifi, WifiOff, Terminal, Copy, Upload, Edit, Download, FileJson, Link, Settings, Shield
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -56,6 +56,16 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         usernames: '__cookie__, roduser, rod',
         passwords: ', rodpassword, rod'
     });
+    const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+    const [advancedSettings, setAdvancedSettings] = useState({
+        enable_listtransactions: true,
+        enable_listreceivedbyaddress: true,
+        enable_gettransaction: true,
+        enable_sendtoaddress: true,
+        enable_importaddress: true,
+        custom_timeout: 30,
+        max_connections: 10
+    });
 
     useEffect(() => {
         loadConfigurations();
@@ -66,6 +76,15 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 setScanConfig(JSON.parse(saved));
             } catch (e) {
                 // Invalid saved config, ignore
+            }
+        }
+        // Load saved advanced settings
+        const savedAdvanced = localStorage.getItem('rod_advanced_rpc_settings');
+        if (savedAdvanced) {
+            try {
+                setAdvancedSettings(JSON.parse(savedAdvanced));
+            } catch (e) {
+                // Invalid saved settings, ignore
             }
         }
     }, []);
@@ -722,7 +741,183 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             <Activity className="w-4 h-4 mr-2" />
                             Port Checker
                         </Button>
+                        <Button
+                            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                            variant="outline"
+                            className="border-red-600 text-red-400 hover:bg-red-600/10"
+                        >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Advanced
+                        </Button>
                     </div>
+
+                    {/* Advanced RPC Settings */}
+                    {showAdvancedSettings && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="p-4 rounded-lg bg-gradient-to-br from-red-900/20 to-orange-900/20 border border-red-500/30 space-y-4"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Settings className="w-5 h-5 text-red-400" />
+                                <h4 className="text-white font-medium">Advanced RPC Settings</h4>
+                            </div>
+
+                            <Alert className="bg-red-500/10 border-red-500/30">
+                                <Shield className="h-4 w-4 text-red-400" />
+                                <AlertDescription className="text-red-300/80 text-sm">
+                                    <strong>⚠️ Warning:</strong> These settings control which RPC methods are allowed. 
+                                    Disabling methods can break wallet functionality. Only modify if you understand the implications.
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="space-y-4">
+                                <div className="space-y-3">
+                                    <h5 className="text-white font-medium text-sm">RPC Method Permissions</h5>
+                                    
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                        <div className="flex-1">
+                                            <Label className="text-slate-300 text-sm font-medium">listtransactions</Label>
+                                            <p className="text-xs text-slate-500 mt-1">Required for transaction history and "Import Full History" feature</p>
+                                        </div>
+                                        <Switch
+                                            checked={advancedSettings.enable_listtransactions}
+                                            onCheckedChange={(checked) => setAdvancedSettings({ ...advancedSettings, enable_listtransactions: checked })}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                        <div className="flex-1">
+                                            <Label className="text-slate-300 text-sm font-medium">listreceivedbyaddress</Label>
+                                            <p className="text-xs text-slate-500 mt-1">Required for checking deposits and receiving payments</p>
+                                        </div>
+                                        <Switch
+                                            checked={advancedSettings.enable_listreceivedbyaddress}
+                                            onCheckedChange={(checked) => setAdvancedSettings({ ...advancedSettings, enable_listreceivedbyaddress: checked })}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                        <div className="flex-1">
+                                            <Label className="text-slate-300 text-sm font-medium">gettransaction</Label>
+                                            <p className="text-xs text-slate-500 mt-1">Required for viewing transaction details</p>
+                                        </div>
+                                        <Switch
+                                            checked={advancedSettings.enable_gettransaction}
+                                            onCheckedChange={(checked) => setAdvancedSettings({ ...advancedSettings, enable_gettransaction: checked })}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                        <div className="flex-1">
+                                            <Label className="text-slate-300 text-sm font-medium">sendtoaddress</Label>
+                                            <p className="text-xs text-slate-500 mt-1">Required for sending payments (⚠️ Critical for wallet functionality)</p>
+                                        </div>
+                                        <Switch
+                                            checked={advancedSettings.enable_sendtoaddress}
+                                            onCheckedChange={(checked) => setAdvancedSettings({ ...advancedSettings, enable_sendtoaddress: checked })}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
+                                        <div className="flex-1">
+                                            <Label className="text-slate-300 text-sm font-medium">importaddress</Label>
+                                            <p className="text-xs text-slate-500 mt-1">Required for importing wallet addresses to RPC node</p>
+                                        </div>
+                                        <Switch
+                                            checked={advancedSettings.enable_importaddress}
+                                            onCheckedChange={(checked) => setAdvancedSettings({ ...advancedSettings, enable_importaddress: checked })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h5 className="text-white font-medium text-sm">Connection Settings</h5>
+                                    
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300 text-sm">Request Timeout (seconds)</Label>
+                                        <Input
+                                            type="number"
+                                            value={advancedSettings.custom_timeout}
+                                            onChange={(e) => setAdvancedSettings({ ...advancedSettings, custom_timeout: parseInt(e.target.value) || 30 })}
+                                            min="5"
+                                            max="300"
+                                            className="bg-slate-900 border-slate-600"
+                                        />
+                                        <p className="text-xs text-slate-500">Timeout for RPC requests (5-300 seconds)</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300 text-sm">Max Concurrent Connections</Label>
+                                        <Input
+                                            type="number"
+                                            value={advancedSettings.max_connections}
+                                            onChange={(e) => setAdvancedSettings({ ...advancedSettings, max_connections: parseInt(e.target.value) || 10 })}
+                                            min="1"
+                                            max="50"
+                                            className="bg-slate-900 border-slate-600"
+                                        />
+                                        <p className="text-xs text-slate-500">Maximum number of simultaneous RPC connections (1-50)</p>
+                                    </div>
+                                </div>
+
+                                <Alert className="bg-amber-500/10 border-amber-500/30">
+                                    <AlertCircle className="h-4 w-4 text-amber-400" />
+                                    <AlertDescription className="text-amber-300/80 text-xs">
+                                        <strong>Note:</strong> These settings are stored locally and affect how the wallet interacts with the RPC node. 
+                                        Your node's own configuration may override some of these settings.
+                                    </AlertDescription>
+                                </Alert>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => {
+                                            localStorage.setItem('rod_advanced_rpc_settings', JSON.stringify(advancedSettings));
+                                            toast.success('Advanced settings saved');
+                                        }}
+                                        className="flex-1 bg-green-600 hover:bg-green-700"
+                                    >
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Save Settings
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            const defaultSettings = {
+                                                enable_listtransactions: true,
+                                                enable_listreceivedbyaddress: true,
+                                                enable_gettransaction: true,
+                                                enable_sendtoaddress: true,
+                                                enable_importaddress: true,
+                                                custom_timeout: 30,
+                                                max_connections: 10
+                                            };
+                                            setAdvancedSettings(defaultSettings);
+                                            localStorage.setItem('rod_advanced_rpc_settings', JSON.stringify(defaultSettings));
+                                            toast.success('Reset to defaults');
+                                        }}
+                                        variant="outline"
+                                        className="border-slate-600 text-slate-300"
+                                    >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Reset Defaults
+                                    </Button>
+                                </div>
+
+                                <Alert className="bg-red-500/10 border-red-500/30">
+                                    <Shield className="h-4 w-4 text-red-400" />
+                                    <AlertDescription className="text-red-300/80 text-xs">
+                                        <strong>Security Note:</strong>
+                                        <ul className="list-disc list-inside mt-2 space-y-1">
+                                            <li>Disabling <code className="text-amber-400">sendtoaddress</code> will prevent sending transactions</li>
+                                            <li>Disabling <code className="text-amber-400">listtransactions</code> will break transaction history</li>
+                                            <li>Only disable methods if your RPC provider restricts them</li>
+                                            <li>Changes take effect immediately for new connections</li>
+                                        </ul>
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Port Checker */}
                     {showPortChecker && (
