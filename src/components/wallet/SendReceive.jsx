@@ -74,7 +74,15 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 balance: freshAccount.balance || 0
             };
 
-            const allWallets = [mainWallet, ...wallets];
+            // Include additional addresses as selectable wallets
+            const additionalAddressWallets = (freshAccount.additional_addresses || []).map((addr, i) => ({
+                id: `address-${addr.address}`,
+                name: addr.label || `Address ${i + 1}`,
+                wallet_address: addr.address,
+                balance: 0 // Balance will be fetched from transactions if needed
+            }));
+
+            const allWallets = [mainWallet, ...wallets, ...additionalAddressWallets];
             setMyWallets(allWallets);
             
             // Set default selected wallet
