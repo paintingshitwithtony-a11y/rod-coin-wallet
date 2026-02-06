@@ -51,6 +51,9 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             loadContacts();
             loadMyWallets();
         }
+        return () => {
+            if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
+        };
     }, [mode, account]);
 
     // Update main wallet balance when parent updates
