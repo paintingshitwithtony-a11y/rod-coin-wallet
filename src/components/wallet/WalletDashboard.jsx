@@ -26,6 +26,7 @@ import NetworkActivityDashboard from './NetworkActivityDashboard';
 import RPCConsole from './RPCConsole';
 import RODConfEditor from './RODConfEditor';
 import NodeStatusCard from './NodeStatusCard';
+import DashboardRPCConsole from './DashboardRPCConsole';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
