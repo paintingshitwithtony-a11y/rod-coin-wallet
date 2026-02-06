@@ -107,13 +107,9 @@ Deno.serve(async (req) => {
         console.log('Internal Transfer:', isInternalTransfer);
 
         // Send transaction via ROD Core RPC
-        // Determine if HTTPS is needed (ngrok URLs need HTTPS)
-        const isNgrokUrl = rpcHost.includes('ngrok');
-        const protocol = isNgrokUrl ? 'https' : 'http';
+        const protocol = rpcPort === '443' || rpcPort === 443 ? 'https' : 'http';
         const rpcUrl = `${protocol}://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
-        
-        console.log('RPC Connection URL:', rpcUrl);
         
         // If sending from specific wallet, verify it's imported to RPC first - auto-import if needed
         if (fromAddress) {
