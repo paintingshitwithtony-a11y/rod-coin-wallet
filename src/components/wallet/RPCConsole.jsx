@@ -303,7 +303,7 @@ Provide a brief, clear explanation of what this output means and any important i
                 <div>
                     <p className="text-xs text-slate-400 mb-2">Quick Commands:</p>
                     <div className="flex flex-wrap gap-2">
-                        {commonCommands.map((cmd, i) => (
+                        {getCommonCommands().map((cmd, i) => (
                             <Button
                                 key={i}
                                 variant="outline"
