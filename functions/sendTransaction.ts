@@ -209,8 +209,7 @@ Deno.serve(async (req) => {
             console.log('Receive transaction recorded:', receiveTransaction.id);
             
             // Update recipient wallet balance
-            if (recipientWalletId) {
-                const recipientWallet = recipientWallets[0];
+            if (recipientWalletId && recipientWallet) {
                 const newRecipientBalance = (recipientWallet.balance || 0) + amount;
                 await base44.asServiceRole.entities.Wallet.update(recipientWallet.id, {
                     balance: newRecipientBalance
@@ -230,20 +229,12 @@ Deno.serve(async (req) => {
         console.log('Balance updated:', currentBalance, '->', newBalance);
         
         // Also update individual wallet balance if sending from specific wallet
-        if (fromAddress) {
-            const wallets = await base44.entities.Wallet.filter({
-                account_id: account.id,
-                wallet_address: fromAddress
+        if (fromAddress && senderWallet) {
+            const newWalletBalance = (senderWallet.balance || 0) - amount - fee;
+            await base44.asServiceRole.entities.Wallet.update(senderWallet.id, {
+                balance: newWalletBalance
             });
-            
-            if (wallets.length > 0) {
-                const wallet = wallets[0];
-                const newWalletBalance = (wallet.balance || 0) - amount - fee;
-                await base44.asServiceRole.entities.Wallet.update(wallet.id, {
-                    balance: newWalletBalance
-                });
-                console.log('Wallet balance updated:', wallet.balance, '->', newWalletBalance);
-            }
+            console.log('Wallet balance updated:', senderWallet.balance, '->', newWalletBalance);
         }
 
         return Response.json({ 
