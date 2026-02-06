@@ -88,12 +88,18 @@ export default function Analytics() {
                 );
                 setTransactions(txs);
 
-                // Fetch all wallets and sum their RPC balances
-                const wallets = await base44.entities.Wallet.filter(
-                    { account_id: accounts[0].id }
-                );
-                const totalBalance = accounts[0].balance + wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
-                setAllWalletsBalance(totalBalance);
+                // Fetch RPC balance for all wallets
+                try {
+                    const rpcBalResponse = await base44.functions.invoke('getRPCBalance', {});
+                    if (rpcBalResponse.data.success) {
+                        setAllWalletsBalance(rpcBalResponse.data.balance);
+                    } else {
+                        setAllWalletsBalance(0);
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch RPC balance:', err);
+                    setAllWalletsBalance(0);
+                }
             }
         } catch (err) {
             toast.error('Failed to load data');
