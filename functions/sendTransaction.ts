@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         const rpcUrl = `http://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
         
-        // If sending from specific wallet, verify it's imported to RPC first
+        // If sending from specific wallet, verify it's imported to RPC first - auto-import if needed
         if (fromAddress) {
             console.log('Verifying address is imported:', fromAddress);
             
@@ -117,9 +117,36 @@ Deno.serve(async (req) => {
             console.log('Address validation:', validateData.result);
             
             if (!validateData.result?.ismine) {
-                return Response.json({ 
-                    error: 'Address not imported to RPC node. Please import it first using "Import to Chain" button.'
-                }, { status: 400 });
+                console.log('Address not imported. Auto-importing:', fromAddress);
+                
+                // Get private key from wallet and import to RPC
+                const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
+                if (senderWallet?.encrypted_private_key) {
+                    try {
+                        const importResponse = await fetch(rpcUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Basic ${rpcAuth}`
+                            },
+                            body: JSON.stringify({
+                                jsonrpc: '1.0',
+                                id: 'importAddress',
+                                method: 'importaddress',
+                                params: [fromAddress, 'imported-wallet', false]
+                            })
+                        });
+                        
+                        const importData = await importResponse.json();
+                        if (importData.error) {
+                            console.error('Auto-import failed:', importData.error);
+                        } else {
+                            console.log('Address auto-imported successfully');
+                        }
+                    } catch (importErr) {
+                        console.error('Failed to auto-import address:', importErr);
+                    }
+                }
             }
         }
         
