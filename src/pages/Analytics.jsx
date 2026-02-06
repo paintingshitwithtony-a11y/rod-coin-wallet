@@ -80,13 +80,20 @@ export default function Analytics() {
             const accounts = await base44.entities.WalletAccount.filter({ id: session.id });
             if (accounts.length > 0) {
                 setAccount(accounts[0]);
-                
+
                 const txs = await base44.entities.Transaction.filter(
                     { account_id: accounts[0].id },
                     '-created_date',
                     1000
                 );
                 setTransactions(txs);
+
+                // Fetch all wallets and sum their RPC balances
+                const wallets = await base44.entities.Wallet.filter(
+                    { account_id: accounts[0].id }
+                );
+                const totalBalance = accounts[0].balance + wallets.reduce((sum, w) => sum + (w.balance || 0), 0);
+                setAllWalletsBalance(totalBalance);
             }
         } catch (err) {
             toast.error('Failed to load data');
