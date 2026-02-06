@@ -1,12 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+let lastBalance = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 30000; // 30 seconds
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
 
         if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+            return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Return cached balance if still fresh
+        const now = Date.now();
+        if (lastBalance !== null && (now - lastFetchTime) < CACHE_DURATION) {
+            return Response.json({
+                success: true,
+                balance: lastBalance,
+                cached: true
+            });
         }
 
         const rpcHost = Deno.env.get('ROD_RPC_HOST');
@@ -55,17 +69,30 @@ Deno.serve(async (req) => {
         const received = await makeRPCCall('getreceivedbyaddress', [address, 0]);
         const sent = await makeRPCCall('getsentbyaddress', [address]);
         
-        const balance = received - sent;
+        const balance = Math.max(0, received - sent);
+
+        // Cache the balance
+        lastBalance = balance;
+        lastFetchTime = now;
 
         return Response.json({
             success: true,
-            balance: balance > 0 ? balance : 0,
+            balance: balance,
             address: address,
             received: received,
             sent: sent
         });
     } catch (error) {
         console.error('getRPCBalance error:', error);
+        // Return cached balance if fetch fails
+        if (lastBalance !== null) {
+            return Response.json({
+                success: true,
+                balance: lastBalance,
+                cached: true,
+                error: 'Using cached balance: ' + error.message
+            });
+        }
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
