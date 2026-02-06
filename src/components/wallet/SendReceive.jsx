@@ -350,7 +350,11 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             )}
                             <Select 
                                 value={selectedFromWallet?.id} 
+                                disabled={!canSwitch}
                                 onValueChange={async (id) => {
+                                    if (!canSwitch) return;
+
+                                    setCanSwitch(false);
                                     const wallet = myWallets.find(w => w.id === id);
                                     setSelectedFromWallet(wallet);
 
@@ -370,6 +374,10 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                             console.error('Failed to update wallet status:', err);
                                         }
                                     }
+
+                                    // Re-enable switching after 2 seconds
+                                    if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
+                                    switchTimeoutRef.current = setTimeout(() => setCanSwitch(true), 2000);
                                 }}
                             >
                                 <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
