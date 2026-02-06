@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-const getRPCBalance = async (address) => {
+const makeRPCCall = async (method, params) => {
     const rpcHost = Deno.env.get('ROD_RPC_HOST');
     const rpcPort = Deno.env.get('ROD_RPC_PORT');
     const rpcUsername = Deno.env.get('ROD_RPC_USERNAME');
@@ -22,19 +22,31 @@ const getRPCBalance = async (address) => {
         body: JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
-            method: 'getaddressbalance',
-            params: [address]
+            method: method,
+            params: params
         })
     });
 
     const data = await response.json();
     
     if (data.error) {
-        console.error(`RPC error for address ${address}:`, data.error);
-        return null;
+        throw new Error(data.error.message || 'RPC error');
     }
 
-    return data.result?.balance || 0;
+    return data.result;
+};
+
+const getRPCBalance = async (address) => {
+    try {
+        const received = await makeRPCCall('getreceivedbyaddress', [address, 0]);
+        const sent = await makeRPCCall('getsentbyaddress', [address]);
+        
+        const balance = received - sent;
+        return balance > 0 ? balance : 0;
+    } catch (err) {
+        console.error(`RPC balance calculation error for address ${address}:`, err);
+        return null;
+    }
 };
 
 Deno.serve(async (req) => {
