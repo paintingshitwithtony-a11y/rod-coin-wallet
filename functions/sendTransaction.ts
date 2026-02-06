@@ -162,28 +162,6 @@ Deno.serve(async (req) => {
             }
         }
         
-        // Unlock wallet before sending (ROD wallet requires this)
-        const unlockResponse = await fetch(rpcUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${rpcAuth}`
-            },
-            body: JSON.stringify({
-                jsonrpc: '1.0',
-                id: 'unlock',
-                method: 'walletpassphrase',
-                params: [rpcPass, 300]
-            })
-        });
-        
-        const unlockData = await unlockResponse.json();
-        if (unlockData.error) {
-            console.log('Wallet unlock warning:', unlockData.error.message);
-        } else {
-            console.log('Wallet unlocked for transaction');
-        }
-
         // Always use sendtoaddress (sendfrom is deprecated and doesn't work properly)
         const rpcMethod = 'sendtoaddress';
         const rpcParams = [recipient, amount, memo || '', '', false];
