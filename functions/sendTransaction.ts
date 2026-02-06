@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         }
 
         const rpcConfig = rpcConfigs[0];
-        const rpcHost = rpcConfig.host;
+        let rpcHost = rpcConfig.host;
         const rpcPort = rpcConfig.port;
         const rpcUser = rpcConfig.username;
         const rpcPass = rpcConfig.password;
@@ -72,6 +72,9 @@ Deno.serve(async (req) => {
                 error: 'RPC credentials incomplete. Please check your RPC configuration.'
             }, { status: 500 });
         }
+
+        // Strip protocol if included in host
+        rpcHost = rpcHost.replace(/^https?:\/\//, '');
 
         // Determine actual sender wallet for balance check
         const senderAddress = fromAddress || account.wallet_address;
