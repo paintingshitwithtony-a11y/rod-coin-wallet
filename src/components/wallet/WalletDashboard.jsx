@@ -147,13 +147,25 @@ export default function WalletDashboard({ account, onLogout }) {
         '-created_date'
       );
 
-      // Always include main account wallet with fresh balance
+      // Calculate main wallet balance from its transactions only
+      const mainWalletTxs = await base44.entities.Transaction.filter({
+        account_id: account.id,
+        wallet_address: freshAccount.wallet_address
+      });
+      
+      const mainWalletBalance = mainWalletTxs.reduce((sum, tx) => {
+        if (tx.type === 'receive') return sum + tx.amount;
+        if (tx.type === 'send') return sum - Math.abs(tx.amount);
+        return sum;
+      }, 0);
+
+      // Always include main account wallet with calculated balance
       const mainWallet = {
         id: 'main-account',
         account_id: account.id,
         name: 'Main Wallet',
         wallet_address: freshAccount.wallet_address,
-        balance: freshAccount.balance || 0,
+        balance: mainWalletBalance,
         is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
         wallet_type: 'standard',
         color: 'from-purple-500 to-purple-700',
@@ -178,24 +190,13 @@ export default function WalletDashboard({ account, onLogout }) {
       // Set current wallet to active one or keep existing if still valid
       const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
       
-      // Only update currentWallet if it's not set or if active wallet changed
-      if (!currentWallet || currentWallet.id !== activeWallet.id) {
-        setCurrentWallet(activeWallet);
-        setBalance({
-          confirmed: activeWallet.balance || 0,
-          unconfirmed: 0
-        });
-      } else {
-        // Update the balance for current wallet
-        const updatedCurrent = allWallets.find(w => w.id === currentWallet.id);
-        if (updatedCurrent) {
-          setCurrentWallet(updatedCurrent);
-          setBalance({
-            confirmed: updatedCurrent.balance || 0,
-            unconfirmed: 0
-          });
-        }
-      }
+      // Always update the balance for the current wallet
+      const updatedCurrent = allWallets.find(w => w.id === (currentWallet?.id || activeWallet.id)) || activeWallet;
+      setCurrentWallet(updatedCurrent);
+      setBalance({
+        confirmed: updatedCurrent.balance || 0,
+        unconfirmed: 0
+      });
     } catch (err) {
         console.error('Failed to fetch wallets:', err);
         toast.error('Failed to fetch wallets: ' + err.message);
