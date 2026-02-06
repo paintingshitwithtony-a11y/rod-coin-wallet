@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Server } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Server, FolderOpen } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -24,6 +24,7 @@ import WalletManager from './WalletManager';
 import RODNodeSetupGuide from './RODNodeSetupGuide';
 import NetworkActivityDashboard from './NetworkActivityDashboard';
 import RPCConsole from './RPCConsole';
+import RODConfEditor from './RODConfEditor';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -65,6 +66,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [showConfEditor, setShowConfEditor] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -838,6 +840,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                 title="Node Setup Guide">
                                                 <Server className="w-4 h-4" />
                                             </Button>
+                                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowConfEditor(true)}
+                                className="h-8 w-8 text-slate-400 hover:text-green-400"
+                                title="Edit rod.conf">
+                                                <FolderOpen className="w-4 h-4" />
+                                            </Button>
                             <Button
                 variant="ghost"
                 size="icon"
@@ -1526,6 +1536,14 @@ export default function WalletDashboard({ account, onLogout }) {
             {/* Node Setup Guide */}
             {showNodeGuide && (
                 <RODNodeSetupGuide onClose={() => setShowNodeGuide(false)} />
+            )}
+
+            {/* ROD Conf Editor */}
+            {showConfEditor && (
+                <RODConfEditor 
+                    account={account} 
+                    onClose={() => setShowConfEditor(false)} 
+                />
             )}
 
             {/* Address Seed Modal */}
