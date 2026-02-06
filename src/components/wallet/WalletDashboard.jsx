@@ -441,6 +441,16 @@ export default function WalletDashboard({ account, onLogout }) {
             '-created_date',
             50
           );
+        } else if (currentWallet.id.startsWith('address-')) {
+          // Virtual address wallet: filter by wallet_address
+          txs = await base44.entities.Transaction.filter(
+            { 
+              account_id: account.id,
+              wallet_address: currentWallet.wallet_address
+            },
+            '-created_date',
+            50
+          );
         } else {
           // Other wallets: transactions matching wallet_id
           txs = await base44.entities.Transaction.filter(
