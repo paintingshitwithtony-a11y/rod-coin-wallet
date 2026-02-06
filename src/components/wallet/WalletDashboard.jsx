@@ -164,13 +164,24 @@ export default function WalletDashboard({ account, onLogout }) {
         '-created_date'
       );
 
-      // Always include main account wallet with database balance
+      // Fetch RPC balance for main wallet
+      let mainBalance = 0;
+      try {
+        const balResponse = await base44.functions.invoke('getRPCBalance', {});
+        if (balResponse.data.success) {
+          mainBalance = balResponse.data.balance;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch main wallet RPC balance:', err);
+      }
+
+      // Always include main account wallet with RPC balance
       const mainWallet = {
         id: 'main-account',
         account_id: account.id,
         name: 'Main Wallet',
         wallet_address: freshAccount.wallet_address,
-        balance: freshAccount.balance || 0,
+        balance: mainBalance,
         is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
         wallet_type: 'standard',
         color: 'from-purple-500 to-purple-700',
