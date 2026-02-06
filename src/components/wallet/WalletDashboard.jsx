@@ -113,14 +113,15 @@ export default function WalletDashboard({ account, onLogout }) {
       setAddresses(uniqueAddresses);
       setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
     }
-    importAllAddresses();
+
+    // Stagger initial data loads to avoid rate limiting
     fetchWalletData();
-    fetchRODPrice();
-    fetchNetworkHashrate();
-    checkForDeposits(true); // Silent initial check
-    checkRPCStatus();
-    fetchOnlineUsers();
-    fetchAllWallets();
+    setTimeout(() => fetchRODPrice(), 500);
+    setTimeout(() => checkRPCStatus(), 1000);
+    setTimeout(() => fetchOnlineUsers(), 1500);
+    setTimeout(() => fetchNetworkHashrate(), 2000);
+    setTimeout(() => fetchAllWallets(), 2500);
+    setTimeout(() => importAllAddresses(), 3000);
 
     // Auto-refresh balance, check deposits, and import addresses every 5 minutes
     const interval = setInterval(() => {
