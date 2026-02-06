@@ -591,6 +591,15 @@ export default function WalletDashboard({ account, onLogout }) {
         account.wallet_address = accounts[0].wallet_address;
         // Trigger re-render by updating addresses state
         setAddresses(prev => [...prev]);
+        
+        // Refresh all wallets to recalculate Main Wallet balance with new primary address
+        await fetchAllWallets();
+        
+        // Switch to Main Wallet to show the updated balance
+        const mainWallet = allWallets.find(w => w.id === 'main-account');
+        if (mainWallet) {
+          await handleWalletClick({ ...mainWallet, wallet_address: accounts[0].wallet_address });
+        }
       }
     } catch (err) {
         console.error('Failed to set primary address:', err);
