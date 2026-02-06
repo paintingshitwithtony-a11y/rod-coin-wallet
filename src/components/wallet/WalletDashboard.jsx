@@ -84,6 +84,19 @@ export default function WalletDashboard({ account, onLogout }) {
   }, []);
 
   useEffect(() => {
+    // Check if current user is admin
+    const checkAdminRole = async () => {
+      try {
+        const user = await base44.auth.me();
+        setIsAdmin(user?.role === 'admin');
+      } catch (err) {
+        setIsAdmin(false);
+      }
+    };
+    checkAdminRole();
+  }, []);
+
+  useEffect(() => {
     // Load addresses from account
     if (account) {
       const mainAddress = {
