@@ -1029,8 +1029,40 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                     title="Debug transactions in console">
                                                                     {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
                                                                     Debug
-                                                                </Button>
-                                                                <Button
+                                                                    </Button>
+                                                                    <Button
+                                                                    variant="outline"
+                                                                    onClick={async () => {
+                                                                        setLoading(true);
+                                                                        try {
+                                                                            const response = await base44.functions.invoke('verifyBalancesFromRPC', {});
+                                                                            console.log('=== BALANCE VERIFICATION ===', response.data);
+
+                                                                            const summary = response.data.summary;
+                                                                            if (summary.mismatches > 0) {
+                                                                                toast.error(`Balance Mismatch: ${summary.mismatches} wallet(s) differ from RPC`, {
+                                                                                    description: `Checked ${summary.total_wallets} wallets`
+                                                                                });
+                                                                            } else if (summary.errors > 0) {
+                                                                                toast.warning(`Verification Partial: ${summary.errors} error(s)`, {
+                                                                                    description: `${summary.verified}/${summary.total_wallets} verified`
+                                                                                });
+                                                                            } else {
+                                                                                toast.success(`All ${summary.total_wallets} wallet balances verified from RPC`);
+                                                                            }
+                                                                        } catch (err) {
+                                                                            toast.error('Verification failed');
+                                                                        } finally {
+                                                                            setLoading(false);
+                                                                        }
+                                                                    }}
+                                                                    disabled={loading}
+                                                                    className={`text-cyan-400 hover:text-cyan-300 border-cyan-500/50 ${isMobile ? 'h-7 px-2 text-xs' : 'h-6 px-2 text-xs'}`}
+                                                                    title="Verify all wallet balances against RPC node">
+                                                                    {loading ? <Loader2 className={`${isMobile ? 'w-3 h-3' : 'w-3 h-3'} mr-1 animate-spin`} /> : null}
+                                                                    Verify RPC
+                                                                    </Button>
+                                                                    <Button
                                                                     variant="outline"
                                                                     onClick={async () => {
                                                                         setLoading(true);
