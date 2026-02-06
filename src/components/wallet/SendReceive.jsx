@@ -319,6 +319,14 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-800 border-slate-700">
+                                    <SelectItem value="all-wallets">
+                                        <div className="flex items-center justify-between w-full gap-4">
+                                            <span>All Wallets (Combined)</span>
+                                            <span className="text-xs text-slate-400">
+                                                {myWallets.reduce((sum, w) => sum + (w.balance || 0), 0).toFixed(4)} ROD
+                                            </span>
+                                        </div>
+                                    </SelectItem>
                                     {myWallets.map((wallet) => (
                                         <SelectItem key={wallet.id} value={wallet.id}>
                                             <div className="flex items-center justify-between w-full gap-4">
