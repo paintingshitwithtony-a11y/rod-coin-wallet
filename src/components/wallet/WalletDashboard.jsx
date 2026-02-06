@@ -1132,6 +1132,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
+                                                        onClick={testNgrok}
+                                                        disabled={loading}>
+                                                        {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
+                                                        Test Ngrok
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
                                                         onClick={async () => {
                                                             await checkForDeposits(false);
                                                         }}
@@ -1139,7 +1147,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         {isSyncing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
                                                         Sync Now
                                                     </Button>
-                                                </div>
+                                                    </div>
                                                 <div className="flex gap-2 pt-2">
                                                     <Button
                                                         onClick={() => setActiveTab('send')}
