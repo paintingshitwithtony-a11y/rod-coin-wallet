@@ -20,11 +20,11 @@ export default function RPCConsole({ account }) {
     const [aiExplaining, setAiExplaining] = useState(null);
     const [alerts, setAlerts] = useState([]);
 
-    const commonCommands = [
+    const getCommonCommands = () => [
         { label: 'Get Block Count', cmd: 'getblockcount' },
         { label: 'Get Blockchain Info', cmd: 'getblockchaininfo' },
         { label: 'Get Network Info', cmd: 'getnetworkinfo' },
-        { label: 'Get Balance', cmd: 'getbalance' },
+        { label: 'Get Balance', cmd: `getbalance "" 0 "${account?.wallet_address || ''}"` },
         { label: 'Get New Address', cmd: 'getnewaddress' },
         { label: 'List Transactions', cmd: 'listtransactions "" 10' },
         { label: 'Get Mining Info', cmd: 'getmininginfo' },
