@@ -89,10 +89,14 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Get ROD price error:', error);
+        // Return a fallback price with success status instead of error
         return Response.json({ 
-            error: error.message,
-            success: false,
-            price: 0.000058
-        }, { status: 500 });
+            success: true,
+            price: 0.000058,
+            symbol: 'ROD/USDT',
+            timestamp: Date.now(),
+            fallback: true,
+            note: 'Using fallback price - exchange data unavailable'
+        });
     }
 });
