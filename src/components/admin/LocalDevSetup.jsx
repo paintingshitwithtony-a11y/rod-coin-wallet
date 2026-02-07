@@ -120,11 +120,39 @@ server.listen(PROXY_PORT, () => {
                         </AlertDescription>
                     </Alert>
 
-                    {/* Step 1: Export App */}
+                    {/* Step 1: Install Node.js */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
                             <CardTitle className="text-lg text-white flex items-center gap-2">
                                 <Badge className="bg-purple-500/20 text-purple-400">Step 1</Badge>
+                                Install Node.js
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-sm text-slate-400">
+                                Node.js is required to run the app. If you already have it installed, skip this step.
+                            </p>
+                            <ol className="list-decimal list-inside text-sm text-slate-400 space-y-2">
+                                <li>Go to <a href="https://nodejs.org" target="_blank" className="text-blue-400 underline">https://nodejs.org</a></li>
+                                <li>Download the <strong className="text-white">LTS version</strong> (recommended for most users)</li>
+                                <li>Run the installer and follow the installation wizard</li>
+                                <li>Accept all default settings</li>
+                                <li>Restart your terminal/command prompt after installation</li>
+                            </ol>
+                            <Alert className="bg-blue-900/20 border-blue-500/50 mt-3">
+                                <AlertDescription className="text-xs text-blue-300">
+                                    To verify installation, open a new terminal and type: <code className="text-purple-400">node --version</code>
+                                    <br />You should see a version number like v20.x.x
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+
+                    {/* Step 2: Export App */}
+                    <Card className="bg-slate-900/50 border-slate-700">
+                        <CardHeader>
+                            <CardTitle className="text-lg text-white flex items-center gap-2">
+                                <Badge className="bg-purple-500/20 text-purple-400">Step 2</Badge>
                                 Export Your App
                             </CardTitle>
                         </CardHeader>
@@ -140,11 +168,11 @@ server.listen(PROXY_PORT, () => {
                         </CardContent>
                     </Card>
 
-                    {/* Step 2: Install Dependencies */}
+                    {/* Step 3: Install Dependencies */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
                             <CardTitle className="text-lg text-white flex items-center gap-2">
-                                <Badge className="bg-purple-500/20 text-purple-400">Step 2</Badge>
+                                <Badge className="bg-purple-500/20 text-purple-400">Step 3</Badge>
                                 Install Dependencies
                             </CardTitle>
                         </CardHeader>
@@ -195,11 +223,11 @@ server.listen(PROXY_PORT, () => {
                         </CardContent>
                     </Card>
 
-                    {/* Step 3: Create Local Proxy */}
+                    {/* Step 4: Create Local Proxy */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
                             <CardTitle className="text-lg text-white flex items-center gap-2">
-                                <Badge className="bg-purple-500/20 text-purple-400">Step 3</Badge>
+                                <Badge className="bg-purple-500/20 text-purple-400">Step 4</Badge>
                                 Create Local RPC Proxy
                             </CardTitle>
                         </CardHeader>
@@ -228,11 +256,11 @@ server.listen(PROXY_PORT, () => {
                         </CardContent>
                     </Card>
 
-                    {/* Step 4: Start Everything */}
+                    {/* Step 5: Start Everything */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
                             <CardTitle className="text-lg text-white flex items-center gap-2">
-                                <Badge className="bg-green-500/20 text-green-400">Step 4</Badge>
+                                <Badge className="bg-green-500/20 text-green-400">Step 5</Badge>
                                 Start Local Development
                             </CardTitle>
                         </CardHeader>
@@ -284,11 +312,11 @@ server.listen(PROXY_PORT, () => {
                         </CardContent>
                     </Card>
 
-                    {/* Step 5: Configure RPC */}
+                    {/* Step 6: Configure RPC */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
                             <CardTitle className="text-lg text-white flex items-center gap-2">
-                                <Badge className="bg-green-500/20 text-green-400">Step 5</Badge>
+                                <Badge className="bg-green-500/20 text-green-400">Step 6</Badge>
                                 Configure Local RPC in Wallet
                             </CardTitle>
                         </CardHeader>
