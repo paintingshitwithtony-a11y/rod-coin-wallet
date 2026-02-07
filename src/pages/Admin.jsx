@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Shield, Settings, Plug, CheckCircle2, XCircle, Loader2,
-    Save, Trash2, Plus, ArrowLeft, AlertCircle, Server, Copy
+    Save, Trash2, Plus, ArrowLeft, AlertCircle, Server, Copy, Pencil
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -31,6 +31,7 @@ export default function Admin() {
     const [testing, setTesting] = useState(null);
     const [showNewConfig, setShowNewConfig] = useState(false);
     const [showWizard, setShowWizard] = useState(false);
+    const [editingConfig, setEditingConfig] = useState(null);
     
     // New config form
     const [newConfig, setNewConfig] = useState({
@@ -166,6 +167,35 @@ export default function Admin() {
             loadConfigs();
         } catch (err) {
             toast.error('Failed to create configuration');
+        }
+    };
+
+    const handleUpdateConfig = async () => {
+        if (!editingConfig || !newConfig.name.trim() || !newConfig.host.trim() || !newConfig.port.trim()) {
+            toast.error('Please fill in all required fields');
+            return;
+        }
+
+        try {
+            await base44.entities.RPCConfiguration.update(editingConfig.id, {
+                ...newConfig,
+                connection_status: 'untested'
+            });
+
+            toast.success('Configuration updated successfully');
+            setEditingConfig(null);
+            setNewConfig({
+                name: '',
+                connection_type: 'rpc',
+                host: '',
+                port: '',
+                username: '',
+                password: '',
+                use_ssl: false
+            });
+            loadConfigs();
+        } catch (err) {
+            toast.error('Failed to update configuration');
         }
     };
 
@@ -419,8 +449,8 @@ export default function Admin() {
                             />
                         </div>
 
-                        {/* Create New Config */}
-                        {!showNewConfig ? (
+                        {/* Create/Edit Config */}
+                        {!showNewConfig && !editingConfig ? (
                             <Button
                                 onClick={() => setShowNewConfig(true)}
                                 className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto">
@@ -432,8 +462,17 @@ export default function Admin() {
                                 <Card className="bg-slate-900/80 border-purple-500/30">
                                     <CardHeader>
                                         <CardTitle className="text-white flex items-center gap-2">
-                                            <Plus className="w-5 h-5 text-purple-400" />
-                                            New RPC Configuration
+                                            {editingConfig ? (
+                                                <>
+                                                    <Settings className="w-5 h-5 text-blue-400" />
+                                                    Edit RPC Configuration
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus className="w-5 h-5 text-purple-400" />
+                                                    New RPC Configuration
+                                                </>
+                                            )}
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -522,15 +561,27 @@ export default function Admin() {
                                         <div className="flex gap-2">
                                             <Button
                                                 variant="outline"
-                                                onClick={() => setShowNewConfig(false)}
+                                                onClick={() => {
+                                                    setShowNewConfig(false);
+                                                    setEditingConfig(null);
+                                                    setNewConfig({
+                                                        name: '',
+                                                        connection_type: 'rpc',
+                                                        host: '',
+                                                        port: '',
+                                                        username: '',
+                                                        password: '',
+                                                        use_ssl: false
+                                                    });
+                                                }}
                                                 className="flex-1 border-slate-700">
                                                 Cancel
                                             </Button>
                                             <Button
-                                                onClick={handleCreateConfig}
+                                                onClick={editingConfig ? handleUpdateConfig : handleCreateConfig}
                                                 className="flex-1 bg-purple-600 hover:bg-purple-700">
                                                 <Save className="w-4 h-4 mr-2" />
-                                                Create Configuration
+                                                {editingConfig ? 'Update Configuration' : 'Create Configuration'}
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -590,6 +641,26 @@ export default function Admin() {
                                                     </div>
 
                                                     <div className="flex gap-2">
+                                                       <Button
+                                                           size="sm"
+                                                           variant="outline"
+                                                           onClick={() => {
+                                                               setEditingConfig(config);
+                                                               setNewConfig({
+                                                                   name: config.name,
+                                                                   connection_type: config.connection_type,
+                                                                   host: config.host,
+                                                                   port: config.port,
+                                                                   username: config.username || '',
+                                                                   password: config.password || '',
+                                                                   use_ssl: config.use_ssl || false
+                                                               });
+                                                               setShowNewConfig(false);
+                                                           }}
+                                                           className="border-slate-700 text-blue-400 hover:text-blue-300">
+                                                           <Pencil className="w-4 h-4" />
+                                                       </Button>
+
                                                        <Button
                                                            size="sm"
                                                            variant="outline"
