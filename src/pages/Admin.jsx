@@ -19,6 +19,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PortForwardingGuide from '../components/admin/PortForwardingGuide';
 import RPCSetupWizard from '../components/wallet/RPCSetupWizard';
 import LocalProxySetupGuide from '../components/admin/LocalProxySetupGuide';
+import LocalDevSetup from '../components/admin/LocalDevSetup';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
@@ -358,6 +359,7 @@ export default function Admin() {
                                 Setup Wizard
                             </Button>
                             <LocalProxySetupGuide />
+                            <LocalDevSetup />
                             <PortForwardingGuide 
                                 onConfigCreated={(configData) => {
                                     setNewConfig({
