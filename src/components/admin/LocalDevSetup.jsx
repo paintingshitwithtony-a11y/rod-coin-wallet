@@ -233,24 +233,49 @@ server.listen(PROXY_PORT, () => {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-sm text-slate-400">
-                                Create a file called <code className="text-purple-400">local-rpc-proxy.js</code> in your project root:
+                                Download the proxy file and place it in your project root folder:
                             </p>
-                            <div className="relative">
-                                <pre className="bg-slate-800 p-3 rounded-md font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
-                                    {proxyServerCode}
-                                </pre>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="absolute top-2 right-2"
-                                    onClick={() => copyToClipboard(proxyServerCode, 'proxy')}
-                                >
-                                    {copied === 'proxy' ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                                </Button>
-                            </div>
+                            
+                            <Button
+                                onClick={() => {
+                                    const blob = new Blob([proxyServerCode], { type: 'text/javascript' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'local-rpc-proxy.js';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('Proxy file downloaded!');
+                                }}
+                                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                                <Download className="w-4 h-4 mr-2" />
+                                Download local-rpc-proxy.js
+                            </Button>
+
+                            <details className="bg-slate-800 rounded-md p-3">
+                                <summary className="text-sm text-slate-300 cursor-pointer hover:text-white">
+                                    View proxy code (optional)
+                                </summary>
+                                <div className="relative mt-3">
+                                    <pre className="font-mono text-xs text-slate-300 max-h-64 overflow-y-auto">
+                                        {proxyServerCode}
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2"
+                                        onClick={() => copyToClipboard(proxyServerCode, 'proxy')}
+                                    >
+                                        {copied === 'proxy' ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                                    </Button>
+                                </div>
+                            </details>
+
                             <Alert className="bg-amber-900/20 border-amber-500/50">
                                 <AlertDescription className="text-xs text-amber-300">
-                                    ⚠️ Edit the <code>RPC_USER</code> and <code>RPC_PASSWORD</code> values to match your rod.conf settings!
+                                    ⚠️ After downloading, edit the file and change <code>RPC_USER</code> and <code>RPC_PASSWORD</code> to match your rod.conf settings!
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
