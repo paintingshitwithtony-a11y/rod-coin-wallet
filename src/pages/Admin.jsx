@@ -379,7 +379,7 @@ export default function Admin() {
                                 Setup Wizard
                             </Button>
                             <LocalProxySetupGuide />
-                            <LocalDevSetup />
+                            <LocalDevSetup account={account} />
                             <WindowsInstallerGuide />
                             <PortForwardingGuide 
                                 onConfigCreated={(configData) => {
