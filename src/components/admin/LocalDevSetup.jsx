@@ -149,7 +149,36 @@ server.listen(PROXY_PORT, () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <p className="text-sm text-slate-400">Open terminal in the extracted folder and run:</p>
+                            <p className="text-sm text-slate-400 mb-3">
+                                <strong className="text-white">How to open terminal in the extracted folder:</strong>
+                            </p>
+                            <div className="bg-slate-800 p-3 rounded-md space-y-2 text-xs text-slate-300 mb-4">
+                                <div>
+                                    <strong className="text-blue-400">Windows:</strong>
+                                    <ol className="list-decimal list-inside ml-3 mt-1 space-y-1">
+                                        <li>Open the extracted folder in File Explorer</li>
+                                        <li>Click in the address bar at the top (where the folder path shows)</li>
+                                        <li>Type <code className="text-purple-400">cmd</code> and press Enter</li>
+                                        <li>Command Prompt will open in that folder</li>
+                                    </ol>
+                                    <p className="text-slate-500 mt-2 ml-3">Alternative: Right-click in the folder → "Open in Terminal" (Windows 11)</p>
+                                </div>
+                                <div>
+                                    <strong className="text-blue-400">Mac:</strong>
+                                    <ol className="list-decimal list-inside ml-3 mt-1 space-y-1">
+                                        <li>Right-click the folder in Finder</li>
+                                        <li>Hold Option key → click "Open in Terminal"</li>
+                                    </ol>
+                                </div>
+                                <div>
+                                    <strong className="text-blue-400">Linux:</strong>
+                                    <ol className="list-decimal list-inside ml-3 mt-1 space-y-1">
+                                        <li>Right-click in the folder</li>
+                                        <li>Select "Open in Terminal"</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-400">Then run this command:</p>
                             <div className="relative">
                                 <pre className="bg-slate-800 p-3 rounded-md font-mono text-sm text-green-400">
                                     {setupCommands.install}
