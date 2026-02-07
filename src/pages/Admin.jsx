@@ -20,6 +20,7 @@ import PortForwardingGuide from '../components/admin/PortForwardingGuide';
 import RPCSetupWizard from '../components/wallet/RPCSetupWizard';
 import LocalProxySetupGuide from '../components/admin/LocalProxySetupGuide';
 import LocalDevSetup from '../components/admin/LocalDevSetup';
+import WindowsInstallerGuide from '../components/admin/WindowsInstallerGuide';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
@@ -360,6 +361,7 @@ export default function Admin() {
                             </Button>
                             <LocalProxySetupGuide />
                             <LocalDevSetup />
+                            <WindowsInstallerGuide />
                             <PortForwardingGuide 
                                 onConfigCreated={(configData) => {
                                     setNewConfig({
