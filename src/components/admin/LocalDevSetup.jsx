@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Copy, CheckCircle2, Server, Code, Zap, Terminal } from 'lucide-react';
+import { Copy, CheckCircle2, Server, Code, Zap, Terminal, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LocalDevSetup() {
