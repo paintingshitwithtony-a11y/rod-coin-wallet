@@ -18,8 +18,7 @@ export default function LocalDevSetup() {
     };
 
     const proxyServerCode = `// local-rpc-proxy.js - Run this on your local machine
-const http = require('http');
-const https = require('https');
+import http from 'http';
 
 const RPC_HOST = '127.0.0.1';
 const RPC_PORT = 9766;
