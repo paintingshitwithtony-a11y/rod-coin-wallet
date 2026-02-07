@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Copy, CheckCircle2, Server, Code, Zap, Terminal, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function LocalDevSetup() {
+export default function LocalDevSetup({ account }) {
     const [copied, setCopied] = useState(null);
 
     const copyToClipboard = (text, id) => {
@@ -17,13 +17,18 @@ export default function LocalDevSetup() {
         setTimeout(() => setCopied(null), 2000);
     };
 
+    // Use account's RPC credentials if available, otherwise use placeholders
+    const rpcUser = account?.rpc_username || 'yourusername';
+    const rpcPassword = account?.rpc_password || 'yourpassword';
+    const rpcPort = account?.rpc_port || '9766';
+
     const proxyServerCode = `// local-rpc-proxy.js - Run this on your local machine
 import http from 'http';
 
 const RPC_HOST = '127.0.0.1';
-const RPC_PORT = 9766;
-const RPC_USER = 'yourusername'; // Change to your rod.conf rpcuser
-const RPC_PASSWORD = 'yourpassword'; // Change to your rod.conf rpcpassword
+const RPC_PORT = ${rpcPort};
+const RPC_USER = '${rpcUser}'; ${rpcUser === 'yourusername' ? '// Change to your rod.conf rpcuser' : '// From your rod.conf'}
+const RPC_PASSWORD = '${rpcPassword}'; ${rpcPassword === 'yourpassword' ? '// Change to your rod.conf rpcpassword' : '// From your rod.conf'}
 const PROXY_PORT = 8545;
 
 const server = http.createServer((req, res) => {
