@@ -21,6 +21,8 @@ import RPCSetupWizard from '../components/wallet/RPCSetupWizard';
 import LocalProxySetupGuide from '../components/admin/LocalProxySetupGuide';
 import LocalDevSetup from '../components/admin/LocalDevSetup';
 import WindowsInstallerGuide from '../components/admin/WindowsInstallerGuide';
+import NetworkScanner from '../components/admin/NetworkScanner';
+import QuickConnect from '../components/admin/QuickConnect';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
@@ -349,6 +351,23 @@ export default function Admin() {
                                     </div>
                                 </CardContent>
                             </Card>
+                        </div>
+
+                        {/* Quick Connect */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <QuickConnect 
+                                accountId={account?.id}
+                                onSuccess={loadConfigs}
+                            />
+                            <NetworkScanner 
+                                onNodeSelected={(nodeConfig) => {
+                                    setNewConfig({
+                                        ...newConfig,
+                                        ...nodeConfig
+                                    });
+                                    setShowNewConfig(true);
+                                }}
+                            />
                         </div>
 
                         {/* Setup Wizard, Local Proxy, and Port Forwarding Guide */}
