@@ -273,22 +273,46 @@ app.on('quit', () => {
                             <p className="text-sm text-slate-400">
                                 Create this file in your project root:
                             </p>
-                            <div className="relative">
-                                <pre className="bg-slate-800 p-3 rounded-md font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
-                                    {electronMainJs}
-                                </pre>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="absolute top-2 right-2"
-                                    onClick={() => copyToClipboard(electronMainJs, 'electron-main')}
-                                >
-                                    {copied === 'electron-main' ? 
-                                        <CheckCircle2 className="w-4 h-4 text-green-400" /> : 
-                                        <Copy className="w-4 h-4" />
-                                    }
-                                </Button>
-                            </div>
+                            
+                            <Button
+                                onClick={() => {
+                                    const blob = new Blob([electronMainJs], { type: 'text/javascript' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'electron-main.js';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('electron-main.js downloaded!');
+                                }}
+                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                                <Download className="w-4 h-4 mr-2" />
+                                Download electron-main.js
+                            </Button>
+
+                            <details className="bg-slate-800 rounded-md p-3">
+                                <summary className="text-sm text-slate-300 cursor-pointer hover:text-white">
+                                    View code (optional)
+                                </summary>
+                                <div className="relative mt-3">
+                                    <pre className="font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
+                                        {electronMainJs}
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2"
+                                        onClick={() => copyToClipboard(electronMainJs, 'electron-main')}
+                                    >
+                                        {copied === 'electron-main' ? 
+                                            <CheckCircle2 className="w-4 h-4 text-green-400" /> : 
+                                            <Copy className="w-4 h-4" />
+                                        }
+                                    </Button>
+                                </div>
+                            </details>
                         </CardContent>
                     </Card>
 
@@ -302,24 +326,54 @@ app.on('quit', () => {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-sm text-slate-400">
-                                Merge these into your existing package.json:
+                                Download this configuration and merge it into your existing package.json:
                             </p>
-                            <div className="relative">
-                                <pre className="bg-slate-800 p-3 rounded-md font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
-                                    {packageJsonAdditions}
-                                </pre>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="absolute top-2 right-2"
-                                    onClick={() => copyToClipboard(packageJsonAdditions, 'package-json')}
-                                >
-                                    {copied === 'package-json' ? 
-                                        <CheckCircle2 className="w-4 h-4 text-green-400" /> : 
-                                        <Copy className="w-4 h-4" />
-                                    }
-                                </Button>
-                            </div>
+                            
+                            <Button
+                                onClick={() => {
+                                    const blob = new Blob([packageJsonAdditions], { type: 'application/json' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'package-electron-config.json';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('Configuration downloaded! Merge into your package.json');
+                                }}
+                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                                <Download className="w-4 h-4 mr-2" />
+                                Download package.json Config
+                            </Button>
+
+                            <Alert className="bg-amber-900/20 border-amber-500/50">
+                                <AlertDescription className="text-xs text-amber-300">
+                                    ⚠️ Don't replace your entire package.json! Copy the "main", "scripts", "build", and "devDependencies" sections into your existing file.
+                                </AlertDescription>
+                            </Alert>
+
+                            <details className="bg-slate-800 rounded-md p-3">
+                                <summary className="text-sm text-slate-300 cursor-pointer hover:text-white">
+                                    View configuration (optional)
+                                </summary>
+                                <div className="relative mt-3">
+                                    <pre className="font-mono text-xs text-slate-300 max-h-96 overflow-y-auto">
+                                        {packageJsonAdditions}
+                                    </pre>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2"
+                                        onClick={() => copyToClipboard(packageJsonAdditions, 'package-json')}
+                                    >
+                                        {copied === 'package-json' ? 
+                                            <CheckCircle2 className="w-4 h-4 text-green-400" /> : 
+                                            <Copy className="w-4 h-4" />
+                                        }
+                                    </Button>
+                                </div>
+                            </details>
                         </CardContent>
                     </Card>
 
