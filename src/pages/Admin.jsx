@@ -239,6 +239,32 @@ export default function Admin() {
                     <TabsContent value="rpc" className="space-y-6">
                         {/* Quick Actions */}
                         <div className="flex gap-3 flex-wrap">
+                            {account?.rpc_host && account?.rpc_port && (
+                                <Button
+                                    onClick={async () => {
+                                        try {
+                                            await base44.entities.RPCConfiguration.create({
+                                                account_id: account.id,
+                                                name: 'From Wallet Config',
+                                                connection_type: 'rpc',
+                                                host: account.rpc_host,
+                                                port: account.rpc_port,
+                                                username: account.rpc_username || '',
+                                                password: account.rpc_password || '',
+                                                use_ssl: false,
+                                                connection_status: 'untested'
+                                            });
+                                            toast.success('Configuration created from wallet data');
+                                            loadConfigs();
+                                        } catch (err) {
+                                            toast.error('Failed to create configuration: ' + err.message);
+                                        }
+                                    }}
+                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Use Wallet RPC Config
+                                </Button>
+                            )}
                             <Button
                                 onClick={async () => {
                                     try {
