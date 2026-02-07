@@ -277,11 +277,20 @@ server.listen(PROXY_PORT, () => {
                                 </div>
                             </details>
 
-                            <Alert className="bg-amber-900/20 border-amber-500/50">
-                                <AlertDescription className="text-xs text-amber-300">
-                                    ⚠️ After downloading, edit the file and change <code>RPC_USER</code> and <code>RPC_PASSWORD</code> to match your rod.conf settings!
-                                </AlertDescription>
-                            </Alert>
+                            {(rpcUser === 'yourusername' || rpcPassword === 'yourpassword') ? (
+                                <Alert className="bg-amber-900/20 border-amber-500/50">
+                                    <AlertDescription className="text-xs text-amber-300">
+                                        ⚠️ After downloading, edit the file and change <code>RPC_USER</code> and <code>RPC_PASSWORD</code> to match your rod.conf settings!
+                                    </AlertDescription>
+                                </Alert>
+                            ) : (
+                                <Alert className="bg-green-900/20 border-green-500/50">
+                                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                    <AlertDescription className="text-xs text-green-300">
+                                        ✓ Your RPC credentials from rod.conf have been automatically included in the proxy file!
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                         </CardContent>
                     </Card>
 
