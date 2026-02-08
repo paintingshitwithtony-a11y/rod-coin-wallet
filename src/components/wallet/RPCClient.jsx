@@ -18,7 +18,32 @@ export class RPCClient {
             headers['Authorization'] = `Basic ${btoa(`${this.config.username}:${this.config.password}`)}`;
         }
 
-        // Try direct connection first
+        // Try Electron proxy first (port 9767)
+        try {
+            const electronProxyUrl = 'http://localhost:9767';
+            const response = await fetch(electronProxyUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: Date.now(),
+                    method,
+                    params
+                }),
+                signal: AbortSignal.timeout(2000)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (!data.error) {
+                    return data.result;
+                }
+            }
+        } catch (e) {
+            // Electron proxy not available, continue to next method
+        }
+
+        // Try configured direct connection
         try {
             const response = await fetch(this.url, {
                 method: 'POST',
@@ -52,7 +77,7 @@ export class RPCClient {
                 }
                 return data.result;
             } catch (relayError) {
-                throw new Error(`Direct: ${directError.message} | Relay: ${relayError.message}`);
+                throw new Error(`Electron: unavailable | Direct: ${directError.message} | Relay: ${relayError.message}`);
             }
         }
     }
