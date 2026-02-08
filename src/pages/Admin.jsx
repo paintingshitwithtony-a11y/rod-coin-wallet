@@ -32,6 +32,7 @@ import ElectronRestartGuide from '../components/admin/ElectronRestartGuide';
 import DependenciesInstallGuide from '../components/admin/DependenciesInstallGuide';
 import ViteBuildErrorFix from '../components/admin/ViteBuildErrorFix';
 import TutorialAdvisor from '../components/admin/TutorialAdvisor';
+import AITroubleshooter from '../components/admin/AITroubleshooter';
 import AutoUpdater from '../components/admin/AutoUpdater';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
