@@ -599,10 +599,10 @@ export default defineConfig({
                             const rpcRequest = JSON.parse(body);
 
                             // Forward to local ROD Core node
-                            const rpcHost = 'localhost';
-                            const rpcPort = 9766;
-                            const rpcUser = '\${process.env.ROD_RPC_USERNAME || 'your_rpc_username'}';
-                            const rpcPass = '\${process.env.ROD_RPC_PASSWORD || 'your_rpc_password'}';
+                            const rpcHost = '${account?.rpc_host || 'localhost'}';
+                            const rpcPort = '${account?.rpc_port || '9766'}';
+                            const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
+                            const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
 
                             const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
 
