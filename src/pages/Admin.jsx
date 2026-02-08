@@ -495,6 +495,7 @@ export default function Admin() {
 
                         {/* AI Tools */}
                         <div className="flex gap-3 flex-wrap">
+                            <EnvFileDownloader />
                             <AITroubleshooter />
                             <TutorialAdvisor />
                         </div>
