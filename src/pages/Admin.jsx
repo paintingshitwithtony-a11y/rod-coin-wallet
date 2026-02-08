@@ -270,6 +270,30 @@ export default function Admin() {
                     <TabsContent value="rpc" className="space-y-6">
                         {/* Quick Actions */}
                         <div className="flex gap-3 flex-wrap">
+                            <Button
+                                onClick={async () => {
+                                    try {
+                                        await base44.entities.RPCConfiguration.create({
+                                            account_id: account.id,
+                                            name: 'Electron Local Proxy',
+                                            connection_type: 'rpc',
+                                            host: 'localhost',
+                                            port: '9767',
+                                            username: '',
+                                            password: '',
+                                            use_ssl: false,
+                                            connection_status: 'untested'
+                                        });
+                                        toast.success('Electron proxy config created - use this in your desktop app');
+                                        loadConfigs();
+                                    } catch (err) {
+                                        toast.error('Failed to create configuration: ' + err.message);
+                                    }
+                                }}
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Electron Proxy Config
+                            </Button>
                             {account?.rpc_host && account?.rpc_port && (
                                 <Button
                                     onClick={async () => {
