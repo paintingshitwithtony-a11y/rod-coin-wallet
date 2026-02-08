@@ -359,6 +359,35 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const testElectronProxy = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:9767', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '1.0', method: 'getblockchaininfo', params: [] }),
+        signal: AbortSignal.timeout(3000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.result) {
+          toast.success(`Electron Proxy Connected! Block ${data.result.blocks?.toLocaleString()}`, {
+            description: `Chain: ${data.result.chain}`
+          });
+        } else if (data.error) {
+          toast.error('Electron Proxy error: ' + data.error.message);
+        }
+      } else {
+        toast.error('Electron Proxy returned: ' + response.status);
+      }
+    } catch (err) {
+      toast.error('Electron Proxy unavailable: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkRPCStatus = async (isRetry = false) => {
     try {
       const response = await base44.functions.invoke('checkRPCStatus', {});
