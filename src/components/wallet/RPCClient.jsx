@@ -119,24 +119,33 @@ export async function testRPCConnection(config) {
                 signal: AbortSignal.timeout(3000)
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                if (!data.error) {
-                    return {
-                        connected: true,
-                        nodeInfo: {
-                            blocks: data.result?.blocks,
-                            chain: data.result?.chain,
-                            version: data.result?.version
-                        }
-                    };
-                }
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            throw new Error(`Electron proxy returned ${response.status}`);
+            
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error.message || 'RPC error from proxy');
+            }
+            
+            return {
+                connected: true,
+                nodeInfo: {
+                    blocks: data.result?.blocks,
+                    chain: data.result?.chain,
+                    version: data.result?.version
+                }
+            };
         } catch (err) {
+            const errorMsg = err.name === 'AbortError' 
+                ? 'Timeout: Electron proxy not responding'
+                : err.message.includes('Failed to fetch')
+                ? 'Network error: Is Electron running? (npm run electron:dev)'
+                : err.message;
+            
             return {
                 connected: false,
-                error: 'Electron proxy not running on port 9767. Start Electron with: npm run electron:dev'
+                error: errorMsg
             };
         }
     }
