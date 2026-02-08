@@ -1209,13 +1209,21 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         Reset & Recheck
                                                     </Button>
                                                     <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={testNgrok}
-                                                        disabled={loading}>
-                                                        {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
-                                                        Test Ngrok
-                                                    </Button>
+                                                         variant="outline"
+                                                         size="sm"
+                                                         onClick={testElectronProxy}
+                                                         disabled={loading}>
+                                                         {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
+                                                         Test Electron Proxy
+                                                     </Button>
+                                                     <Button
+                                                         variant="outline"
+                                                         size="sm"
+                                                         onClick={testNgrok}
+                                                         disabled={loading}>
+                                                         {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
+                                                         Test Ngrok
+                                                     </Button>
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
