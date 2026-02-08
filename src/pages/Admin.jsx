@@ -496,6 +496,7 @@ export default function Admin() {
                             <ElectronBuildAssistant />
                             <ElectronMainDownloader account={account} />
                             <ProxyRestartGuide />
+                            <DesktopShortcutGuide />
                             <Button
                                 onClick={() => {
                                     const viteConfig = `import { defineConfig } from 'vite';
