@@ -1208,21 +1208,24 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         disabled={loading}>
                                                         Reset & Recheck
                                                     </Button>
+                                                    </div>
+                                                    )}
+                                                    <div className="flex gap-2 flex-wrap">
                                                     <Button
-                                                         variant="outline"
-                                                         size="sm"
-                                                         onClick={testElectronProxy}
-                                                         disabled={loading}>
-                                                         {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
-                                                         Test Electron Proxy
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={testElectronProxy}
+                                                        disabled={loading}>
+                                                        {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
+                                                        Test Electron Proxy
                                                      </Button>
                                                      <Button
-                                                         variant="outline"
-                                                         size="sm"
-                                                         onClick={testNgrok}
-                                                         disabled={loading}>
-                                                         {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
-                                                         Test Ngrok
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={testNgrok}
+                                                        disabled={loading}>
+                                                        {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Plug className="w-3 h-3 mr-1" />}
+                                                        Test Ngrok
                                                      </Button>
                                                     <Button
                                                         variant="outline"
@@ -1235,7 +1238,6 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         Sync Now
                                                     </Button>
                                                     </div>
-                                                    )}
                                                     <div className="flex gap-2 pt-2 flex-wrap">
                                                     <Button
                                                         onClick={() => setActiveTab('send')}
