@@ -702,6 +702,7 @@ export default defineConfig({
                                         "version": "1.0.0",
                                         "main": "electron-main.js",
                                         "scripts": {
+                                            "dev": "vite",
                                             "electron:dev": "electron .",
                                             "electron:build": "electron-builder"
                                         },
