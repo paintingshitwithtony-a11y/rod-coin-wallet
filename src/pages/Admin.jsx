@@ -601,16 +601,16 @@ export default defineConfig({
                             const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
                             const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
 
-                            const auth = Buffer.from(\\\`\\\${rpcUser}:\\\${rpcPass}\\\`).toString('base64');
+                            const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
 
                             const options = {
-                            hostname: rpcHost,
-                            port: rpcPort,
-                            path: '/',
-                            method: 'POST',
-                            headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': \\\`Basic \\\${auth}\\\`
+                              hostname: rpcHost,
+                              port: rpcPort,
+                              path: '/',
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': \`Basic \${auth}\`
                             }
                             };
 
