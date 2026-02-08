@@ -492,8 +492,11 @@ export default function Admin() {
                         {/* Auto Updater */}
                         <AutoUpdater />
 
-                        {/* AI Advisor */}
-                        <TutorialAdvisor />
+                        {/* AI Tools */}
+                        <div className="flex gap-3 flex-wrap">
+                            <AITroubleshooter />
+                            <TutorialAdvisor />
+                        </div>
 
                         {/* Setup Wizard, Local Proxy, and Port Forwarding Guide */}
                         <div className="flex gap-3 flex-wrap">
