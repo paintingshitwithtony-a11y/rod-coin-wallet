@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Shield, Settings, Plug, CheckCircle2, XCircle, Loader2,
-    Save, Trash2, Plus, ArrowLeft, AlertCircle, Server, Copy, Pencil
+    Save, Trash2, Plus, ArrowLeft, AlertCircle, Server, Copy, Pencil, RotateCcw
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
