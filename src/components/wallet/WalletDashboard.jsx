@@ -86,17 +86,31 @@ export default function WalletDashboard({ account, onLogout }) {
   }, []);
 
   useEffect(() => {
-    // Check if current user is admin
-    const checkAdminRole = async () => {
-      try {
-        const user = await base44.auth.me();
-        setIsAdmin(user?.role === 'admin');
-      } catch (err) {
-        setIsAdmin(false);
-      }
-    };
-    checkAdminRole();
-  }, []);
+      // Check if current user is admin
+      const checkAdminRole = async () => {
+        try {
+          const user = await base44.auth.me();
+          setIsAdmin(user?.role === 'admin');
+        } catch (err) {
+          setIsAdmin(false);
+        }
+      };
+      checkAdminRole();
+
+      // Check if Electron proxy is available
+      const checkElectronProxy = async () => {
+        try {
+          const response = await fetch('http://localhost:9767/', { 
+            method: 'POST',
+            signal: AbortSignal.timeout(2000)
+          });
+          setElectronProxyConnected(response.status !== 404);
+        } catch (err) {
+          setElectronProxyConnected(false);
+        }
+      };
+      checkElectronProxy();
+    }, []);
 
   useEffect(() => {
     // Load addresses from account
