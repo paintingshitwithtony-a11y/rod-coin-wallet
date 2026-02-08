@@ -488,6 +488,9 @@ export default function Admin() {
                             />
                         </div>
 
+                        {/* Auto Updater */}
+                        <AutoUpdater />
+
                         {/* AI Advisor */}
                         <TutorialAdvisor />
 
