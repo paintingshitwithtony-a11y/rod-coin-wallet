@@ -464,6 +464,7 @@ export default function Admin() {
                             <LocalDevSetup account={account} />
                             <WindowsInstallerGuide />
                             <ElectronBuildAssistant />
+                            <ElectronMainDownloader account={account} />
                             <Button
                                 onClick={() => {
                                     const viteConfig = `import { defineConfig } from 'vite';
