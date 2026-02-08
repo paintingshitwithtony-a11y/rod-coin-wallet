@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Method is required' }, { status: 400 });
         }
 
-        const rpcHost = Deno.env.get('ROD_RPC_HOST') || 'localhost';
-        const rpcPort = Deno.env.get('ROD_RPC_PORT') || '9766';
-        const rpcUser = Deno.env.get('ROD_RPC_USERNAME');
-        const rpcPass = Deno.env.get('ROD_RPC_PASSWORD');
+        const rpcHost = (Deno.env.get('ROD_RPC_HOST') || 'localhost').trim();
+        const rpcPort = (Deno.env.get('ROD_RPC_PORT') || '9766').trim();
+        const rpcUser = Deno.env.get('ROD_RPC_USERNAME')?.trim();
+        const rpcPass = Deno.env.get('ROD_RPC_PASSWORD')?.trim();
 
         const auth = btoa(`${rpcUser}:${rpcPass}`);
         const rpcUrl = `http://${rpcHost}:${rpcPort}/`;
