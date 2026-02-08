@@ -54,6 +54,8 @@ import RPCMonitor from './pages/RPCMonitor';
 import SecuritySettings from './pages/SecuritySettings';
 import Wallet from './pages/Wallet';
 import Home from './pages/Home';
+import ErrorDisplay from './pages/ErrorDisplay';
+import errordisplayHtml from './pages/ErrorDisplay.html';
 import __Layout from './Layout.jsx';
 
 
@@ -65,6 +67,8 @@ export const PAGES = {
     "SecuritySettings": SecuritySettings,
     "Wallet": Wallet,
     "Home": Home,
+    "ErrorDisplay": ErrorDisplay,
+    "ErrorDisplay.html": errordisplayHtml,
 }
 
 export const pagesConfig = {
