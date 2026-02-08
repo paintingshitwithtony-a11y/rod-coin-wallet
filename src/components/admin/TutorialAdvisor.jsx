@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Loader2, Sparkles, Send, MessageCircle, Download, Info } from 'lucide-react';
+import { Loader2, Sparkles, Send, MessageCircle, Download, Info, History, Trash2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import ReactMarkdown from 'react-markdown';
