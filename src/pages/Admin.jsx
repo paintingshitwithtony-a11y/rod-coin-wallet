@@ -502,6 +502,7 @@ export default function Admin() {
                             <ProxyRestartGuide />
                             <ElectronRestartGuide />
                             <DependenciesInstallGuide />
+                            <ViteBuildErrorFix />
                             <DesktopShortcutGuide />
                             <ViteDevServerGuide />
                             {typeof window !== 'undefined' && !window.electron && (
