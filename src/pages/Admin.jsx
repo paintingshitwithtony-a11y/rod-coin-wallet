@@ -437,6 +437,7 @@ export default function Admin() {
                             <LocalProxySetupGuide />
                             <LocalDevSetup account={account} />
                             <WindowsInstallerGuide />
+                            <ElectronBuildAssistant />
                             <PortForwardingGuide 
                                 onConfigCreated={(configData) => {
                                     setNewConfig({
