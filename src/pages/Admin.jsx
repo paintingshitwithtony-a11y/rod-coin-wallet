@@ -494,6 +494,7 @@ export default function Admin() {
                             <WindowsInstallerGuide />
                             <ElectronBuildAssistant />
                             <ElectronMainDownloader account={account} />
+                            <ProxyRestartGuide />
                             <Button
                                 onClick={() => {
                                     const viteConfig = `import { defineConfig } from 'vite';
