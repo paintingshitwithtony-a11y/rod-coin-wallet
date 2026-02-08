@@ -21,6 +21,7 @@ import RPCSetupWizard from '../components/wallet/RPCSetupWizard';
 import LocalProxySetupGuide from '../components/admin/LocalProxySetupGuide';
 import LocalDevSetup from '../components/admin/LocalDevSetup';
 import WindowsInstallerGuide from '../components/admin/WindowsInstallerGuide';
+import ElectronBuildAssistant from '../components/admin/ElectronBuildAssistant';
 import NetworkScanner from '../components/admin/NetworkScanner';
 import QuickConnect from '../components/admin/QuickConnect';
 
