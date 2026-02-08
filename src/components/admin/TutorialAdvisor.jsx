@@ -238,26 +238,55 @@ export default function TutorialAdvisor() {
                                 </div>
                             </div>
                         ) : (
-                            messages.map((msg, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            messages.map((msg, idx) => {
+                                // Extract code blocks for file generation
+                                const codeBlockRegex = /```(javascript|js)\n([\s\S]*?)```/g;
+                                const fileMatches = msg.role === 'assistant' ? [...msg.content.matchAll(codeBlockRegex)] : [];
+                                
+                                return (
                                     <div
-                                        className={`max-w-[85%] rounded-lg px-4 py-2 ${
-                                            msg.role === 'user'
-                                                ? 'bg-slate-800 text-white'
-                                                : 'bg-purple-900/30 border border-purple-500/30 text-slate-100'
-                                        }`}>
-                                        {msg.role === 'user' ? (
-                                            <p className="text-sm">{msg.content}</p>
-                                        ) : (
-                                            <ReactMarkdown className="text-sm prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ul]:list-disc [&_li]:ml-4">
-                                                {msg.content}
-                                            </ReactMarkdown>
-                                        )}
+                                        key={idx}
+                                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div
+                                            className={`max-w-[85%] rounded-lg px-4 py-2 ${
+                                                msg.role === 'user'
+                                                    ? 'bg-slate-800 text-white'
+                                                    : 'bg-purple-900/30 border border-purple-500/30 text-slate-100'
+                                            }`}>
+                                            {msg.role === 'user' ? (
+                                                <p className="text-sm">{msg.content}</p>
+                                            ) : (
+                                                <>
+                                                    <ReactMarkdown className="text-sm prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ul]:list-disc [&_li]:ml-4">
+                                                        {msg.content}
+                                                    </ReactMarkdown>
+                                                    {fileMatches.length > 0 && (
+                                                        <div className="mt-3 pt-3 border-t border-purple-500/20 space-y-2">
+                                                            {fileMatches.map((match, fIdx) => {
+                                                                const code = match[2];
+                                                                // Try to detect filename from context
+                                                                const filenameMatch = msg.content.substring(Math.max(0, match.index - 100), match.index).match(/(?:file|download|create|save):\s*(\S+\.(js|jsx))/i);
+                                                                const filename = filenameMatch?.[1] || `file-${fIdx + 1}.js`;
+                                                                
+                                                                return (
+                                                                    <Button
+                                                                        key={fIdx}
+                                                                        size="sm"
+                                                                        onClick={() => downloadGeneratedFile(filename, code)}
+                                                                        className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                                                        <Download className="w-3 h-3 mr-1" />
+                                                                        Download {filename}
+                                                                    </Button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                         {loading && (
                             <div className="flex justify-start">
