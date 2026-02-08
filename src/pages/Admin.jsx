@@ -601,13 +601,11 @@ export default function Admin() {
                             <Button
                                 onClick={() => {
                                      const electronMain = `const { app, BrowserWindow } = require('electron');
-                            const path = require('path');
                             const http = require('http');
 
                             let mainWindow;
                             let proxyServer;
 
-                            // Local RPC Proxy Server
                             function startProxyServer() {
                             proxyServer = http.createServer(async (req, res) => {
                             res.setHeader('Access-Control-Allow-Origin', '*');
@@ -620,32 +618,19 @@ export default function Admin() {
                             return;
                             }
 
-                            if (req.method !== 'POST') {
-                            res.writeHead(405);
-                            res.end('Method Not Allowed');
-                            return;
-                            }
-
                             let body = '';
                             req.on('data', chunk => { body += chunk; });
                             req.on('end', async () => {
                             try {
-                            const rpcRequest = JSON.parse(body);
-                            const rpcHost = '${account?.rpc_host || 'localhost'}';
-                            const rpcPort = '${account?.rpc_port || '9766'}';
-                            const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
-                            const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
-
-                            const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
-
+                            const auth = Buffer.from('rpcuser:rpcpass').toString('base64');
                             const options = {
-                              hostname: rpcHost,
-                              port: rpcPort,
-                              path: '/',
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': \`Basic \${auth}\`
+                            hostname: '127.0.0.1',
+                            port: 9766,
+                            path: '/',
+                            method: 'POST',
+                            headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': \`Basic \${auth}\`
                             }
                             };
 
@@ -659,15 +644,15 @@ export default function Admin() {
                             });
 
                             rpcReq.on('error', (err) => {
-                              console.error('[RPC Proxy] Error:', err);
-                              res.writeHead(500, { 'Content-Type': 'application/json' });
-                              res.end(JSON.stringify({ error: err.message }));
+                            console.error('[RPC Proxy] Error:', err.message);
+                            res.writeHead(500, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: err.message }));
                             });
 
                             rpcReq.write(body);
                             rpcReq.end();
                             } catch (err) {
-                            console.error('[RPC Proxy] Parse error:', err);
+                            console.error('[RPC Proxy] Parse error:', err.message);
                             res.writeHead(400, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ error: err.message }));
                             }
@@ -686,27 +671,44 @@ export default function Admin() {
                             webPreferences: {
                             nodeIntegration: false,
                             contextIsolation: true,
-                            webSecurity: false
+                            webSecurity: false,
+                            preload: undefined
                             }
                             });
 
                             console.log('[Electron] Loading http://localhost:5173');
                             mainWindow.loadURL('http://localhost:5173');
 
-                            // Open DevTools after a short delay to ensure it's ready
-                            mainWindow.webContents.on('did-finish-load', () => {
-                            console.log('[Electron] Page loaded, opening DevTools');
-                            mainWindow.webContents.openDevTools({ mode: 'bottom' });
+                            // Inject error display overlay
+                            mainWindow.webContents.executeJavaScript(\`
+                            const errorOverlay = document.createElement('div');
+                            errorOverlay.id = 'error-overlay';
+                            errorOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);color:#ff4444;padding:20px;font-family:monospace;font-size:12px;z-index:9999;overflow:auto;display:none;';
+                            document.body.appendChild(errorOverlay);
+
+                            window.addEventListener('error', (e) => {
+                            console.error('ERROR:', e.message);
+                            errorOverlay.style.display = 'block';
+                            errorOverlay.innerHTML += '<div style="margin-bottom:20px;border-bottom:1px solid #666;padding-bottom:10px;"><strong>' + new Date().toLocaleTimeString() + '</strong> ' + e.message + '<br>' + (e.stack || '') + '</div>';
                             });
 
-                            // Handle loading errors
+                            window.addEventListener('unhandledrejection', (e) => {
+                            console.error('UNHANDLED REJECTION:', e.reason);
+                            errorOverlay.style.display = 'block';
+                            errorOverlay.innerHTML += '<div style="margin-bottom:20px;border-bottom:1px solid #666;padding-bottom:10px;"><strong>' + new Date().toLocaleTimeString() + '</strong> UNHANDLED REJECTION: ' + e.reason + '</div>';
+                            });
+                            \`);
+
+                            mainWindow.webContents.once('did-finish-load', () => {
+                            console.log('[Electron] Page loaded');
+                            });
+
+                            mainWindow.webContents.on('console-message', (event, level, message) => {
+                            console.log('[Renderer]', message);
+                            });
+
                             mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
                             console.error('[Electron] Load failed:', errorCode, errorDescription);
-                            });
-
-                            // Log any console messages from renderer
-                            mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-                              console.log('[Renderer] [' + level + '] ' + message);
                             });
 
                             mainWindow.on('closed', () => {
@@ -737,11 +739,11 @@ export default function Admin() {
                                      a.click();
                                      window.URL.revokeObjectURL(url);
                                      a.remove();
-                                     toast.success('electron-main.js downloaded - DevTools will now open automatically');
+                                     toast.success('electron-main.js downloaded with error overlay');
                                  }}
                                  variant="outline"
                                  className="border-purple-500/50 text-purple-400">
-                                 Download electron-main.js (With Full Logging)
+                                 Download electron-main.js (With Error Overlay)
                             </Button>
                             <Button
                                 onClick={() => {
