@@ -53,6 +53,8 @@ function startAppServer() {
     if (req.url.startsWith('/api')) {
       // API requests to Base44 backend
       let apiPath = req.url;
+      // CRITICAL: Strip from_url parameter - prevents 431 header overflow
+      apiPath = apiPath.replace(/[?&]from_url=[^&]*/g, '');
       // Replace null placeholder with actual app ID
       apiPath = apiPath.replace(/null/g, BASE44_APP_ID);
       const targetUrl = new URL(apiPath, BASE44_BACKEND);
