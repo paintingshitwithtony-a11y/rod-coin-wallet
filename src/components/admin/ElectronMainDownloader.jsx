@@ -39,10 +39,12 @@ function startProxyServer() {
                 const rpcRequest = JSON.parse(body);
 
                 // Forward to local ROD Core node
-                const rpcHost = 'localhost';
-                const rpcPort = 9766;
-                const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
-                const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
+                const rpcHost = process.env.ROD_RPC_HOST || 'localhost';
+                const rpcPort = process.env.ROD_RPC_PORT || 9766;
+                const rpcUser = process.env.ROD_RPC_USERNAME || '${account?.rpc_username || 'rpcuser'}';
+                const rpcPass = process.env.ROD_RPC_PASSWORD || '${account?.rpc_password || 'rpcpass'}';
+                
+                console.log(\`[RPC Proxy] Forwarding to \${rpcHost}:\${rpcPort}\`);
 
                 const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
 
