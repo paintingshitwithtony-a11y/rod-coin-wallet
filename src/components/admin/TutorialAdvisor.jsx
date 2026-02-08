@@ -166,10 +166,23 @@ export default function TutorialAdvisor() {
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-2xl h-[650px] bg-slate-950 border-slate-700 flex flex-col">
                     <DialogHeader>
-                        <DialogTitle className="text-white flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-400" />
-                            AI Tutorial Advisor
-                        </DialogTitle>
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-white flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-purple-400" />
+                                AI Tutorial Advisor
+                            </DialogTitle>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                    setShowHistory(true);
+                                    loadAllConversations();
+                                }}
+                                className="text-slate-400 hover:text-white">
+                                <History className="w-4 h-4 mr-1" />
+                                History
+                            </Button>
+                        </div>
                         <p className="text-sm text-slate-400 mt-2">
                             Describe your error or issue, and I'll recommend the best tutorials and files to help you
                         </p>
