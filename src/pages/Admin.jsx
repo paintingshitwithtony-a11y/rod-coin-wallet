@@ -876,11 +876,11 @@ export default function Admin() {
                                      window.URL.revokeObjectURL(url);
                                      a.remove();
                                      toast.success('electron-main.js downloaded - FIX for 431 error included!');
-                                  }}
-                                  variant="outline"
-                                  className="border-purple-500/50 text-purple-400">
-                                  Download electron-main.js (431 Fix)
-                            </Button>
+                                     }}
+                                     variant="outline"
+                                     className="border-purple-500/50 text-purple-400">
+                                     Download electron-main.js (431 Fix)
+                                     </Button>
                             <Button
                                 onClick={() => {
                                     const packageJson = {
