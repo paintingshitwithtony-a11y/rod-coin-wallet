@@ -262,6 +262,59 @@ export default function TutorialAdvisor() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* History Dialog */}
+            <Dialog open={showHistory} onOpenChange={setShowHistory}>
+                <DialogContent className="max-w-2xl h-[600px] bg-slate-950 border-slate-700 flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="text-white flex items-center gap-2">
+                            <History className="w-5 h-5 text-purple-400" />
+                            Conversation History
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="flex-1 overflow-y-auto space-y-2">
+                        {conversations.length === 0 ? (
+                            <p className="text-slate-400 text-center py-8">No saved conversations yet</p>
+                        ) : (
+                            conversations.map(conv => (
+                                <Card key={conv.id} className="bg-slate-900/50 border-slate-700 p-4 hover:bg-slate-900/70 transition">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1 cursor-pointer" onClick={() => {
+                                            setConversationId(conv.id);
+                                            setShowHistory(false);
+                                            setOpen(true);
+                                        }}>
+                                            <p className="text-white text-sm font-medium">Conversation {conv.id?.substring(0, 8)}</p>
+                                            <p className="text-slate-400 text-xs mt-1">{conv.preview}</p>
+                                            <p className="text-slate-500 text-xs mt-2">{conv.messages.length} messages</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(conv.messages.map(m => `${m.role}: ${m.content}`).join('\n\n'));
+                                                    toast.success('Conversation copied');
+                                                }}
+                                                className="text-blue-400 hover:text-blue-300">
+                                                <Copy className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => deleteConversation(conv.id)}
+                                                className="text-red-400 hover:text-red-300">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
