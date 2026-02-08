@@ -82,15 +82,21 @@ export default function TutorialAdvisor() {
             </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-w-2xl h-[600px] bg-slate-950 border-slate-700 flex flex-col">
+                <DialogContent className="max-w-2xl h-[650px] bg-slate-950 border-slate-700 flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="text-white flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-purple-400" />
                             AI Tutorial Advisor
                         </DialogTitle>
                         <p className="text-sm text-slate-400 mt-2">
-                            Describe your error or issue, and I'll recommend the best tutorials to help you
+                            Describe your error or issue, and I'll recommend the best tutorials and files to help you
                         </p>
+                        <div className="bg-blue-900/30 border border-blue-500/30 rounded p-2 mt-3">
+                            <p className="text-xs text-blue-200 flex gap-2">
+                                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <span><strong>Downloadable files:</strong> package.json, vite.config.js, electron-main.js are all available in the Admin panel under "RPC Configuration" section at the bottom of the page.</span>
+                            </p>
+                        </div>
                     </DialogHeader>
 
                     <div className="flex-1 overflow-y-auto space-y-4 mb-4 bg-slate-900/30 rounded-lg p-4">
