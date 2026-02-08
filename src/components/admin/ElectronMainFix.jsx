@@ -131,11 +131,18 @@ function startAppServer() {
             return;
           }
 
-          // Inject app ID into HTML at the very start (before any other scripts)
+          // Inject app ID and URL cleanup script at the very start
           let content = indexData.toString();
-          const appIdScript = \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}'; window.__VITE_APP_ID__ = '\${BASE44_APP_ID}';</script>\`;
+          const injectionScript = \`<script>
+            // Clean URL on page load - remove all query params to prevent redirect loops
+            if (window.location.search) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}';
+            window.__VITE_APP_ID__ = '\${BASE44_APP_ID}';
+          </script>\`;
           if (!content.includes('window.__BASE44_APP_ID__')) {
-            content = content.replace('<head>', '<head>' + appIdScript);
+            content = content.replace('<head>', '<head>' + injectionScript);
           }
 
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
