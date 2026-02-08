@@ -69,11 +69,21 @@ export default function TutorialAdvisor() {
         setLoading(true);
 
         try {
+            // Enhance message with conversation context
+            const conversationContext = messages
+                .slice(-4) // Last 4 messages for context
+                .map(m => `${m.role}: ${m.content}`)
+                .join('\n');
+            
+            const enhancedMessage = conversationContext 
+                ? `Previous context:\n${conversationContext}\n\nNew question: ${userMessage}`
+                : userMessage;
+
             await base44.agents.addMessage(
                 { id: conversationId },
                 {
                     role: 'user',
-                    content: userMessage
+                    content: enhancedMessage
                 }
             );
             
