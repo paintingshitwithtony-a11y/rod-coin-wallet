@@ -125,13 +125,11 @@ function startAppServer() {
             return;
           }
 
-          // Inject app ID into HTML
+          // Inject app ID into HTML at the very start (before any other scripts)
           let content = indexData.toString();
+          const appIdScript = \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}'; window.__VITE_APP_ID__ = '\${BASE44_APP_ID}';</script>\`;
           if (!content.includes('window.__BASE44_APP_ID__')) {
-            content = content.replace(
-              '</head>',
-              \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}';</script></head>\`
-            );
+            content = content.replace('<head>', '<head>' + appIdScript);
           }
 
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
