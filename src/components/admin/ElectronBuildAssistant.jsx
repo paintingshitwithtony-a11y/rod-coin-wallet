@@ -86,8 +86,8 @@ function createWindow() {
         icon: path.join(__dirname, 'build/icon.png')
     });
 
-    // Load the built app
-    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+    // Load your Base44 app
+    mainWindow.loadURL('https://rod-coin-wallet.base44.app/');
 
     mainWindow.on('closed', () => {
         mainWindow = null;
