@@ -535,10 +535,8 @@ export default defineConfig({
                                         "version": "1.0.0",
                                         "main": "electron-main.js",
                                         "scripts": {
-                                            "dev": "vite",
-                                            "build": "vite build",
                                             "electron:dev": "electron .",
-                                            "electron:build": "npm run build && electron-builder"
+                                            "electron:build": "electron-builder"
                                         },
                                         "dependencies": {
                                             "react": "^18.2.0",
