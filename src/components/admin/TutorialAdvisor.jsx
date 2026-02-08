@@ -208,12 +208,12 @@ export default function TutorialAdvisor() {
                             </Button>
                         </div>
                         <p className="text-sm text-slate-400 mt-2">
-                            Describe your error or issue, and I'll recommend the best tutorials and files to help you
+                            Paste your error logs or describe your issue. I'll analyze it and provide fixed .js files if needed.
                         </p>
                         <div className="bg-blue-900/30 border border-blue-500/30 rounded p-2 mt-3">
                             <p className="text-xs text-blue-200 flex gap-2">
-                                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span><strong>Downloadable files:</strong> Home.js, package.json, vite.config.js, electron-main.js are all available in the Admin panel under "RPC Configuration" section at the bottom of the page.</span>
+                                <Code className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <span><strong>Automatic downloads:</strong> JavaScript code in my responses will have download buttons. Just paste your full error message!</span>
                             </p>
                         </div>
                     </DialogHeader>
