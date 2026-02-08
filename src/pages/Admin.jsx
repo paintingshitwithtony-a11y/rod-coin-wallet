@@ -599,6 +599,7 @@ export default function Admin() {
                                 className="border-green-500/50 text-green-400">
                                 Download vite.config.js
                             </Button>
+                            <ElectronMainFix />
                             <Button
                                 onClick={() => {
                                      const electronMain = `import { app, BrowserWindow } from 'electron';
