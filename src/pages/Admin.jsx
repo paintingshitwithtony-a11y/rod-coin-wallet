@@ -600,11 +600,147 @@ export default function Admin() {
                             </Button>
                             <Button
                                 onClick={() => {
-                                     const electronMain = `const { app, BrowserWindow } = require('electron');
-                            const http = require('http');
+                                     const electronMain = `import { app, BrowserWindow } from 'electron';
+                            import http from 'http';
+                            import https from 'https';
+                            import path from 'path';
+                            import fs from 'fs';
+                            import { fileURLToPath } from 'url';
+                            import { URL } from 'url';
+
+                            const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
                             let mainWindow;
                             let proxyServer;
+                            let appServer;
+
+                            const BASE44_BACKEND = 'https://rod-coin-wallet.base44.app';
+                            const BASE44_APP_ID = '695c1217b1d1db20f67a77f2';
+
+                            const httpsAgent = new https.Agent({
+                            rejectUnauthorized: false
+                            });
+
+                            function startAppServer() {
+                            const distPath = path.resolve(__dirname, 'dist');
+
+                            appServer = http.createServer((req, res) => {
+                            // Strip from_url from ALL requests FIRST to prevent 431 error
+                            req.url = req.url.replace(/[\\?&]from_url=[^&]*/g, '');
+
+                            if (req.url.startsWith('/api')) {
+                            let apiUrl = req.url;
+                            apiUrl = apiUrl.replace(/null/g, BASE44_APP_ID);
+
+                            const targetUrl = new URL(apiUrl, BASE44_BACKEND);
+
+                            let bodyBuffer = Buffer.alloc(0);
+
+                            req.on('data', (chunk) => {
+                            bodyBuffer = Buffer.concat([bodyBuffer, chunk]);
+                            });
+
+                            req.on('end', () => {
+                            const headers = {};
+                            if (bodyBuffer.length > 0) {
+                            headers['content-length'] = bodyBuffer.length.toString();
+                            if (req.headers['content-type']) {
+                            headers['content-type'] = req.headers['content-type'];
+                            }
+                            }
+                            if (req.headers['authorization']) {
+                            headers['authorization'] = req.headers['authorization'];
+                            }
+
+                            const requestOptions = {
+                            method: req.method,
+                            headers: headers,
+                            agent: httpsAgent
+                            };
+
+                            const proxyReq = https.request(targetUrl, requestOptions, (proxyRes) => {
+                            res.writeHead(proxyRes.statusCode, proxyRes.headers);
+                            proxyRes.pipe(res);
+                            });
+
+                            proxyReq.on('error', (err) => {
+                            console.error('[API Proxy] Error:', err.message);
+                            res.writeHead(500);
+                            res.end('API Proxy Error');
+                            });
+
+                            if (bodyBuffer.length > 0) {
+                            proxyReq.write(bodyBuffer);
+                            }
+                            proxyReq.end();
+                            });
+
+                            return;
+                            }
+
+                            let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url);
+
+                            if (!filePath.startsWith(distPath)) {
+                            res.writeHead(404);
+                            res.end('Not Found');
+                            return;
+                            }
+
+                            fs.readFile(filePath, (err, data) => {
+                            if (err) {
+                            if (err.code === 'ENOENT' && !req.url.match(/\\.[a-z0-9]+$/i)) {
+                            const indexPath = path.join(distPath, 'index.html');
+                            fs.readFile(indexPath, (indexErr, indexData) => {
+                            if (indexErr) {
+                            res.writeHead(404);
+                            res.end('Not Found');
+                            return;
+                            }
+
+                            let content = indexData.toString().replace(
+                            '</head>',
+                            \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}';</script></head>\`
+                            );
+
+                            res.writeHead(200, { 'Content-Type': 'text/html' });
+                            res.end(content);
+                            });
+                            } else {
+                            res.writeHead(404);
+                            res.end('Not Found');
+                            }
+                            return;
+                            }
+
+                            const ext = path.extname(filePath);
+                            const mimeTypes = {
+                            '.html': 'text/html',
+                            '.js': 'application/javascript',
+                            '.css': 'text/css',
+                            '.json': 'application/json',
+                            '.png': 'image/png',
+                            '.jpg': 'image/jpeg',
+                            '.gif': 'image/gif',
+                            '.svg': 'image/svg+xml'
+                            };
+
+                            let content = data;
+                            if (filePath.endsWith('index.html')) {
+                            content = data.toString().replace(
+                            '</head>',
+                            \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}';</script></head>\`
+                            );
+                            }
+
+                            res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+                            res.end(content);
+                            });
+                            });
+
+                            appServer.listen(3000, () => {
+                            console.log('[App Server] Running on http://localhost:3000');
+                            });
+                            }
 
                             function startProxyServer() {
                             proxyServer = http.createServer(async (req, res) => {
@@ -675,10 +811,9 @@ export default function Admin() {
                             }
                             });
 
-                            console.log('[Electron] Loading http://localhost:5173');
-                            mainWindow.loadURL('http://localhost:5173');
+                            console.log('[Electron] Loading http://localhost:3000');
+                            mainWindow.loadURL('http://localhost:3000');
 
-                            // Inject error catcher immediately on page start (before DOM ready)
                             mainWindow.webContents.on('did-start-loading', () => {
                             mainWindow.webContents.executeJavaScript(\`
                             (function() {
@@ -703,7 +838,7 @@ export default function Admin() {
                             });
 
                             mainWindow.webContents.once('did-finish-load', () => {
-                            console.log('[Electron] Page loaded');
+                            console.log('[Electron] Page loaded successfully');
                             });
 
                             mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -717,12 +852,14 @@ export default function Admin() {
 
                             app.whenReady().then(() => {
                             console.log('[Electron] App ready');
+                            startAppServer();
                             startProxyServer();
                             createWindow();
                             });
 
                             app.on('window-all-closed', () => {
                             if (proxyServer) proxyServer.close();
+                            if (appServer) appServer.close();
                             if (process.platform !== 'darwin') app.quit();
                             });
 
@@ -738,11 +875,11 @@ export default function Admin() {
                                      a.click();
                                      window.URL.revokeObjectURL(url);
                                      a.remove();
-                                     toast.success('electron-main.js downloaded with early error catcher');
-                                 }}
-                                 variant="outline"
-                                 className="border-purple-500/50 text-purple-400">
-                                 Download electron-main.js (Early Error Capture)
+                                     toast.success('electron-main.js downloaded - FIX for 431 error included!');
+                                  }}
+                                  variant="outline"
+                                  className="border-purple-500/50 text-purple-400">
+                                  Download electron-main.js (431 Fix)
                             </Button>
                             <Button
                                 onClick={() => {
