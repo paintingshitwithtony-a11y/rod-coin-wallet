@@ -102,9 +102,18 @@ export default function TutorialAdvisor() {
                     <div className="flex-1 overflow-y-auto space-y-4 mb-4 bg-slate-900/30 rounded-lg p-4">
                         {messages.length === 0 ? (
                             <div className="flex items-center justify-center h-full text-slate-400">
-                                <div className="text-center">
-                                    <MessageCircle className="w-8 h-8 mx-auto mb-2 text-slate-500" />
-                                    <p>Tell me about your error or issue...</p>
+                                <div className="text-center space-y-3">
+                                    <MessageCircle className="w-8 h-8 mx-auto text-slate-500" />
+                                    <div>
+                                        <p className="font-semibold mb-2">Tell me about your error or issue...</p>
+                                        <p className="text-xs text-slate-500 mb-3">Examples:</p>
+                                        <ul className="text-xs text-slate-500 space-y-1">
+                                            <li>• "Cannot find module tailwindcss"</li>
+                                            <li>• "react/jsx-runtime not found"</li>
+                                            <li>• "Vite build failing"</li>
+                                            <li>• "Electron won't start"</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
