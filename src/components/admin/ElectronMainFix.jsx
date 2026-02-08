@@ -86,7 +86,12 @@ function startAppServer() {
         };
 
         const proxyReq = https.request(targetUrl, requestOptions, (proxyRes) => {
-          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+          // Strip location header to prevent redirect loops
+          const headers = { ...proxyRes.headers };
+          if (headers.location) {
+            headers.location = headers.location.replace(/[?&]from_url=[^&]*/g, '');
+          }
+          res.writeHead(proxyRes.statusCode || 200, headers);
           proxyRes.pipe(res);
         });
 
