@@ -671,7 +671,7 @@ export default defineConfig({
 
                             // Log any console messages from renderer
                             mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-                            console.log(\\\`[Renderer] [\\\${level}] \\\${message}\\\`);
+                              console.log('[Renderer] [' + level + '] ' + message);
                             });
 
                             mainWindow.on('closed', () => {
