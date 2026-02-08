@@ -18,9 +18,14 @@ export default function WindowsInstallerGuide() {
     };
 
     const electronMainJs = `// electron-main.js
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const { spawn } = require('child_process');
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let mainWindow;
 let proxyServer;
