@@ -15,6 +15,8 @@ export default function TutorialAdvisor() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [unsubscribe, setUnsubscribe] = useState(null);
+    const [showHistory, setShowHistory] = useState(false);
+    const [conversations, setConversations] = useState([]);
 
     useEffect(() => {
         if (open && !conversationId) {
