@@ -726,17 +726,7 @@ export default defineConfig({
                                 className="border-blue-500/50 text-blue-400">
                                 Download package.json
                             </Button>
-                            <PortForwardingGuide 
-                                onConfigCreated={(configData) => {
-                                    setNewConfig({
-                                        ...newConfig,
-                                        ...configData
-                                    });
-                                    setShowNewConfig(true);
-                                    toast.success('Config template created - please add your RPC credentials');
-                                }}
-                            />
-                        </div>
+                            </div>
 
                         {/* Create/Edit Config */}
                         {!showNewConfig && !editingConfig ? (
