@@ -624,9 +624,9 @@ export default defineConfig({
                             });
 
                             rpcReq.on('error', (err) => {
-                            console.error('[RPC Proxy] Error:', err);
-                            res.writeHead(500, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({ error: err.message }));
+                              console.error('[RPC Proxy] Error:', err);
+                              res.writeHead(500, { 'Content-Type': 'application/json' });
+                              res.end(JSON.stringify({ error: err.message }));
                             });
 
                             rpcReq.write(body);
