@@ -473,6 +473,58 @@ export default defineConfig({
                                 className="border-green-500/50 text-green-400">
                                 Download vite.config.js
                             </Button>
+                            <Button
+                                onClick={() => {
+                                    const packageJson = {
+                                        "name": "rod-wallet",
+                                        "version": "1.0.0",
+                                        "type": "module",
+                                        "main": "electron-main.js",
+                                        "scripts": {
+                                            "dev": "vite",
+                                            "build": "vite build",
+                                            "electron:dev": "electron .",
+                                            "electron:build": "npm run build && electron-builder"
+                                        },
+                                        "dependencies": {
+                                            "react": "^18.2.0",
+                                            "react-dom": "^18.2.0"
+                                        },
+                                        "devDependencies": {
+                                            "vite": "^7.0.0",
+                                            "@vitejs/plugin-react": "^4.0.0",
+                                            "electron": "^28.0.0",
+                                            "electron-builder": "^24.0.0"
+                                        },
+                                        "build": {
+                                            "appId": "com.rodwallet.app",
+                                            "productName": "ROD Wallet",
+                                            "directories": {
+                                                "output": "release"
+                                            },
+                                            "files": ["dist/**/*", "electron-main.js"],
+                                            "win": {
+                                                "target": ["nsis"],
+                                                "icon": "build/icon.ico",
+                                                "signingHashAlgorithms": []
+                                            }
+                                        }
+                                    };
+                                    const blob = new Blob([JSON.stringify(packageJson, null, 2)], { type: 'application/json' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'package.json';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('package.json downloaded - run npm install again');
+                                }}
+                                variant="outline"
+                                className="border-blue-500/50 text-blue-400">
+                                Download package.json
+                            </Button>
                             <PortForwardingGuide 
                                 onConfigCreated={(configData) => {
                                     setNewConfig({
