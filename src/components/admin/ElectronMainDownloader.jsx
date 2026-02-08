@@ -12,6 +12,14 @@ const http = require('http');
 let mainWindow;
 let proxyServer;
 
+// RPC Configuration (embedded at build time)
+const RPC_CONFIG = {
+    host: '${process.env.ROD_RPC_HOST || 'localhost'}',
+    port: '${process.env.ROD_RPC_PORT || '9766'}',
+    username: '${process.env.ROD_RPC_USERNAME || ''}',
+    password: '${process.env.ROD_RPC_PASSWORD || ''}'
+};
+
 // Local RPC Proxy Server
 function startProxyServer() {
     proxyServer = http.createServer(async (req, res) => {
@@ -38,11 +46,11 @@ function startProxyServer() {
             try {
                 const rpcRequest = JSON.parse(body);
 
-                // Forward to local ROD Core node
-                const rpcHost = process.env.ROD_RPC_HOST || 'localhost';
-                const rpcPort = process.env.ROD_RPC_PORT || 9766;
-                const rpcUser = process.env.ROD_RPC_USERNAME || '${account?.rpc_username || 'rpcuser'}';
-                const rpcPass = process.env.ROD_RPC_PASSWORD || '${account?.rpc_password || 'rpcpass'}';
+                // Forward to local ROD Core node using embedded config
+                const rpcHost = RPC_CONFIG.host;
+                const rpcPort = RPC_CONFIG.port;
+                const rpcUser = RPC_CONFIG.username;
+                const rpcPass = RPC_CONFIG.password;
                 
                 console.log(\`[RPC Proxy] Forwarding to \${rpcHost}:\${rpcPort}\`);
 
