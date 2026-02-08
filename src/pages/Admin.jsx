@@ -565,139 +565,143 @@ export default defineConfig({
                             </Button>
                             <Button
                                 onClick={() => {
-                                    const electronMain = `const { app, BrowserWindow } = require('electron');
-                                const path = require('path');
-                                const http = require('http');
+                                     const electronMain = `const { app, BrowserWindow } = require('electron');
+                            const path = require('path');
+                            const http = require('http');
 
-                                let mainWindow;
-                                let proxyServer;
+                            let mainWindow;
+                            let proxyServer;
 
-                                // Local RPC Proxy Server
-                                function startProxyServer() {
-                                proxyServer = http.createServer(async (req, res) => {
-                                // Enable CORS
-                                res.setHeader('Access-Control-Allow-Origin', '*');
-                                res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-                                res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+                            // Local RPC Proxy Server
+                            function startProxyServer() {
+                            proxyServer = http.createServer(async (req, res) => {
+                            // Enable CORS
+                            res.setHeader('Access-Control-Allow-Origin', '*');
+                            res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+                            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-                                if (req.method === 'OPTIONS') {
-                                res.writeHead(200);
-                                res.end();
-                                return;
-                                }
+                            if (req.method === 'OPTIONS') {
+                            res.writeHead(200);
+                            res.end();
+                            return;
+                            }
 
-                                if (req.method !== 'POST') {
-                                res.writeHead(405);
-                                res.end('Method Not Allowed');
-                                return;
-                                }
+                            if (req.method !== 'POST') {
+                            res.writeHead(405);
+                            res.end('Method Not Allowed');
+                            return;
+                            }
 
-                                let body = '';
-                                req.on('data', chunk => { body += chunk; });
-                                req.on('end', async () => {
-                                try {
-                                const rpcRequest = JSON.parse(body);
+                            let body = '';
+                            req.on('data', chunk => { body += chunk; });
+                            req.on('end', async () => {
+                            try {
+                            const rpcRequest = JSON.parse(body);
 
-                                // Forward to local ROD Core node
-                                const rpcHost = 'localhost';
-                                const rpcPort = 9766;
-                                const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
-                                const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
+                            // Forward to local ROD Core node
+                            const rpcHost = 'localhost';
+                            const rpcPort = 9766;
+                            const rpcUser = '\${process.env.ROD_RPC_USERNAME || 'your_rpc_username'}';
+                            const rpcPass = '\${process.env.ROD_RPC_PASSWORD || 'your_rpc_password'}';
 
-                                const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
+                            const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
 
-                                const options = {
-                                hostname: rpcHost,
-                                port: rpcPort,
-                                path: '/',
-                                method: 'POST',
-                                headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': \`Basic \${auth}\`
-                                }
-                                };
+                            const options = {
+                            hostname: rpcHost,
+                            port: rpcPort,
+                            path: '/',
+                            method: 'POST',
+                            headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': \`Basic \${auth}\`
+                            }
+                            };
 
-                                const rpcReq = http.request(options, (rpcRes) => {
-                                let rpcBody = '';
-                                rpcRes.on('data', chunk => { rpcBody += chunk; });
-                                rpcRes.on('end', () => {
-                                res.writeHead(rpcRes.statusCode, { 'Content-Type': 'application/json' });
-                                res.end(rpcBody);
-                                });
-                                });
+                            const rpcReq = http.request(options, (rpcRes) => {
+                            let rpcBody = '';
+                            rpcRes.on('data', chunk => { rpcBody += chunk; });
+                            rpcRes.on('end', () => {
+                            res.writeHead(rpcRes.statusCode, { 'Content-Type': 'application/json' });
+                            res.end(rpcBody);
+                            });
+                            });
 
-                                rpcReq.on('error', (err) => {
-                                res.writeHead(500, { 'Content-Type': 'application/json' });
-                                res.end(JSON.stringify({ error: err.message }));
-                                });
+                            rpcReq.on('error', (err) => {
+                            res.writeHead(500, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: err.message }));
+                            });
 
-                                rpcReq.write(body);
-                                rpcReq.end();
+                            rpcReq.write(body);
+                            rpcReq.end();
 
-                                } catch (err) {
-                                res.writeHead(400, { 'Content-Type': 'application/json' });
-                                res.end(JSON.stringify({ error: err.message }));
-                                }
-                                });
-                                });
+                            } catch (err) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: err.message }));
+                            }
+                            });
+                            });
 
-                                proxyServer.listen(9767, () => {
-                                console.log('RPC Proxy running on http://localhost:9767');
-                                });
-                                }
+                            proxyServer.listen(9767, () => {
+                            console.log('RPC Proxy running on http://localhost:9767');
+                            });
+                            }
 
-                                function createWindow() {
-                                mainWindow = new BrowserWindow({
-                                width: 1400,
-                                height: 900,
-                                webPreferences: {
-                                nodeIntegration: false,
-                                contextIsolation: true,
-                                webSecurity: false
-                                }
-                                });
+                            function createWindow() {
+                            mainWindow = new BrowserWindow({
+                            width: 1400,
+                            height: 900,
+                            webPreferences: {
+                            nodeIntegration: false,
+                            contextIsolation: true,
+                            webSecurity: false
+                            }
+                            });
 
-                                // Load your Base44 hosted app
-                                mainWindow.loadURL('https://rod-coin-wallet.base44.app/');
+                            // Load Vite dev server (development)
+                            // Change to 'https://rod-coin-wallet.base44.app' for production
+                            mainWindow.loadURL('http://localhost:5173');
 
-                                mainWindow.on('closed', () => {
-                                mainWindow = null;
-                                });
-                                }
+                            // Open DevTools to see console errors
+                            mainWindow.webContents.openDevTools();
 
-                                app.whenReady().then(() => {
-                                startProxyServer();
-                                createWindow();
-                                });
+                            mainWindow.on('closed', () => {
+                            mainWindow = null;
+                            });
+                            }
 
-                                app.on('window-all-closed', () => {
-                                if (proxyServer) {
-                                proxyServer.close();
-                                }
-                                if (process.platform !== 'darwin') {
-                                app.quit();
-                                }
-                                });
+                            app.whenReady().then(() => {
+                            startProxyServer();
+                            createWindow();
+                            });
 
-                                app.on('activate', () => {
-                                if (mainWindow === null) {
-                                createWindow();
-                                }
-                                });`;
-                                    const blob = new Blob([electronMain], { type: 'text/javascript' });
-                                    const url = window.URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = 'electron-main.js';
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                    a.remove();
-                                    toast.success('electron-main.js downloaded');
-                                }}
-                                variant="outline"
-                                className="border-purple-500/50 text-purple-400">
-                                Download electron-main.js (Hybrid)
+                            app.on('window-all-closed', () => {
+                            if (proxyServer) {
+                            proxyServer.close();
+                            }
+                            if (process.platform !== 'darwin') {
+                            app.quit();
+                            }
+                            });
+
+                            app.on('activate', () => {
+                            if (mainWindow === null) {
+                            createWindow();
+                            }
+                            });`;
+                                     const blob = new Blob([electronMain], { type: 'text/javascript' });
+                                     const url = window.URL.createObjectURL(blob);
+                                     const a = document.createElement('a');
+                                     a.href = url;
+                                     a.download = 'electron-main.js';
+                                     document.body.appendChild(a);
+                                     a.click();
+                                     window.URL.revokeObjectURL(url);
+                                     a.remove();
+                                     toast.success('electron-main.js downloaded with DevTools enabled');
+                                 }}
+                                 variant="outline"
+                                 className="border-purple-500/50 text-purple-400">
+                                 Download electron-main.js (DevTools)
                             </Button>
                             <Button
                                 onClick={() => {
