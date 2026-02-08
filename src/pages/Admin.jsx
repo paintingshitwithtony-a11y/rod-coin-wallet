@@ -500,7 +500,16 @@ export default function Admin() {
                             <DesktopShortcutGuide />
                             <ViteDevServerGuide />
                             {typeof window !== 'undefined' && !window.electron && (
-
+                                <PortForwardingGuide 
+                                    onConfigCreated={(configData) => {
+                                        setNewConfig({
+                                            ...newConfig,
+                                            ...configData
+                                        });
+                                        setShowNewConfig(true);
+                                        toast.success('Config template created - please add your RPC credentials');
+                                    }}
+                                />
                             )}
                             <Button
                                 onClick={() => {
