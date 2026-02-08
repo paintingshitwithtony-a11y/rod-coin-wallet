@@ -323,6 +323,34 @@ export default function Admin() {
                             )}
                             <Button
                                 onClick={async () => {
+                                    setTesting('all');
+                                    try {
+                                        const { data } = await base44.functions.invoke('restartProxyServer', {});
+                                        if (data.success) {
+                                            toast.success(data.message);
+                                            // Refresh configs after restart
+                                            await new Promise(resolve => setTimeout(resolve, 1000));
+                                            loadConfigs();
+                                        } else {
+                                            toast.error(data.message || 'Failed to restart proxy');
+                                        }
+                                    } catch (err) {
+                                        toast.error('Restart failed: ' + err.message);
+                                    } finally {
+                                        setTesting(null);
+                                    }
+                                }}
+                                disabled={testing === 'all'}
+                                className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                                {testing === 'all' ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                )}
+                                {testing === 'all' ? 'Restarting Proxy...' : 'Restart Proxy'}
+                            </Button>
+                            <Button
+                                onClick={async () => {
                                     try {
                                         const results = await Promise.all(
                                             configs.map(config => 
@@ -331,7 +359,7 @@ export default function Admin() {
                                                     .catch(() => ({ config, connected: false }))
                                             )
                                         );
-                                        
+
                                         await Promise.all(
                                             results.map(({ config, connected }) =>
                                                 base44.entities.RPCConfiguration.update(config.id, {
@@ -340,7 +368,7 @@ export default function Admin() {
                                                 })
                                             )
                                         );
-                                        
+
                                         toast.success('All connections tested');
                                         loadConfigs();
                                     } catch (err) {
