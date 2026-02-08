@@ -871,8 +871,6 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (mainWindow === null) createWindow();
 });`;
-                            import http from 'http';
-                            import https from 'https';
                             import path from 'path';
                             import fs from 'fs';
                             import { fileURLToPath } from 'url';
