@@ -671,40 +671,39 @@ export default function Admin() {
                             webPreferences: {
                             nodeIntegration: false,
                             contextIsolation: true,
-                            webSecurity: false,
-                            preload: undefined
+                            webSecurity: false
                             }
                             });
 
                             console.log('[Electron] Loading http://localhost:5173');
                             mainWindow.loadURL('http://localhost:5173');
 
-                            // Inject error display overlay
+                            // Inject error catcher immediately on page start (before DOM ready)
+                            mainWindow.webContents.on('did-start-loading', () => {
                             mainWindow.webContents.executeJavaScript(\`
-                            const errorOverlay = document.createElement('div');
-                            errorOverlay.id = 'error-overlay';
-                            errorOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);color:#ff4444;padding:20px;font-family:monospace;font-size:12px;z-index:9999;overflow:auto;display:none;';
-                            document.body.appendChild(errorOverlay);
+                            (function() {
+                            const errDiv = document.createElement('div');
+                            errDiv.id = 'error-catcher';
+                            errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;color:#ff4444;padding:20px;font-family:monospace;font-size:12px;z-index:99999;overflow:auto;display:none;white-space:pre-wrap;word-break:break-all;';
+                            document.documentElement.appendChild(errDiv);
 
                             window.addEventListener('error', (e) => {
-                            console.error('ERROR:', e.message);
-                            errorOverlay.style.display = 'block';
-                            errorOverlay.innerHTML += '<div style="margin-bottom:20px;border-bottom:1px solid #666;padding-bottom:10px;"><strong>' + new Date().toLocaleTimeString() + '</strong> ' + e.message + '<br>' + (e.stack || '') + '</div>';
-                            });
+                            errDiv.style.display = 'block';
+                            errDiv.innerHTML += '<div style="margin:10px 0;border-bottom:1px solid #666;padding:10px 0;"><strong>' + new Date().toLocaleTimeString() + '</strong> ERROR: ' + e.message + '\\n' + (e.stack || '') + '</div>';
+                            }, true);
 
                             window.addEventListener('unhandledrejection', (e) => {
-                            console.error('UNHANDLED REJECTION:', e.reason);
-                            errorOverlay.style.display = 'block';
-                            errorOverlay.innerHTML += '<div style="margin-bottom:20px;border-bottom:1px solid #666;padding-bottom:10px;"><strong>' + new Date().toLocaleTimeString() + '</strong> UNHANDLED REJECTION: ' + e.reason + '</div>';
-                            });
+                            errDiv.style.display = 'block';
+                            errDiv.innerHTML += '<div style="margin:10px 0;border-bottom:1px solid #666;padding:10px 0;"><strong>' + new Date().toLocaleTimeString() + '</strong> REJECTION: ' + e.reason + '</div>';
+                            }, true);
+
+                            console.log('[ERROR CATCHER] Initialized');
+                            })();
                             \`);
+                            });
 
                             mainWindow.webContents.once('did-finish-load', () => {
                             console.log('[Electron] Page loaded');
-                            });
-
-                            mainWindow.webContents.on('console-message', (event, level, message) => {
-                            console.log('[Renderer]', message);
                             });
 
                             mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -739,11 +738,11 @@ export default function Admin() {
                                      a.click();
                                      window.URL.revokeObjectURL(url);
                                      a.remove();
-                                     toast.success('electron-main.js downloaded with error overlay');
+                                     toast.success('electron-main.js downloaded with early error catcher');
                                  }}
                                  variant="outline"
                                  className="border-purple-500/50 text-purple-400">
-                                 Download electron-main.js (With Error Overlay)
+                                 Download electron-main.js (Early Error Capture)
                             </Button>
                             <Button
                                 onClick={() => {
