@@ -213,10 +213,12 @@ export default function TutorialAdvisor() {
                                         <p className="font-semibold mb-2">Tell me about your error or issue...</p>
                                         <p className="text-xs text-slate-500 mb-3">Examples:</p>
                                         <ul className="text-xs text-slate-500 space-y-1">
+                                            <li>• "Blank white screen after adding .env"</li>
+                                            <li>• "Electron window won't load"</li>
+                                            <li>• "F12 DevTools not opening"</li>
                                             <li>• "Cannot find module tailwindcss"</li>
-                                            <li>• "react/jsx-runtime not found"</li>
                                             <li>• "Vite build failing"</li>
-                                            <li>• "Electron won't start"</li>
+                                            <li>• "Connection failed errors"</li>
                                         </ul>
                                     </div>
                                 </div>
