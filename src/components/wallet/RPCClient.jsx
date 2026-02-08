@@ -104,6 +104,44 @@ export class RPCClient {
 }
 
 export async function testRPCConnection(config) {
+    // Special handling for Electron proxy (port 9767)
+    if (config.host === 'localhost' && config.port === '9767') {
+        try {
+            const response = await fetch('http://localhost:9767', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: Date.now(),
+                    method: 'getblockchaininfo',
+                    params: []
+                }),
+                signal: AbortSignal.timeout(3000)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (!data.error) {
+                    return {
+                        connected: true,
+                        nodeInfo: {
+                            blocks: data.result?.blocks,
+                            chain: data.result?.chain,
+                            version: data.result?.version
+                        }
+                    };
+                }
+            }
+            throw new Error(`Electron proxy returned ${response.status}`);
+        } catch (err) {
+            return {
+                connected: false,
+                error: 'Electron proxy not running on port 9767. Start Electron with: npm run electron:dev'
+            };
+        }
+    }
+
+    // Standard RPC test
     try {
         const client = new RPCClient(config);
         const info = await client.getBlockchainInfo();
