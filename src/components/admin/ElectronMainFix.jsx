@@ -26,27 +26,26 @@ const httpsAgent = new https.Agent({
   rejectUnauthorized: false
 });
 
-// Clean URL - remove ALL query params except those we explicitly allow
-function cleanUrl(urlString) {
-  try {
-    const url = new URL(urlString, 'http://localhost:3000');
-    // Keep ONLY the pathname, ignore all query strings
-    return url.pathname;
-  } catch {
-    return urlString;
-  }
-}
-
 function startAppServer() {
   const distPath = path.resolve(__dirname, 'dist');
 
   appServer = http.createServer((req, res) => {
-    // Clean URL immediately - remove all query parameters
-    const cleanedPath = cleanUrl(req.url);
-    const originalUrl = req.url;
-    req.url = cleanedPath;
-
-    console.log('[AppServer] Request:', originalUrl, '-> Cleaned:', req.url);
+    // CRITICAL: Strip from_url parameter immediately - this causes 431 header overflow
+    const urlWithoutFromUrl = req.url.replace(/[?&]from_url=[^&]*/g, '');
+    
+    // For non-API routes, strip ALL query parameters to prevent redirect loops
+    let cleanPath = urlWithoutFromUrl;
+    if (!urlWithoutFromUrl.startsWith('/api')) {
+      try {
+        const url = new URL(urlWithoutFromUrl, 'http://localhost:3000');
+        cleanPath = url.pathname;
+      } catch {
+        cleanPath = urlWithoutFromUrl.split('?')[0];
+      }
+    }
+    
+    req.url = cleanPath;
+    console.log('[AppServer]', req.method, req.url);
 
     // Prevent redirect loops by never redirecting
     // Just serve the file or proxy the API
