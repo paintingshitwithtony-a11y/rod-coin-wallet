@@ -26,18 +26,35 @@ const httpsAgent = new https.Agent({
   rejectUnauthorized: false
 });
 
+// Clean URL - remove ALL query params except those we explicitly allow
+function cleanUrl(urlString) {
+  try {
+    const url = new URL(urlString, 'http://localhost:3000');
+    // Keep ONLY the pathname, ignore all query strings
+    return url.pathname;
+  } catch {
+    return urlString;
+  }
+}
+
 function startAppServer() {
   const distPath = path.resolve(__dirname, 'dist');
 
   appServer = http.createServer((req, res) => {
-    // CRITICAL: Strip from_url IMMEDIATELY before anything else
-    req.url = req.url.replace(/[?&]from_url=[^&]*/g, '');
+    // Clean URL immediately - remove all query parameters
+    const cleanedPath = cleanUrl(req.url);
+    const originalUrl = req.url;
+    req.url = cleanedPath;
+
+    console.log('[AppServer] Request:', originalUrl, '-> Cleaned:', req.url);
+
+    // Prevent redirect loops by never redirecting
+    // Just serve the file or proxy the API
 
     if (req.url.startsWith('/api')) {
-      let apiUrl = req.url;
-      apiUrl = apiUrl.replace(/null/g, BASE44_APP_ID);
-
-      const targetUrl = new URL(apiUrl, BASE44_BACKEND);
+      // API requests to Base44 backend
+      let apiPath = req.url;
+      const targetUrl = new URL(apiPath, BASE44_BACKEND);
 
       let bodyBuffer = Buffer.alloc(0);
 
@@ -47,12 +64,14 @@ function startAppServer() {
 
       req.on('end', () => {
         const headers = {};
+        
         if (bodyBuffer.length > 0) {
           headers['content-length'] = bodyBuffer.length.toString();
           if (req.headers['content-type']) {
             headers['content-type'] = req.headers['content-type'];
           }
         }
+        
         if (req.headers['authorization']) {
           headers['authorization'] = req.headers['authorization'];
         }
@@ -69,9 +88,9 @@ function startAppServer() {
         });
 
         proxyReq.on('error', (err) => {
-          console.error('[API Proxy] Error:', err.message);
-          res.writeHead(500);
-          res.end('API Proxy Error');
+          console.error('[API Proxy Error]:', err.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'API Proxy Error', message: err.message }));
         });
 
         if (bodyBuffer.length > 0) {
@@ -83,74 +102,87 @@ function startAppServer() {
       return;
     }
 
+    // Serve static files or index.html
     let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url);
 
+    // Security: prevent directory traversal
     if (!filePath.startsWith(distPath)) {
-      res.writeHead(404);
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
       return;
     }
 
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        if (err.code === 'ENOENT' && !req.url.match(/\\.[a-z0-9]+$/i)) {
-          const indexPath = path.join(distPath, 'index.html');
-          fs.readFile(indexPath, (indexErr, indexData) => {
-            if (indexErr) {
-              res.writeHead(404);
-              res.end('Not Found');
-              return;
-            }
+    fs.stat(filePath, (statErr, stats) => {
+      if (statErr) {
+        // File not found - serve index.html for SPA routing
+        const indexPath = path.join(distPath, 'index.html');
+        fs.readFile(indexPath, (indexErr, indexData) => {
+          if (indexErr) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('404 Not Found');
+            return;
+          }
 
-            let content = indexData.toString().replace(
+          // Inject app ID into HTML
+          let content = indexData.toString();
+          if (!content.includes('window.__BASE44_APP_ID__')) {
+            content = content.replace(
               '</head>',
               \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}';</script></head>\`
             );
+          }
 
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(content);
-          });
-        } else {
-          res.writeHead(404);
-          res.end('Not Found');
-        }
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(content);
+        });
         return;
       }
 
-      const ext = path.extname(filePath);
-      const mimeTypes = {
-        '.html': 'text/html',
-        '.js': 'application/javascript',
-        '.css': 'text/css',
-        '.json': 'application/json',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.svg': 'image/svg+xml'
-      };
+      // File exists - serve it
+      fs.readFile(filePath, (readErr, data) => {
+        if (readErr) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('Internal Server Error');
+          return;
+        }
 
-      let content = data;
-      if (filePath.endsWith('index.html')) {
-        content = data.toString().replace(
-          '</head>',
-          \`<script>window.__BASE44_APP_ID__ = '\${BASE44_APP_ID}';</script></head>\`
-        );
-      }
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeTypes = {
+          '.html': 'text/html; charset=utf-8',
+          '.js': 'application/javascript; charset=utf-8',
+          '.mjs': 'application/javascript; charset=utf-8',
+          '.css': 'text/css',
+          '.json': 'application/json',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.svg': 'image/svg+xml',
+          '.woff': 'font/woff',
+          '.woff2': 'font/woff2'
+        };
 
-      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
-      res.end(content);
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(data);
+      });
     });
   });
 
-  appServer.listen(3000, () => {
-    console.log('[App Server] Running on http://localhost:3000');
+  appServer.listen(3000, '127.0.0.1', () => {
+    console.log('[App Server] Listening on http://127.0.0.1:3000');
+  });
+
+  appServer.on('error', (err) => {
+    console.error('[App Server Error]:', err.message);
   });
 }
 
 function startProxyServer() {
-  proxyServer = http.createServer(async (req, res) => {
+  proxyServer = http.createServer((req, res) => {
+    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
@@ -159,11 +191,27 @@ function startProxyServer() {
       return;
     }
 
+    // Only accept POST for RPC
+    if (req.method !== 'POST') {
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
+      return;
+    }
+
     let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+      // Prevent large payloads
+      if (body.length > 1024 * 1024) {
+        req.connection.destroy();
+      }
+    });
+
+    req.on('end', () => {
       try {
+        // Simple auth for local RPC
         const auth = Buffer.from('rpcuser:rpcpass').toString('base64');
+        
         const options = {
           hostname: '127.0.0.1',
           port: 9766,
@@ -171,37 +219,51 @@ function startProxyServer() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body),
             'Authorization': \`Basic \${auth}\`
-          }
+          },
+          timeout: 30000
         };
 
         const rpcReq = http.request(options, (rpcRes) => {
           let rpcBody = '';
-          rpcRes.on('data', chunk => { rpcBody += chunk; });
+          rpcRes.on('data', (chunk) => {
+            rpcBody += chunk.toString();
+          });
           rpcRes.on('end', () => {
-            res.writeHead(rpcRes.statusCode, { 'Content-Type': 'application/json' });
-            res.end(rpcBody);
+            res.writeHead(rpcRes.statusCode || 200, { 'Content-Type': 'application/json' });
+            res.end(rpcBody || '{}');
           });
         });
 
         rpcReq.on('error', (err) => {
-          console.error('[RPC Proxy] Error:', err.message);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: err.message }));
+          console.error('[RPC Proxy Error]:', err.message);
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'RPC Connection Failed', message: err.message }));
+        });
+
+        rpcReq.on('timeout', () => {
+          rpcReq.destroy();
+          res.writeHead(504, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'RPC Timeout' }));
         });
 
         rpcReq.write(body);
         rpcReq.end();
       } catch (err) {
-        console.error('[RPC Proxy] Parse error:', err.message);
+        console.error('[RPC Parse Error]:', err.message);
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ error: 'Invalid Request', message: err.message }));
       }
     });
   });
 
-  proxyServer.listen(9767, () => {
-    console.log('[RPC Proxy] Running on http://localhost:9767');
+  proxyServer.listen(9767, '127.0.0.1', () => {
+    console.log('[RPC Proxy] Listening on http://127.0.0.1:9767');
+  });
+
+  proxyServer.on('error', (err) => {
+    console.error('[RPC Proxy Error]:', err.message);
   });
 }
 
@@ -212,38 +274,19 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false
-    }
+      webSecurity: false,
+      sandbox: true
+    },
+    icon: path.join(__dirname, 'assets', 'icon.png')
   });
 
-  console.log('[Electron] Loading http://localhost:3000');
-  mainWindow.loadURL('http://localhost:3000');
+  // Load without any query parameters
+  mainWindow.loadURL('http://127.0.0.1:3000/');
 
-  mainWindow.webContents.on('did-start-loading', () => {
-    mainWindow.webContents.executeJavaScript(\`
-      (function() {
-        const errDiv = document.createElement('div');
-        errDiv.id = 'error-catcher';
-        errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;color:#ff4444;padding:20px;font-family:monospace;font-size:12px;z-index:99999;overflow:auto;display:none;white-space:pre-wrap;word-break:break-all;';
-        document.documentElement.appendChild(errDiv);
+  mainWindow.webContents.openDevTools();
 
-        window.addEventListener('error', (e) => {
-          errDiv.style.display = 'block';
-          errDiv.innerHTML += '<div style="margin:10px 0;border-bottom:1px solid #666;padding:10px 0;"><strong>' + new Date().toLocaleTimeString() + '</strong> ERROR: ' + e.message + '\\\\n' + (e.stack || '') + '</div>';
-        }, true);
-
-        window.addEventListener('unhandledrejection', (e) => {
-          errDiv.style.display = 'block';
-          errDiv.innerHTML += '<div style="margin:10px 0;border-bottom:1px solid #666;padding:10px 0;"><strong>' + new Date().toLocaleTimeString() + '</strong> REJECTION: ' + e.reason + '</div>';
-        }, true);
-
-        console.log('[ERROR CATCHER] Initialized');
-      })();
-    \`);
-  });
-
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('[Electron] Page loaded successfully');
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[Electron] App loaded successfully');
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -255,22 +298,41 @@ function createWindow() {
   });
 }
 
+// Handle app ready
 app.whenReady().then(() => {
-  console.log('[Electron] App ready');
+  console.log('[Electron] App ready - starting servers');
+  
   startAppServer();
   startProxyServer();
-  createWindow();
+  
+  // Wait a bit for servers to start
+  setTimeout(() => {
+    createWindow();
+  }, 500);
 });
 
+// Handle window all closed
 app.on('window-all-closed', () => {
+  console.log('[Electron] Closing servers');
   if (proxyServer) proxyServer.close();
   if (appServer) appServer.close();
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
+// Handle app activate (macOS)
 app.on('activate', () => {
-  if (mainWindow === null) createWindow();
+  if (mainWindow === null) {
+    createWindow();
+  }
+});
+
+// Log any uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('[Electron] Uncaught Exception:', err);
 });`;
+
 
         const blob = new Blob([electronMain], { type: 'text/javascript' });
         const url = window.URL.createObjectURL(blob);
