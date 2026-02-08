@@ -575,7 +575,6 @@ export default defineConfig({
                             // Local RPC Proxy Server
                             function startProxyServer() {
                             proxyServer = http.createServer(async (req, res) => {
-                            // Enable CORS
                             res.setHeader('Access-Control-Allow-Origin', '*');
                             res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
                             res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -597,14 +596,12 @@ export default defineConfig({
                             req.on('end', async () => {
                             try {
                             const rpcRequest = JSON.parse(body);
-
-                            // Forward to local ROD Core node
                             const rpcHost = '${account?.rpc_host || 'localhost'}';
                             const rpcPort = '${account?.rpc_port || '9766'}';
                             const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
                             const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
 
-                            const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
+                            const auth = Buffer.from(\\\`\\\${rpcUser}:\\\${rpcPass}\\\`).toString('base64');
 
                             const options = {
                             hostname: rpcHost,
@@ -613,7 +610,7 @@ export default defineConfig({
                             method: 'POST',
                             headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': \`Basic \${auth}\`
+                            'Authorization': \\\`Basic \\\${auth}\\\`
                             }
                             };
 
@@ -627,14 +624,15 @@ export default defineConfig({
                             });
 
                             rpcReq.on('error', (err) => {
+                            console.error('[RPC Proxy] Error:', err);
                             res.writeHead(500, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ error: err.message }));
                             });
 
                             rpcReq.write(body);
                             rpcReq.end();
-
                             } catch (err) {
+                            console.error('[RPC Proxy] Parse error:', err);
                             res.writeHead(400, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ error: err.message }));
                             }
@@ -642,7 +640,7 @@ export default defineConfig({
                             });
 
                             proxyServer.listen(9767, () => {
-                            console.log('RPC Proxy running on http://localhost:9767');
+                            console.log('[RPC Proxy] Running on http://localhost:9767');
                             });
                             }
 
@@ -657,12 +655,24 @@ export default defineConfig({
                             }
                             });
 
-                            // Load Vite dev server (development)
-                            // Change to 'https://rod-coin-wallet.base44.app' for production
+                            console.log('[Electron] Loading http://localhost:5173');
                             mainWindow.loadURL('http://localhost:5173');
 
-                            // Open DevTools to see console errors
-                            mainWindow.webContents.openDevTools();
+                            // Open DevTools after a short delay to ensure it's ready
+                            mainWindow.webContents.on('did-finish-load', () => {
+                            console.log('[Electron] Page loaded, opening DevTools');
+                            mainWindow.webContents.openDevTools({ mode: 'bottom' });
+                            });
+
+                            // Handle loading errors
+                            mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+                            console.error('[Electron] Load failed:', errorCode, errorDescription);
+                            });
+
+                            // Log any console messages from renderer
+                            mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+                            console.log(\\\`[Renderer] [\\\${level}] \\\${message}\\\`);
+                            });
 
                             mainWindow.on('closed', () => {
                             mainWindow = null;
@@ -670,23 +680,18 @@ export default defineConfig({
                             }
 
                             app.whenReady().then(() => {
+                            console.log('[Electron] App ready');
                             startProxyServer();
                             createWindow();
                             });
 
                             app.on('window-all-closed', () => {
-                            if (proxyServer) {
-                            proxyServer.close();
-                            }
-                            if (process.platform !== 'darwin') {
-                            app.quit();
-                            }
+                            if (proxyServer) proxyServer.close();
+                            if (process.platform !== 'darwin') app.quit();
                             });
 
                             app.on('activate', () => {
-                            if (mainWindow === null) {
-                            createWindow();
-                            }
+                            if (mainWindow === null) createWindow();
                             });`;
                                      const blob = new Blob([electronMain], { type: 'text/javascript' });
                                      const url = window.URL.createObjectURL(blob);
@@ -697,11 +702,11 @@ export default defineConfig({
                                      a.click();
                                      window.URL.revokeObjectURL(url);
                                      a.remove();
-                                     toast.success('electron-main.js downloaded with DevTools enabled');
+                                     toast.success('electron-main.js downloaded - DevTools will now open automatically');
                                  }}
                                  variant="outline"
                                  className="border-purple-500/50 text-purple-400">
-                                 Download electron-main.js (DevTools)
+                                 Download electron-main.js (With Full Logging)
                             </Button>
                             <Button
                                 onClick={() => {
