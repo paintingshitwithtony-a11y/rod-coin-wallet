@@ -701,8 +701,21 @@ export default defineConfig({
                                             "electron:dev": "electron .",
                                             "electron:build": "electron-builder"
                                         },
-
+                                        "dependencies": {
+                                            "react": "^18.2.0",
+                                            "react-dom": "^18.2.0",
+                                            "react-router-dom": "^6.26.0",
+                                            "@base44/sdk": "^0.8.11",
+                                            "lucide-react": "^0.475.0",
+                                            "framer-motion": "^11.16.4",
+                                            "sonner": "^2.0.1"
+                                        },
                                         "devDependencies": {
+                                            "vite": "^5.0.0",
+                                            "@vitejs/plugin-react": "^4.2.0",
+                                            "tailwindcss": "^3.4.0",
+                                            "postcss": "^8.4.0",
+                                            "autoprefixer": "^10.4.0",
                                             "electron": "^28.0.0",
                                             "electron-builder": "^24.0.0"
                                         },
@@ -712,7 +725,7 @@ export default defineConfig({
                                             "directories": {
                                                 "output": "release"
                                             },
-                                            "files": ["electron-main.js", "package.json"],
+                                            "files": ["electron-main.js", "package.json", "dist/**/*"],
                                             "win": {
                                                 "target": ["nsis"],
                                                 "icon": "build/icon.ico",
@@ -730,7 +743,7 @@ export default defineConfig({
                                     a.click();
                                     window.URL.revokeObjectURL(url);
                                     a.remove();
-                                    toast.success('package.json downloaded - run npm install again');
+                                    toast.success('package.json downloaded with all dependencies - run npm install');
                                 }}
                                 variant="outline"
                                 className="border-blue-500/50 text-blue-400">
