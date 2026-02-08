@@ -71,9 +71,10 @@ export default function WalletDashboard({ account, onLogout }) {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [showConfEditor, setShowConfEditor] = useState(false);
   const [lastImportTime, setLastImportTime] = useState(0);
-  const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
-  const [walletUnlocked, setWalletUnlocked] = useState(false);
-  const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
+      const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
+      const [walletUnlocked, setWalletUnlocked] = useState(false);
+      const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
+      const [electronProxyConnected, setElectronProxyConnected] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
