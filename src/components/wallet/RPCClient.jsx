@@ -1,3 +1,5 @@
+import { base44 } from '@/api/base44Client';
+
 // Client-side RPC connection handler for Electron/local nodes
 export class RPCClient {
     constructor(config) {
@@ -16,29 +18,43 @@ export class RPCClient {
             headers['Authorization'] = `Basic ${btoa(`${this.config.username}:${this.config.password}`)}`;
         }
 
-        const response = await fetch(this.url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                jsonrpc: '1.0',
-                id: Date.now(),
-                method,
-                params
-            }),
-            signal: AbortSignal.timeout(15000)
-        });
+        // Try direct connection first
+        try {
+            const response = await fetch(this.url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: Date.now(),
+                    method,
+                    params
+                }),
+                signal: AbortSignal.timeout(5000)
+            });
 
-        if (!response.ok) {
-            throw new Error(`RPC call failed: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                throw new Error(`RPC call failed: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message || 'RPC error');
+            }
+
+            return data.result;
+        } catch (directError) {
+            // Fall back to backend relay function
+            try {
+                const { data } = await base44.functions.invoke('rpcRelay', { method, params });
+                if (data.error) {
+                    throw new Error(data.error.message || data.error);
+                }
+                return data.result;
+            } catch (relayError) {
+                throw new Error(`Direct: ${directError.message} | Relay: ${relayError.message}`);
+            }
         }
-
-        const data = await response.json();
-
-        if (data.error) {
-            throw new Error(data.error.message || 'RPC error');
-        }
-
-        return data.result;
     }
 
     async getBlockchainInfo() {
