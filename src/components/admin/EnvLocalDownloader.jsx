@@ -12,12 +12,12 @@ export default function EnvLocalDownloader() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = '.env.local';
+        a.download = 'env.local';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
-        toast.success('.env.local downloaded - place in project root');
+        toast.success('env.local downloaded - rename to .env.local and place in project root');
     };
 
     return (
