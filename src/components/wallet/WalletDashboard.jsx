@@ -835,6 +835,15 @@ export default function WalletDashboard({ account, onLogout }) {
                                 {walletUnlocked ? 'Unlocked' : 'Locked'}
                               </Badge>
                             )}
+                            {electronProxyConnected && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-blue-500/50 text-blue-400"
+                                title="Electron proxy is running locally">
+                                <span className="w-2 h-2 rounded-full bg-blue-400 mr-1 animate-pulse" />
+                                Electron
+                              </Badge>
+                            )}
                             {!isMobile &&
               <span className="text-xs text-slate-400 hidden md:inline">
                                     {account?.email}
