@@ -24,6 +24,7 @@ import WindowsInstallerGuide from '../components/admin/WindowsInstallerGuide';
 import ElectronBuildAssistant from '../components/admin/ElectronBuildAssistant';
 import NetworkScanner from '../components/admin/NetworkScanner';
 import QuickConnect from '../components/admin/QuickConnect';
+import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
     const [account, setAccount] = useState(null);
