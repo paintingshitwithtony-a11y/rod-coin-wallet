@@ -439,6 +439,40 @@ export default function Admin() {
                             <LocalDevSetup account={account} />
                             <WindowsInstallerGuide />
                             <ElectronBuildAssistant />
+                            <Button
+                                onClick={() => {
+                                    const viteConfig = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
+  base: './',
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true
+  }
+});`;
+                                    const blob = new Blob([viteConfig], { type: 'text/javascript' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'vite.config.js';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('vite.config.js downloaded');
+                                }}
+                                variant="outline"
+                                className="border-green-500/50 text-green-400">
+                                Download vite.config.js
+                            </Button>
                             <PortForwardingGuide 
                                 onConfigCreated={(configData) => {
                                     setNewConfig({
