@@ -29,6 +29,15 @@ export default function TutorialAdvisor() {
         };
     }, [open]);
 
+    useEffect(() => {
+        if (messages.length > 0 && conversationId) {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage.role === 'assistant') {
+                saveAssistantMessage(lastMessage.content);
+            }
+        }
+    }, [messages]);
+
     const initializeConversation = async () => {
         try {
             const conversation = await base44.agents.createConversation({
