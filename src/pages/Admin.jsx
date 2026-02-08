@@ -494,7 +494,10 @@ export default defineConfig({
                                             "vite": "^7.0.0",
                                             "@vitejs/plugin-react": "^4.0.0",
                                             "electron": "^28.0.0",
-                                            "electron-builder": "^24.0.0"
+                                            "electron-builder": "^24.0.0",
+                                            "tailwindcss": "^3.4.0",
+                                            "autoprefixer": "^10.4.0",
+                                            "postcss": "^8.4.0"
                                         },
                                         "build": {
                                             "appId": "com.rodwallet.app",
