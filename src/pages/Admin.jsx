@@ -488,7 +488,23 @@ export default defineConfig({
                                         },
                                         "dependencies": {
                                             "react": "^18.2.0",
-                                            "react-dom": "^18.2.0"
+                                            "react-dom": "^18.2.0",
+                                            "@tanstack/react-query": "^5.84.1",
+                                            "@radix-ui/react-dialog": "^1.1.6",
+                                            "@radix-ui/react-tabs": "^1.1.3",
+                                            "@radix-ui/react-label": "^2.1.2",
+                                            "@radix-ui/react-slot": "^1.1.2",
+                                            "@radix-ui/react-select": "^2.1.6",
+                                            "@radix-ui/react-toast": "^1.2.2",
+                                            "@radix-ui/react-scroll-area": "^1.2.3",
+                                            "lucide-react": "^0.475.0",
+                                            "class-variance-authority": "^0.7.1",
+                                            "clsx": "^2.1.1",
+                                            "tailwind-merge": "^3.0.2",
+                                            "sonner": "^2.0.1",
+                                            "react-router-dom": "^6.26.0",
+                                            "recharts": "^2.15.4",
+                                            "date-fns": "^3.6.0"
                                         },
                                         "devDependencies": {
                                             "vite": "^7.0.0",
