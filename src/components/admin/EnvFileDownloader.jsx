@@ -7,7 +7,7 @@ export default function EnvFileDownloader() {
         const appId = "695c1217b1d1db20f67a77f2";
         const envContent = `VITE_APP_ID=${appId}`;
         
-        const blob = new Blob([envContent], { type: 'text/plain' });
+        const blob = new Blob([envContent], { type: 'application/octet-stream' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
