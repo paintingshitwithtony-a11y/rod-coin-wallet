@@ -107,8 +107,9 @@ function createWindow() {
         }
     });
 
-    // Load your Base44 app with the correct URL
-    mainWindow.loadURL('https://rod-coin-wallet.base44.app');
+    // Load Vite dev server for local development
+    // Change to 'https://rod-coin-wallet.base44.app' for production
+    mainWindow.loadURL('http://localhost:5173');
 
     mainWindow.on('closed', () => {
         mainWindow = null;
