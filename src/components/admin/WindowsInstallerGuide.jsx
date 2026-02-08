@@ -196,6 +196,171 @@ app.on('quit', () => {
                         </AlertDescription>
                     </Alert>
 
+                    {/* Quick Download Complete package.json */}
+                    <Card className="bg-gradient-to-r from-green-900/30 to-blue-900/30 border-green-500/50">
+                        <CardHeader>
+                            <CardTitle className="text-lg text-white flex items-center gap-2">
+                                <Download className="w-5 h-5 text-green-400" />
+                                Quick Start: Download Complete package.json
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-sm text-slate-300">
+                                Download this complete package.json file and replace your existing one:
+                            </p>
+                            <Button
+                                onClick={() => {
+                                    const completePackageJson = {
+                                        "name": "rod-wallet",
+                                        "version": "1.0.0",
+                                        "description": "ROD Cryptocurrency Wallet",
+                                        "type": "module",
+                                        "main": "electron-main.js",
+                                        "scripts": {
+                                            "dev": "vite",
+                                            "build": "vite build",
+                                            "preview": "vite preview",
+                                            "electron:dev": "electron .",
+                                            "electron:build": "npm run build && electron-builder"
+                                        },
+                                        "dependencies": {
+                                            "@base44/sdk": "^0.8.3",
+                                            "@base44/vite-plugin": "^0.2.14",
+                                            "@hello-pangea/dnd": "^17.0.0",
+                                            "@hookform/resolvers": "^4.1.2",
+                                            "@radix-ui/react-accordion": "^1.2.3",
+                                            "@radix-ui/react-alert-dialog": "^1.1.6",
+                                            "@radix-ui/react-aspect-ratio": "^1.1.2",
+                                            "@radix-ui/react-avatar": "^1.1.3",
+                                            "@radix-ui/react-checkbox": "^1.1.4",
+                                            "@radix-ui/react-collapsible": "^1.1.3",
+                                            "@radix-ui/react-context-menu": "^2.2.6",
+                                            "@radix-ui/react-dialog": "^1.1.6",
+                                            "@radix-ui/react-dropdown-menu": "^2.1.6",
+                                            "@radix-ui/react-hover-card": "^1.1.6",
+                                            "@radix-ui/react-label": "^2.1.2",
+                                            "@radix-ui/react-menubar": "^1.1.6",
+                                            "@radix-ui/react-navigation-menu": "^1.2.5",
+                                            "@radix-ui/react-popover": "^1.1.6",
+                                            "@radix-ui/react-progress": "^1.1.2",
+                                            "@radix-ui/react-radio-group": "^1.2.3",
+                                            "@radix-ui/react-scroll-area": "^1.2.3",
+                                            "@radix-ui/react-select": "^2.1.6",
+                                            "@radix-ui/react-separator": "^1.1.2",
+                                            "@radix-ui/react-slider": "^1.2.3",
+                                            "@radix-ui/react-slot": "^1.1.2",
+                                            "@radix-ui/react-switch": "^1.1.3",
+                                            "@radix-ui/react-tabs": "^1.1.3",
+                                            "@radix-ui/react-toast": "^1.2.2",
+                                            "@radix-ui/react-toggle": "^1.1.2",
+                                            "@radix-ui/react-toggle-group": "^1.1.2",
+                                            "@radix-ui/react-tooltip": "^1.1.8",
+                                            "@stripe/react-stripe-js": "^3.0.0",
+                                            "@stripe/stripe-js": "^5.2.0",
+                                            "@tanstack/react-query": "^5.84.1",
+                                            "canvas-confetti": "^1.9.4",
+                                            "class-variance-authority": "^0.7.1",
+                                            "clsx": "^2.1.1",
+                                            "cmdk": "^1.0.0",
+                                            "date-fns": "^3.6.0",
+                                            "embla-carousel-react": "^8.5.2",
+                                            "framer-motion": "^11.16.4",
+                                            "html2canvas": "^1.4.1",
+                                            "input-otp": "^1.4.2",
+                                            "jspdf": "^2.5.2",
+                                            "lodash": "^4.17.21",
+                                            "lucide-react": "^0.475.0",
+                                            "moment": "^2.30.1",
+                                            "next-themes": "^0.4.4",
+                                            "react": "^18.2.0",
+                                            "react-day-picker": "^8.10.1",
+                                            "react-dom": "^18.2.0",
+                                            "react-hook-form": "^7.54.2",
+                                            "react-hot-toast": "^2.6.0",
+                                            "react-leaflet": "^4.2.1",
+                                            "react-markdown": "^9.0.1",
+                                            "react-quill": "^2.0.0",
+                                            "react-resizable-panels": "^2.1.7",
+                                            "react-router-dom": "^6.26.0",
+                                            "recharts": "^2.15.4",
+                                            "sonner": "^2.0.1",
+                                            "tailwind-merge": "^3.0.2",
+                                            "tailwindcss-animate": "^1.0.7",
+                                            "three": "^0.171.0",
+                                            "vaul": "^1.1.2",
+                                            "zod": "^3.24.2"
+                                        },
+                                        "devDependencies": {
+                                            "@types/react": "^18.2.43",
+                                            "@types/react-dom": "^18.2.17",
+                                            "@vitejs/plugin-react": "^4.2.1",
+                                            "autoprefixer": "^10.4.16",
+                                            "electron": "^28.0.0",
+                                            "electron-builder": "^24.9.1",
+                                            "postcss": "^8.4.32",
+                                            "tailwindcss": "^3.4.0",
+                                            "vite": "^6.1.0"
+                                        },
+                                        "build": {
+                                            "appId": "com.rod.wallet",
+                                            "productName": "ROD Wallet",
+                                            "directories": {
+                                                "output": "release"
+                                            },
+                                            "files": [
+                                                "dist/**/*",
+                                                "electron-main.js",
+                                                "local-rpc-proxy.js",
+                                                "package.json"
+                                            ],
+                                            "extraResources": [
+                                                {
+                                                    "from": "local-rpc-proxy.js",
+                                                    "to": "local-rpc-proxy.js"
+                                                }
+                                            ],
+                                            "win": {
+                                                "target": [
+                                                    {
+                                                        "target": "nsis",
+                                                        "arch": ["x64"]
+                                                    }
+                                                ],
+                                                "icon": "build/icon.ico"
+                                            },
+                                            "nsis": {
+                                                "oneClick": false,
+                                                "allowToChangeInstallationDirectory": true,
+                                                "createDesktopShortcut": true,
+                                                "createStartMenuShortcut": true,
+                                                "shortcutName": "ROD Wallet"
+                                            }
+                                        }
+                                    };
+                                    const blob = new Blob([JSON.stringify(completePackageJson, null, 2)], { type: 'application/json' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'package.json';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('Complete package.json downloaded! Replace your existing file.');
+                                }}
+                                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-lg py-6">
+                                <Download className="w-5 h-5 mr-2" />
+                                Download Complete package.json
+                            </Button>
+                            <Alert className="bg-green-900/20 border-green-500/50">
+                                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                <AlertDescription className="text-xs text-green-300">
+                                    This is a complete, ready-to-use package.json. Just download it and replace your broken one!
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+
                     {/* Prerequisites */}
                     <Card className="bg-slate-900/50 border-slate-700">
                         <CardHeader>
