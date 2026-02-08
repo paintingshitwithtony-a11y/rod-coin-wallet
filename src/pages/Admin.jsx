@@ -711,6 +711,7 @@ export default defineConfig({
                                             "react-dom": "^18.2.0",
                                             "react-router-dom": "^6.26.0",
                                             "@base44/sdk": "^0.8.11",
+                                            "@tanstack/react-query": "^5.84.1",
                                             "lucide-react": "^0.475.0",
                                             "framer-motion": "^11.16.4",
                                             "sonner": "^2.0.1"
