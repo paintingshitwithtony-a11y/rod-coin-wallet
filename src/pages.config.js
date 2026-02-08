@@ -53,6 +53,7 @@ import NgrokSetupGuide from './pages/NgrokSetupGuide';
 import RPCMonitor from './pages/RPCMonitor';
 import SecuritySettings from './pages/SecuritySettings';
 import Wallet from './pages/Wallet';
+import Home from './pages/Home';
 import __Layout from './Layout.jsx';
 
 
@@ -63,6 +64,7 @@ export const PAGES = {
     "RPCMonitor": RPCMonitor,
     "SecuritySettings": SecuritySettings,
     "Wallet": Wallet,
+    "Home": Home,
 }
 
 export const pagesConfig = {
