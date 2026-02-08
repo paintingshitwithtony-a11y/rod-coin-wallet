@@ -533,23 +533,56 @@ export default function Admin() {
                             )}
                             <Button
                                 onClick={() => {
-                                    const viteConfig = `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+                                    const homeJs = `import React from 'react';
+                            import { Link } from 'react-router-dom';
+                            import { createPageUrl } from '@/utils';
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  },
-  base: './',
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true
-  }
-});`;
+                            export default function Home() {
+                            return (
+                            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                            <div className="text-center space-y-6">
+                            <h1 className="text-4xl font-bold text-white">ROD Wallet</h1>
+                            <Link to={createPageUrl('Wallet')} className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+                            Open Wallet
+                            </Link>
+                            </div>
+                            </div>
+                            );
+                            }`;
+                                    const blob = new Blob([homeJs], { type: 'text/javascript' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'Home.js';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('Home.js downloaded - place in pages/ folder');
+                                }}
+                                variant="outline"
+                                className="border-green-500/50 text-green-400">
+                                Download Home.js
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    const viteConfig = `import { defineConfig } from 'vite';
+                            import react from '@vitejs/plugin-react';
+                            import path from 'path';
+
+                            export default defineConfig({
+                            plugins: [react()],
+                            resolve: {
+                            alias: {
+                            '@': path.resolve(__dirname, './src')
+                            }
+                            },
+                            base: './',
+                            build: {
+                            outDir: 'dist',
+                            emptyOutDir: true
+                            }
+                            });`;
                                     const blob = new Blob([viteConfig], { type: 'text/javascript' });
                                     const url = window.URL.createObjectURL(blob);
                                     const a = document.createElement('a');
