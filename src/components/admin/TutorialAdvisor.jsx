@@ -199,7 +199,7 @@ export default function TutorialAdvisor() {
                         <div className="bg-blue-900/30 border border-blue-500/30 rounded p-2 mt-3">
                             <p className="text-xs text-blue-200 flex gap-2">
                                 <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <span><strong>Downloadable files:</strong> package.json, vite.config.js, electron-main.js are all available in the Admin panel under "RPC Configuration" section at the bottom of the page.</span>
+                                <span><strong>Downloadable files:</strong> Home.js, package.json, vite.config.js, electron-main.js are all available in the Admin panel under "RPC Configuration" section at the bottom of the page.</span>
                             </p>
                         </div>
                     </DialogHeader>
