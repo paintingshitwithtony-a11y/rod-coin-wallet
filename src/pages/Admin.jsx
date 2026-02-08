@@ -32,6 +32,7 @@ import ElectronRestartGuide from '../components/admin/ElectronRestartGuide';
 import DependenciesInstallGuide from '../components/admin/DependenciesInstallGuide';
 import ElectronMainFix from '../components/admin/ElectronMainFix';
 import EnvFileDownloader from '../components/admin/EnvFileDownloader';
+import EnvLocalDownloader from '../components/admin/EnvLocalDownloader';
 import ViteBuildErrorFix from '../components/admin/ViteBuildErrorFix';
 import TutorialAdvisor from '../components/admin/TutorialAdvisor';
 import AITroubleshooter from '../components/admin/AITroubleshooter';
