@@ -553,7 +553,8 @@ export default defineConfig({
                                             "win": {
                                                 "target": ["nsis"],
                                                 "icon": "build/icon.ico",
-                                                "signingHashAlgorithms": []
+                                                "signingHashAlgorithms": [],
+                                                "signAndEditExecutable": false
                                             }
                                         }
                                     };
