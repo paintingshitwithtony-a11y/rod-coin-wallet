@@ -487,6 +487,9 @@ export default function Admin() {
                             />
                         </div>
 
+                        {/* AI Advisor */}
+                        <TutorialAdvisor />
+
                         {/* Setup Wizard, Local Proxy, and Port Forwarding Guide */}
                         <div className="flex gap-3 flex-wrap">
                             <Button
