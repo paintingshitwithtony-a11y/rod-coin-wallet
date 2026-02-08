@@ -533,7 +533,6 @@ export default defineConfig({
                                     const packageJson = {
                                         "name": "rod-wallet",
                                         "version": "1.0.0",
-                                        "type": "module",
                                         "main": "electron-main.js",
                                         "scripts": {
                                             "dev": "vite",
