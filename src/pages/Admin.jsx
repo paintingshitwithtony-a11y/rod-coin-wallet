@@ -475,6 +475,61 @@ export default defineConfig({
                             </Button>
                             <Button
                                 onClick={() => {
+                                    const electronMain = `const { app, BrowserWindow } = require('electron');
+                            const path = require('path');
+
+                            let mainWindow;
+
+                            function createWindow() {
+                            mainWindow = new BrowserWindow({
+                            width: 1400,
+                            height: 900,
+                            webPreferences: {
+                            nodeIntegration: false,
+                            contextIsolation: true,
+                            webSecurity: true
+                            },
+                            icon: path.join(__dirname, 'build/icon.png')
+                            });
+
+                            // Load your Base44 hosted app
+                            mainWindow.loadURL('https://your-app.base44.io');
+
+                            mainWindow.on('closed', () => {
+                            mainWindow = null;
+                            });
+                            }
+
+                            app.whenReady().then(createWindow);
+
+                            app.on('window-all-closed', () => {
+                            if (process.platform !== 'darwin') {
+                            app.quit();
+                            }
+                            });
+
+                            app.on('activate', () => {
+                            if (mainWindow === null) {
+                            createWindow();
+                            }
+                            });`;
+                                    const blob = new Blob([electronMain], { type: 'text/javascript' });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = 'electron-main.js';
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    a.remove();
+                                    toast.success('electron-main.js downloaded');
+                                }}
+                                variant="outline"
+                                className="border-purple-500/50 text-purple-400">
+                                Download electron-main.js (Hybrid)
+                            </Button>
+                            <Button
+                                onClick={() => {
                                     const packageJson = {
                                         "name": "rod-wallet",
                                         "version": "1.0.0",
