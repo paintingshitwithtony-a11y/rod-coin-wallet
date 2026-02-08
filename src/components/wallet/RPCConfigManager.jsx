@@ -652,7 +652,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                     {/* Auto-detect button */}
                     <div className="flex gap-1 md:gap-2 flex-wrap overflow-x-hidden">
                         <Button
-                            className="text-xs md:text-sm"
+                            className="text-xs md:text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                             onClick={async () => {
                                 setSaving(true);
                                 try {
@@ -681,7 +681,6 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                 }
                             }}
                             disabled={saving}
-                            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                         >
                             {saving ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
