@@ -549,7 +549,7 @@ export default defineConfig({
                                             "directories": {
                                                 "output": "release"
                                             },
-                                            "files": ["dist/**/*", "electron-main.js"],
+                                            "files": ["electron-main.js", "package.json"],
                                             "win": {
                                                 "target": ["nsis"],
                                                 "icon": "build/icon.ico",
