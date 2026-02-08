@@ -498,6 +498,7 @@ export default function Admin() {
                             <ElectronBuildAssistant />
                             <ElectronMainDownloader account={account} />
                             <ProxyRestartGuide />
+                            <ElectronRestartGuide />
                             <DesktopShortcutGuide />
                             <ViteDevServerGuide />
                             {typeof window !== 'undefined' && !window.electron && (
