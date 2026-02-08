@@ -26,6 +26,7 @@ import NetworkScanner from '../components/admin/NetworkScanner';
 import QuickConnect from '../components/admin/QuickConnect';
 import ElectronMainDownloader from '../components/admin/ElectronMainDownloader';
 import ProxyRestartGuide from '../components/admin/ProxyRestartGuide';
+import DesktopShortcutGuide from '../components/admin/DesktopShortcutGuide';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
