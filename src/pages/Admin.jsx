@@ -30,6 +30,7 @@ import DesktopShortcutGuide from '../components/admin/DesktopShortcutGuide';
 import ViteDevServerGuide from '../components/admin/ViteDevServerGuide';
 import ElectronRestartGuide from '../components/admin/ElectronRestartGuide';
 import DependenciesInstallGuide from '../components/admin/DependenciesInstallGuide';
+import ViteBuildErrorFix from '../components/admin/ViteBuildErrorFix';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
