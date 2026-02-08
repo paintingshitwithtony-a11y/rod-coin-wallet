@@ -30,6 +30,7 @@ import DesktopShortcutGuide from '../components/admin/DesktopShortcutGuide';
 import ViteDevServerGuide from '../components/admin/ViteDevServerGuide';
 import ElectronRestartGuide from '../components/admin/ElectronRestartGuide';
 import DependenciesInstallGuide from '../components/admin/DependenciesInstallGuide';
+import ElectronMainFix from '../components/admin/ElectronMainFix';
 import EnvFileDownloader from '../components/admin/EnvFileDownloader';
 import ViteBuildErrorFix from '../components/admin/ViteBuildErrorFix';
 import TutorialAdvisor from '../components/admin/TutorialAdvisor';
