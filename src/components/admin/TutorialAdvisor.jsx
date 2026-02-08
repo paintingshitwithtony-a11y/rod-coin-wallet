@@ -61,6 +61,19 @@ export default function TutorialAdvisor() {
         }
     };
 
+    const downloadGeneratedFile = (filename, content) => {
+        const blob = new Blob([content], { type: 'text/javascript' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        toast.success(`${filename} downloaded`);
+    };
+
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!input.trim() || !conversationId) return;
@@ -68,17 +81,18 @@ export default function TutorialAdvisor() {
         const userMessage = input.trim();
         setInput('');
         setLoading(true);
+        setGeneratedFiles([]);
 
         try {
-            // Enhance message with conversation context
+            // Enhance message with conversation context and file generation instruction
             const conversationContext = messages
-                .slice(-4) // Last 4 messages for context
+                .slice(-4)
                 .map(m => `${m.role}: ${m.content}`)
                 .join('\n');
             
             const enhancedMessage = conversationContext 
-                ? `Previous context:\n${conversationContext}\n\nNew question: ${userMessage}`
-                : userMessage;
+                ? `Previous context:\n${conversationContext}\n\nError/Issue:\n${userMessage}\n\nIf this is a code error, analyze it and provide:\n1. Root cause explanation\n2. Step-by-step fix\n3. If applicable, provide complete corrected .js file code that can be downloaded (electron-main.js, vite.config.js, etc.)`
+                : `Error/Issue:\n${userMessage}\n\nIf this is a code error, analyze it and provide:\n1. Root cause explanation\n2. Step-by-step fix\n3. If applicable, provide complete corrected .js file code that can be downloaded (electron-main.js, vite.config.js, etc.)`;
 
             await base44.agents.addMessage(
                 { id: conversationId },
@@ -88,7 +102,6 @@ export default function TutorialAdvisor() {
                 }
             );
             
-            // Save message to database
             await base44.entities.ConversationMessage.create({
                 conversation_id: conversationId,
                 role: 'user',
