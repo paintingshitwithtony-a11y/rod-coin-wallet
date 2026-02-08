@@ -17,6 +17,7 @@ export default function TutorialAdvisor() {
     const [unsubscribe, setUnsubscribe] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
     const [conversations, setConversations] = useState([]);
+    const [generatedFiles, setGeneratedFiles] = useState([]);
 
     useEffect(() => {
         if (open && !conversationId) {
