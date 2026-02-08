@@ -476,43 +476,125 @@ export default defineConfig({
                             <Button
                                 onClick={() => {
                                     const electronMain = `const { app, BrowserWindow } = require('electron');
-                            const path = require('path');
+                                const http = require('http');
+                                const https = require('https');
 
-                            let mainWindow;
+                                let mainWindow;
+                                let proxyServer;
 
-                            function createWindow() {
-                            mainWindow = new BrowserWindow({
-                            width: 1400,
-                            height: 900,
-                            webPreferences: {
-                            nodeIntegration: false,
-                            contextIsolation: true,
-                            webSecurity: true
-                            },
-                            icon: path.join(__dirname, 'build/icon.png')
-                            });
+                                // Local RPC Proxy Server
+                                function startProxyServer() {
+                                proxyServer = http.createServer(async (req, res) => {
+                                // Enable CORS
+                                res.setHeader('Access-Control-Allow-Origin', '*');
+                                res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+                                res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-                            // Load your Base44 hosted app
-                            mainWindow.loadURL('https://your-app.base44.io');
+                                if (req.method === 'OPTIONS') {
+                                res.writeHead(200);
+                                res.end();
+                                return;
+                                }
 
-                            mainWindow.on('closed', () => {
-                            mainWindow = null;
-                            });
-                            }
+                                if (req.method !== 'POST') {
+                                res.writeHead(405);
+                                res.end('Method Not Allowed');
+                                return;
+                                }
 
-                            app.whenReady().then(createWindow);
+                                let body = '';
+                                req.on('data', chunk => { body += chunk; });
+                                req.on('end', async () => {
+                                try {
+                                const rpcRequest = JSON.parse(body);
 
-                            app.on('window-all-closed', () => {
-                            if (process.platform !== 'darwin') {
-                            app.quit();
-                            }
-                            });
+                                // Forward to local ROD Core node
+                                const rpcHost = 'localhost';
+                                const rpcPort = 9766;
+                                const rpcUser = 'your_rpc_username'; // TODO: Update with your RPC credentials
+                                const rpcPass = 'your_rpc_password'; // TODO: Update with your RPC credentials
 
-                            app.on('activate', () => {
-                            if (mainWindow === null) {
-                            createWindow();
-                            }
-                            });`;
+                                const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
+
+                                const options = {
+                                hostname: rpcHost,
+                                port: rpcPort,
+                                path: '/',
+                                method: 'POST',
+                                headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': \`Basic \${auth}\`
+                                }
+                                };
+
+                                const rpcReq = http.request(options, (rpcRes) => {
+                                let rpcBody = '';
+                                rpcRes.on('data', chunk => { rpcBody += chunk; });
+                                rpcRes.on('end', () => {
+                                res.writeHead(rpcRes.statusCode, { 'Content-Type': 'application/json' });
+                                res.end(rpcBody);
+                                });
+                                });
+
+                                rpcReq.on('error', (err) => {
+                                res.writeHead(500, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ error: err.message }));
+                                });
+
+                                rpcReq.write(body);
+                                rpcReq.end();
+
+                                } catch (err) {
+                                res.writeHead(400, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ error: err.message }));
+                                }
+                                });
+                                });
+
+                                proxyServer.listen(9767, () => {
+                                console.log('RPC Proxy running on http://localhost:9767');
+                                });
+                                }
+
+                                function createWindow() {
+                                mainWindow = new BrowserWindow({
+                                width: 1400,
+                                height: 900,
+                                webPreferences: {
+                                nodeIntegration: false,
+                                contextIsolation: true,
+                                webSecurity: true
+                                },
+                                icon: path.join(__dirname, 'build/icon.png')
+                                });
+
+                                // Load your Base44 hosted app
+                                mainWindow.loadURL('https://your-app.base44.io');
+
+                                mainWindow.on('closed', () => {
+                                mainWindow = null;
+                                });
+                                }
+
+                                app.whenReady().then(() => {
+                                startProxyServer();
+                                createWindow();
+                                });
+
+                                app.on('window-all-closed', () => {
+                                if (proxyServer) {
+                                proxyServer.close();
+                                }
+                                if (process.platform !== 'darwin') {
+                                app.quit();
+                                }
+                                });
+
+                                app.on('activate', () => {
+                                if (mainWindow === null) {
+                                createWindow();
+                                }
+                                });`;
                                     const blob = new Blob([electronMain], { type: 'text/javascript' });
                                     const url = window.URL.createObjectURL(blob);
                                     const a = document.createElement('a');
