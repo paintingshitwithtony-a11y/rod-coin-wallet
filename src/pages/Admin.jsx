@@ -499,6 +499,18 @@ export default function Admin() {
                             <ProxyRestartGuide />
                             <DesktopShortcutGuide />
                             <ViteDevServerGuide />
+                            {typeof window !== 'undefined' && !window.electron && (
+                                <PortForwardingGuide 
+                                    onConfigCreated={(configData) => {
+                                        setNewConfig({
+                                            ...newConfig,
+                                            ...configData
+                                        });
+                                        setShowNewConfig(true);
+                                        toast.success('Config template created - please add your RPC credentials');
+                                    }}
+                                />
+                            )}
                             <Button
                                 onClick={() => {
                                     const viteConfig = `import { defineConfig } from 'vite';
