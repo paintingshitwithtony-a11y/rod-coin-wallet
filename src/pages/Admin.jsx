@@ -500,8 +500,8 @@ export default defineConfig({
                             <Button
                                 onClick={() => {
                                     const electronMain = `const { app, BrowserWindow } = require('electron');
+                                const path = require('path');
                                 const http = require('http');
-                                const https = require('https');
 
                                 let mainWindow;
                                 let proxyServer;
@@ -535,8 +535,8 @@ export default defineConfig({
                                 // Forward to local ROD Core node
                                 const rpcHost = 'localhost';
                                 const rpcPort = 9766;
-                                const rpcUser = 'your_rpc_username'; // TODO: Update with your RPC credentials
-                                const rpcPass = 'your_rpc_password'; // TODO: Update with your RPC credentials
+                                const rpcUser = '${account?.rpc_username || 'your_rpc_username'}';
+                                const rpcPass = '${account?.rpc_password || 'your_rpc_password'}';
 
                                 const auth = Buffer.from(\`\${rpcUser}:\${rpcPass}\`).toString('base64');
 
@@ -587,13 +587,12 @@ export default defineConfig({
                                 webPreferences: {
                                 nodeIntegration: false,
                                 contextIsolation: true,
-                                webSecurity: true
-                                },
-                                icon: path.join(__dirname, 'build/icon.png')
+                                webSecurity: false
+                                }
                                 });
 
-                                // Load your Base44 hosted app
-                                mainWindow.loadURL('https://your-app.base44.io');
+                                // Load your Base44 hosted app (replace with your actual URL)
+                                mainWindow.loadURL('https://rodcoin.base44.io');
 
                                 mainWindow.on('closed', () => {
                                 mainWindow = null;
