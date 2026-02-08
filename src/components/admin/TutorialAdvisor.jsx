@@ -67,10 +67,81 @@ export default function TutorialAdvisor() {
                     content: userMessage
                 }
             );
+            
+            // Save message to database
+            await base44.entities.ConversationMessage.create({
+                conversation_id: conversationId,
+                role: 'user',
+                content: userMessage,
+                message_index: messages.length,
+                timestamp: new Date().toISOString()
+            });
         } catch (err) {
             toast.error('Failed to send message: ' + err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const saveAssistantMessage = async (content) => {
+        try {
+            await base44.entities.ConversationMessage.create({
+                conversation_id: conversationId,
+                role: 'assistant',
+                content,
+                message_index: messages.length,
+                timestamp: new Date().toISOString()
+            });
+        } catch (err) {
+            console.error('Failed to save assistant message:', err);
+        }
+    };
+
+    const loadConversationHistory = async () => {
+        try {
+            const convos = await base44.entities.ConversationMessage.filter(
+                { conversation_id: conversationId },
+                'message_index'
+            );
+            return convos;
+        } catch (err) {
+            toast.error('Failed to load history: ' + err.message);
+            return [];
+        }
+    };
+
+    const loadAllConversations = async () => {
+        try {
+            const allMessages = await base44.entities.ConversationMessage.list('-created_date', 100);
+            const convos = {};
+            allMessages.forEach(msg => {
+                if (!convos[msg.conversation_id]) {
+                    convos[msg.conversation_id] = {
+                        id: msg.conversation_id,
+                        messages: [],
+                        lastMessage: msg.created_date,
+                        preview: ''
+                    };
+                }
+                convos[msg.conversation_id].messages.push(msg);
+            });
+            setConversations(Object.values(convos).map(c => ({
+                ...c,
+                preview: c.messages[0]?.content?.substring(0, 50) + '...'
+            })));
+        } catch (err) {
+            toast.error('Failed to load conversations: ' + err.message);
+        }
+    };
+
+    const deleteConversation = async (convId) => {
+        try {
+            const messages = await base44.entities.ConversationMessage.filter({ conversation_id: convId });
+            await Promise.all(messages.map(m => base44.entities.ConversationMessage.delete(m.id)));
+            toast.success('Conversation deleted');
+            loadAllConversations();
+        } catch (err) {
+            toast.error('Failed to delete conversation');
         }
     };
 
