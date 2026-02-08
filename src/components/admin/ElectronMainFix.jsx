@@ -30,22 +30,22 @@ function startAppServer() {
   const distPath = path.resolve(__dirname, 'dist');
 
   appServer = http.createServer((req, res) => {
-    // CRITICAL: Strip from_url parameter immediately - this causes 431 header overflow
-    const urlWithoutFromUrl = req.url.replace(/[?&]from_url=[^&]*/g, '');
-    
-    // For non-API routes, strip ALL query parameters to prevent redirect loops
-    let cleanPath = urlWithoutFromUrl;
-    if (!urlWithoutFromUrl.startsWith('/api')) {
-      try {
-        const url = new URL(urlWithoutFromUrl, 'http://localhost:3000');
-        cleanPath = url.pathname;
-      } catch {
-        cleanPath = urlWithoutFromUrl.split('?')[0];
+      // CRITICAL: Strip from_url parameter immediately - this causes 431 header overflow
+      const urlWithoutFromUrl = req.url.replace(/[?&]from_url=[^&]*/g, '');
+
+      // For non-API routes, strip ALL query parameters to prevent redirect loops
+      let cleanPath = urlWithoutFromUrl;
+      if (!urlWithoutFromUrl.startsWith('/api')) {
+        try {
+          const url = new URL(urlWithoutFromUrl, 'http://localhost:3000');
+          cleanPath = url.pathname;
+        } catch {
+          cleanPath = urlWithoutFromUrl.split('?')[0];
+        }
       }
-    }
-    
-    req.url = cleanPath;
-    console.log('[AppServer]', req.method, req.url);
+
+      req.url = cleanPath;
+      console.log('[AppServer]', req.method, req.url, '- App ID: ' + BASE44_APP_ID);
 
     // Prevent redirect loops by never redirecting
     // Just serve the file or proxy the API
