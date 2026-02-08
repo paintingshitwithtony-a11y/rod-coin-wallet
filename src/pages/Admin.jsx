@@ -653,8 +653,8 @@ export default defineConfig({
                                 }
                                 });
 
-                                // Load your Base44 hosted app (replace with your actual URL)
-                                mainWindow.loadURL('https://rodcoin.base44.io');
+                                // Load your Base44 hosted app
+                                mainWindow.loadURL('https://rod-coin-wallet.base44.app/');
 
                                 mainWindow.on('closed', () => {
                                 mainWindow = null;
