@@ -34,6 +34,7 @@ import ElectronMainFix from '../components/admin/ElectronMainFix';
 import EnvFileDownloader from '../components/admin/EnvFileDownloader';
 import EnvLocalDownloader from '../components/admin/EnvLocalDownloader';
 import ViteBuildErrorFix from '../components/admin/ViteBuildErrorFix';
+import ViteConfigDownloader from '../components/admin/ViteConfigDownloader';
 import TutorialAdvisor from '../components/admin/TutorialAdvisor';
 import AITroubleshooter from '../components/admin/AITroubleshooter';
 import AutoUpdater from '../components/admin/AutoUpdater';
