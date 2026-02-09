@@ -15,6 +15,29 @@ export const base44 = createClient({
     appId: '695c1217b1d1db20f67a77f2'
 });`;
 
+    const mainCode = `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { createClient } from '@base44/sdk';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter } from "react-router-dom";
+import "./globals.css";
+import App from "./App";
+const queryClient = new QueryClient();
+
+window.__BASE44_SDK__ = createClient({
+    appId: '695c1217b1d1db20f67a77f2'
+});
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                <App />
+            </BrowserRouter>
+        </QueryClientProvider>
+    </React.StrictMode>
+);`;
+
     const copyToClipboard = (text, successMsg) => {
         const textarea = document.createElement('textarea');
         textarea.value = text;
