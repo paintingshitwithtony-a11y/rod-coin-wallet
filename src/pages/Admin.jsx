@@ -299,6 +299,7 @@ export default function Admin() {
                             <Base44ClientFix />
                             <EmergencyLoginFix />
                             <HardcodeAppId />
+                            <OriginalMainDownload />
                         </div>
 
                         {/* Quick Actions */}
