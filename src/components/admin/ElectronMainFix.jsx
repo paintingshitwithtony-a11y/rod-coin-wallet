@@ -298,6 +298,8 @@ function startProxyServer() {
 }
 
 function createWindow() {
+  console.log('[Electron] Creating window...');
+  
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -305,23 +307,32 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: false,
-      sandbox: true
+      sandbox: false  // CRITICAL: Disable sandbox to allow DevTools
     },
     icon: path.join(__dirname, 'assets', 'icon.png')
   });
 
-  // Load without any query parameters
-  // Load from Vite dev server in development
-  mainWindow.loadURL('http://localhost:5173/');
+  console.log('[Electron] Loading URL: http://localhost:5173/');
+  mainWindow.loadURL('http://localhost:5173/').catch(err => {
+    console.error('[Electron] loadURL failed:', err);
+  });
 
   mainWindow.webContents.openDevTools();
 
+  mainWindow.webContents.on('did-start-loading', () => {
+    console.log('[Electron] Started loading...');
+  });
+
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[Electron] App loaded successfully');
+    console.log('[Electron] ✓ App loaded successfully');
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('[Electron] Load failed:', errorCode, errorDescription);
+    console.error('[Electron] ✗ Load failed:', errorCode, errorDescription);
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('[Renderer Console]:', message);
   });
 
   mainWindow.on('closed', () => {
