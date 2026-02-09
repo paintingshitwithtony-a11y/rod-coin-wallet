@@ -10,23 +10,11 @@ export default function DirectAppIdFix() {
     const [showMain, setShowMain] = useState(false);
     const [showClient, setShowClient] = useState(false);
 
-    const mainCode = `import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { createClient } from '@base44/sdk';
-import App from './App';
+    const clientCode = `import { createClient } from '@base44/sdk';
 
-// DIRECT FIX - Initialize SDK here
-window.__BASE44_SDK__ = createClient({
+export const base44 = createClient({
     appId: '695c1217b1d1db20f67a77f2'
-});
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);`;
-
-    const clientCode = `export const base44 = window.__BASE44_SDK__ || null;`;
+});`;
 
     const copyToClipboard = (text, successMsg) => {
         const textarea = document.createElement('textarea');
