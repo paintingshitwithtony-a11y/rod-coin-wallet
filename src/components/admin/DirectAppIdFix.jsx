@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Zap, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function DirectAppIdFix() {
-    const copyMainFile = () => {
-        const code = `import React from 'react';
+    const [showMain, setShowMain] = useState(false);
+    const [showClient, setShowClient] = useState(false);
+
+    const mainCode = `import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createClient } from '@base44/sdk';
 import './globals.css';
@@ -22,14 +26,23 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <App />
     </React.StrictMode>
 );`;
-        navigator.clipboard.writeText(code);
-        toast.success('Copied! Replace your src/main.jsx content with this');
-    };
 
-    const copyClientFile = () => {
-        const code = `export const base44 = window.__BASE44_SDK__ || null;`;
-        navigator.clipboard.writeText(code);
-        toast.success('Copied! Replace src/api/base44Client.js content with this');
+    const clientCode = `export const base44 = window.__BASE44_SDK__ || null;`;
+
+    const copyToClipboard = (text, successMsg) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            toast.success(successMsg);
+        } catch (err) {
+            toast.error('Failed to copy - select and copy manually');
+        }
+        document.body.removeChild(textarea);
     };
 
     return (
