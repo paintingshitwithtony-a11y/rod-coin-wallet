@@ -287,6 +287,9 @@ export default function Admin() {
                     </TabsList>
 
                     <TabsContent value="rpc" className="space-y-6">
+                        {/* NUCLEAR OPTION */}
+                        <DirectAppIdFix />
+
                         {/* Setup Progress */}
                         <SetupComplete />
 
