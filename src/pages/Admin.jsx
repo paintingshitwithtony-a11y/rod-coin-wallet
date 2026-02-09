@@ -43,6 +43,7 @@ import HardcodeAppId from '../components/admin/HardcodeAppId';
 import Base44ClientFix from '../components/admin/Base44ClientFix';
 import SetupComplete from '../components/admin/SetupComplete';
 import DirectAppIdFix from '../components/admin/DirectAppIdFix';
+import OriginalMainDownload from '../components/admin/OriginalMainDownload';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
