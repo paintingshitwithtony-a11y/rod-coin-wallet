@@ -13,7 +13,6 @@ export default function DirectAppIdFix() {
     const mainCode = `import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createClient } from '@base44/sdk';
-import './globals.css';
 import App from './App';
 
 // DIRECT FIX - Initialize SDK here
