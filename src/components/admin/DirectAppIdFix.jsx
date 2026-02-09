@@ -46,35 +46,81 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     };
 
     return (
-        <div className="space-y-3">
-            <Alert className="bg-red-900/20 border-red-500/50">
-                <Zap className="h-4 w-4 text-red-400" />
-                <AlertDescription className="text-red-300">
-                    <strong>NUCLEAR OPTION:</strong> Replace main.jsx and base44Client.js
-                </AlertDescription>
-            </Alert>
-            
-            <div className="flex gap-2">
-                <Button
-                    onClick={copyMainFile}
-                    className="flex-1 bg-red-600 hover:bg-red-700">
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy main.jsx Fix
-                </Button>
+        <>
+            <div className="space-y-3">
+                <Alert className="bg-red-900/20 border-red-500/50">
+                    <Zap className="h-4 w-4 text-red-400" />
+                    <AlertDescription className="text-red-300">
+                        <strong>NUCLEAR OPTION:</strong> Replace main.jsx and base44Client.js
+                    </AlertDescription>
+                </Alert>
                 
-                <Button
-                    onClick={copyClientFile}
-                    className="flex-1 bg-red-600 hover:bg-red-700">
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy base44Client.js Fix
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => setShowMain(true)}
+                        className="flex-1 bg-red-600 hover:bg-red-700">
+                        <Copy className="w-4 h-4 mr-2" />
+                        Show main.jsx Fix
+                    </Button>
+                    
+                    <Button
+                        onClick={() => setShowClient(true)}
+                        className="flex-1 bg-red-600 hover:bg-red-700">
+                        <Copy className="w-4 h-4 mr-2" />
+                        Show base44Client.js Fix
+                    </Button>
+                </div>
+                
+                <p className="text-xs text-slate-400">
+                    Click buttons above → Select all text → Copy → Paste into your files → Restart terminals
+                </p>
             </div>
-            
-            <p className="text-xs text-slate-400">
-                1. Click "Copy main.jsx Fix" → Paste into src/main.jsx<br/>
-                2. Click "Copy base44Client.js Fix" → Paste into src/api/base44Client.js<br/>
-                3. Restart both terminals
-            </p>
-        </div>
+
+            <Dialog open={showMain} onOpenChange={setShowMain}>
+                <DialogContent className="max-w-3xl bg-slate-950 border-slate-700">
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-bold text-white">src/main.jsx</h3>
+                        <Textarea 
+                            value={mainCode}
+                            readOnly
+                            className="h-64 font-mono text-sm bg-slate-900 border-slate-700 text-white"
+                            onClick={(e) => e.target.select()}
+                        />
+                        <Button
+                            onClick={() => {
+                                copyToClipboard(mainCode, 'Copied! Replace src/main.jsx');
+                                setShowMain(false);
+                            }}
+                            className="w-full bg-purple-600 hover:bg-purple-700">
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy to Clipboard
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showClient} onOpenChange={setShowClient}>
+                <DialogContent className="max-w-3xl bg-slate-950 border-slate-700">
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-bold text-white">src/api/base44Client.js</h3>
+                        <Textarea 
+                            value={clientCode}
+                            readOnly
+                            className="h-32 font-mono text-sm bg-slate-900 border-slate-700 text-white"
+                            onClick={(e) => e.target.select()}
+                        />
+                        <Button
+                            onClick={() => {
+                                copyToClipboard(clientCode, 'Copied! Replace src/api/base44Client.js');
+                                setShowClient(false);
+                            }}
+                            className="w-full bg-purple-600 hover:bg-purple-700">
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy to Clipboard
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
