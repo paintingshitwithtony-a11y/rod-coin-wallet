@@ -311,7 +311,8 @@ function createWindow() {
   });
 
   // Load without any query parameters
-  mainWindow.loadURL('http://127.0.0.1:3000/');
+  // Load from Vite dev server in development
+  mainWindow.loadURL('http://localhost:5173/');
 
   mainWindow.webContents.openDevTools();
 
