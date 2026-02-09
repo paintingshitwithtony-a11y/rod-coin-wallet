@@ -44,6 +44,7 @@ import Base44ClientFix from '../components/admin/Base44ClientFix';
 import SetupComplete from '../components/admin/SetupComplete';
 import DirectAppIdFix from '../components/admin/DirectAppIdFix';
 import OriginalMainDownload from '../components/admin/OriginalMainDownload';
+import GlobalsCssDownload from '../components/admin/GlobalsCssDownload';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
@@ -300,6 +301,7 @@ export default function Admin() {
                             <EmergencyLoginFix />
                             <HardcodeAppId />
                             <OriginalMainDownload />
+                            <GlobalsCssDownload />
                         </div>
 
                         {/* Quick Actions */}
