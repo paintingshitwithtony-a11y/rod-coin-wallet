@@ -287,6 +287,7 @@ export default function Admin() {
                     <TabsContent value="rpc" className="space-y-6">
                         {/* Emergency Fix */}
                         <div className="flex gap-3 flex-wrap">
+                            <Base44ClientFix />
                             <EmergencyLoginFix />
                             <HardcodeAppId />
                         </div>
