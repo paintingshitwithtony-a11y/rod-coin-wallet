@@ -318,14 +318,12 @@ function createWindow() {
     console.error('[Electron] loadURL failed:', err);
   });
 
-  // Show window first
+  // Show window and DevTools when ready
   mainWindow.once('ready-to-show', () => {
+    console.log('[Electron] Window ready to show');
     mainWindow.show();
-    // Force DevTools open after window is ready
-    setTimeout(() => {
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
-      console.log('[Electron] DevTools opened');
-    }, 1000);
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    console.log('[Electron] DevTools opened');
   });
 
   mainWindow.webContents.on('did-start-loading', () => {
