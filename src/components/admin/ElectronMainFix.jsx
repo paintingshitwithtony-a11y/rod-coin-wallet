@@ -303,27 +303,21 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    show: false,  // Don't show until ready
+    show: true,  // Show immediately
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
-      sandbox: false  // CRITICAL: Disable sandbox to allow DevTools
-    },
-    icon: path.join(__dirname, 'assets', 'icon.png')
+      devTools: true  // Explicitly enable DevTools
+    }
   });
+
+  // Open DevTools IMMEDIATELY
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  console.log('[Electron] DevTools command sent');
 
   console.log('[Electron] Loading URL: http://localhost:5173/');
   mainWindow.loadURL('http://localhost:5173/').catch(err => {
     console.error('[Electron] loadURL failed:', err);
-  });
-
-  // Show window and DevTools when ready
-  mainWindow.once('ready-to-show', () => {
-    console.log('[Electron] Window ready to show');
-    mainWindow.show();
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
-    console.log('[Electron] DevTools opened');
   });
 
   mainWindow.webContents.on('did-start-loading', () => {
