@@ -317,7 +317,15 @@ function createWindow() {
     console.error('[Electron] loadURL failed:', err);
   });
 
-  mainWindow.webContents.openDevTools();
+  // Show window first
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    // Force DevTools open after window is ready
+    setTimeout(() => {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+      console.log('[Electron] DevTools opened');
+    }, 1000);
+  });
 
   mainWindow.webContents.on('did-start-loading', () => {
     console.log('[Electron] Started loading...');
