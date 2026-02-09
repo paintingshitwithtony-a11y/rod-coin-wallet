@@ -42,6 +42,7 @@ import EmergencyLoginFix from '../components/admin/EmergencyLoginFix';
 import HardcodeAppId from '../components/admin/HardcodeAppId';
 import Base44ClientFix from '../components/admin/Base44ClientFix';
 import SetupComplete from '../components/admin/SetupComplete';
+import DirectAppIdFix from '../components/admin/DirectAppIdFix';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
