@@ -7,7 +7,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function DirectAppIdFix() {
-    const [showMain, setShowMain] = useState(false);
     const [showClient, setShowClient] = useState(false);
 
     const clientCode = `import { createClient } from '@base44/sdk';
