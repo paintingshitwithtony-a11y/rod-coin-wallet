@@ -38,6 +38,7 @@ import ViteConfigDownloader from '../components/admin/ViteConfigDownloader';
 import TutorialAdvisor from '../components/admin/TutorialAdvisor';
 import AITroubleshooter from '../components/admin/AITroubleshooter';
 import AutoUpdater from '../components/admin/AutoUpdater';
+import EmergencyLoginFix from '../components/admin/EmergencyLoginFix';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
