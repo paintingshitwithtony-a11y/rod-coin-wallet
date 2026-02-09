@@ -333,7 +333,11 @@ function createWindow() {
 app.whenReady().then(() => {
   console.log('[Electron] App ready - starting servers');
   
-  startAppServer();
+  // Only start app server in production (when packaged)
+  if (app.isPackaged) {
+    startAppServer();
+  }
+  
   startProxyServer();
   
   // Wait a bit for servers to start
