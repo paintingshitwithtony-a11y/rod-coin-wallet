@@ -338,26 +338,28 @@ export default function AuthScreen({ onAuth }) {
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                             <Input
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                placeholder="your@email.com"
-                                                className="bg-slate-800/50 border-slate-700 text-white pl-10"
-                                                required
+                                               type="email"
+                                               value={email}
+                                               onChange={(e) => setEmail(e.target.value)}
+                                               placeholder="your@email.com"
+                                               className="bg-slate-800/50 border-slate-700 text-white pl-10"
+                                               autoComplete="username"
+                                               required
                                             />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-300">Password</Label>
-                                        <div className="relative">
+                                            </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                            <Label className="text-slate-300">Password</Label>
+                                            <div className="relative">
                                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                             <Input
-                                                type={showPassword ? "text" : "password"}
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                placeholder="••••••••"
-                                                className="bg-slate-800/50 border-slate-700 text-white pl-10 pr-10"
-                                                required
+                                               type={showPassword ? "text" : "password"}
+                                               value={password}
+                                               onChange={(e) => setPassword(e.target.value)}
+                                               placeholder="••••••••"
+                                               className="bg-slate-800/50 border-slate-700 text-white pl-10 pr-10"
+                                               autoComplete="current-password"
+                                               required
                                             />
                                             <button
                                                 type="button"
