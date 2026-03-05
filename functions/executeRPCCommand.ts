@@ -70,10 +70,11 @@ Deno.serve(async (req) => {
             });
         } catch (fetchErr) {
             // Network-level error (connection reset, timeout, unreachable, etc.)
-            return Response.json({ 
-                success: false, 
-                error: 'Could not connect to RPC node: ' + (fetchErr.message || 'Connection failed')
-            });
+            const msg = fetchErr.message || 'Connection failed';
+            const friendly = msg.includes('Connection refused') || msg.includes('tcp connect error')
+                ? `Connection refused at ${rpcConfig.host}:${rpcConfig.port} — make sure your node is running and the port is reachable.`
+                : 'Could not connect to RPC node: ' + msg;
+            return Response.json({ success: false, error: friendly });
         }
 
         if (!rpcResponse.ok) {

@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import RPCTroubleshooter from './RPCTroubleshooter';
 import UseDefaultRPCButton from './UseDefaultRPCButton';
+import GetBlockSetupGuide from './GetBlockSetupGuide';
 
 export default function RPCConfigManager({ account, onClose, onConnectionSuccess }) {
     const [configs, setConfigs] = useState([]);
