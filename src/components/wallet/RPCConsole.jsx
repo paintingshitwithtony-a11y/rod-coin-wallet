@@ -9,7 +9,10 @@ import { Terminal, Send, Trash2, Copy, CheckCircle2, Info, Lightbulb, Loader2, A
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
-export default function RPCConsole({ account }) {
+export default function RPCConsole({ account: _account }) {
+    // Destructure only what we need — never expose stored passphrase to this component
+    const account = { wallet_address: _account?.wallet_address };
+
     const [command, setCommand] = useState('');
     const [commandHistory, setCommandHistory] = useState([]);
     const [outputHistory, setOutputHistory] = useState([]);
