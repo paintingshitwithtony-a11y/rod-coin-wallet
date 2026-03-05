@@ -111,58 +111,29 @@ Deno.serve(async (req) => {
         const rpcUrl = `${protocol}://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
         
-        // If sending from specific wallet, verify it's imported to RPC first - auto-import if needed
-        if (fromAddress) {
-            console.log('Verifying address is imported:', fromAddress);
-            
-            const validateResponse = await fetch(rpcUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${rpcAuth}`
-                },
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: 'validateAddress',
-                    method: 'validateaddress',
-                    params: [fromAddress]
-                })
-            });
-            
-            const validateData = await validateResponse.json();
-            console.log('Address validation:', validateData.result);
-            
-            if (!validateData.result?.ismine) {
-                console.log('Address not imported. Auto-importing:', fromAddress);
-                
-                // Get private key from wallet and import to RPC
-                const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
-                if (senderWallet?.encrypted_private_key) {
-                    try {
-                        const importResponse = await fetch(rpcUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Basic ${rpcAuth}`
-                            },
-                            body: JSON.stringify({
-                                jsonrpc: '1.0',
-                                id: 'importAddress',
-                                method: 'importaddress',
-                                params: [fromAddress, 'imported-wallet', false]
-                            })
-                        });
-                        
-                        const importData = await importResponse.json();
-                        if (importData.error) {
-                            console.error('Auto-import failed:', importData.error);
-                        } else {
-                            console.log('Address auto-imported successfully');
-                        }
-                    } catch (importErr) {
-                        console.error('Failed to auto-import address:', importErr);
-                    }
+        // Always ensure sender address is known to the RPC node (importaddress is idempotent)
+        const addressToImport = fromAddress || account.wallet_address;
+        if (addressToImport) {
+            console.log('Ensuring address is imported to RPC node:', addressToImport);
+            try {
+                const importResponse = await fetch(rpcUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${rpcAuth}` },
+                    body: JSON.stringify({
+                        jsonrpc: '1.0', id: 'importAddress',
+                        method: 'importaddress',
+                        params: [addressToImport, 'wallet-address', false]
+                    }),
+                    signal: AbortSignal.timeout(30000)
+                });
+                const importData = await importResponse.json();
+                if (importData.error) {
+                    console.warn('importaddress warning (non-fatal):', importData.error.message);
+                } else {
+                    console.log('Address import confirmed');
                 }
+            } catch (importErr) {
+                console.warn('importaddress failed (non-fatal):', importErr.message);
             }
         }
         
