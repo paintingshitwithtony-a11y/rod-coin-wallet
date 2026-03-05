@@ -1511,15 +1511,12 @@ sudo service iptables save`}</pre>
                             )}
 
                             {/* GetBlock.io Setup */}
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="p-4 rounded-lg bg-gradient-to-br from-green-900/20 to-blue-900/20 border border-green-500/30 space-y-4"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <Server className="w-5 h-5 text-green-400" />
-                                    <h4 className="text-white font-medium">GetBlock.io - SSH Tunnel Setup</h4>
-                                </div>
+                            <GetBlockSetupGuide
+                                account={account}
+                                configs={configs}
+                                onConfigsChanged={async () => await loadConfigurations()}
+                            />
+                    {/* dummy */}
 
                                 <Alert className="bg-blue-500/10 border-blue-500/30">
                                     <AlertCircle className="h-4 w-4 text-blue-400" />
