@@ -1987,9 +1987,9 @@ console.log(data.result);`}
                             Active configuration is used for all transactions. Use Save/Load buttons to backup and restore configurations (.json or .conf files).
                         </AlertDescription>
                     </Alert>
-                </div>
-            </DialogContent>
-        </Dialog>
-        </>
-    );
-}
+                    </div>
+                    </DialogContent>
+                    </Dialog>
+                    </>
+                    );
+                    }
