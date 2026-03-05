@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
                     method: method,
                     params: params
                 }),
-                signal: AbortSignal.timeout(8000)
+                signal: AbortSignal.timeout(25000)
             });
         } catch (fetchErr) {
             // Network-level error (connection reset, timeout, unreachable, etc.)
