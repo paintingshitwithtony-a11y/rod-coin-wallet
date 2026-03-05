@@ -9,6 +9,7 @@ import { Toaster } from 'sonner';
 import PasswordChange from '@/components/security/PasswordChange';
 import SessionManagement from '@/components/security/SessionManagement';
 import TwoFactorAuth from '@/components/security/TwoFactorAuth';
+import WalletPassphraseSettings from '@/components/security/WalletPassphraseSettings';
 
 export default function SecuritySettings() {
     const [account, setAccount] = useState(null);
