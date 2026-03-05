@@ -166,8 +166,8 @@ Deno.serve(async (req) => {
             }
         }
         
-        // Auto-unlock wallet if passphrase is stored
-        const passphrase = Deno.env.get('WALLET_PASSPHRASE');
+        // Auto-unlock wallet using the account's own passphrase (never use the global WALLET_PASSPHRASE secret for user wallets)
+        const passphrase = account.wallet_passphrase || null;
         if (passphrase) {
             try {
                 console.log('Attempting to unlock wallet with passphrase...');
