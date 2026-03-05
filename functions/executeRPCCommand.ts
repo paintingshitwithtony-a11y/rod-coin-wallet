@@ -53,19 +53,28 @@ Deno.serve(async (req) => {
         const rpcUrl = `${protocol}://${auth}@${rpcConfig.host}:${rpcConfig.port}`;
 
         // Execute RPC command
-        const rpcResponse = await fetch(rpcUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                jsonrpc: '1.0',
-                id: 'rpc_console',
-                method: method,
-                params: params
-            }),
-            signal: AbortSignal.timeout(8000)
-        });
+        let rpcResponse;
+        try {
+            rpcResponse = await fetch(rpcUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: 'rpc_console',
+                    method: method,
+                    params: params
+                }),
+                signal: AbortSignal.timeout(8000)
+            });
+        } catch (fetchErr) {
+            // Network-level error (connection reset, timeout, unreachable, etc.)
+            return Response.json({ 
+                success: false, 
+                error: 'Could not connect to RPC node: ' + (fetchErr.message || 'Connection failed')
+            });
+        }
 
         if (!rpcResponse.ok) {
             const errorText = await rpcResponse.text();
@@ -95,6 +104,6 @@ Deno.serve(async (req) => {
         return Response.json({ 
             success: false, 
             error: error.message 
-        }, { status: 500 });
+        });
     }
 });
