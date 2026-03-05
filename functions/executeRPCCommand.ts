@@ -47,10 +47,11 @@ Deno.serve(async (req) => {
 
         const rpcConfig = rpcConfigs[0];
 
-        // Build RPC URL
-        const protocol = rpcConfig.use_ssl ? 'https' : 'http';
+        // Build RPC URL — strip any protocol the user may have included in host
+        const cleanHost = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        const protocol = rpcConfig.use_ssl || rpcConfig.host.startsWith('https') ? 'https' : 'http';
         const auth = `${rpcConfig.username}:${rpcConfig.password}`;
-        const rpcUrl = `${protocol}://${auth}@${rpcConfig.host}:${rpcConfig.port}`;
+        const rpcUrl = `${protocol}://${auth}@${cleanHost}:${rpcConfig.port}`;
 
         // Execute RPC command
         let rpcResponse;
