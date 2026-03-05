@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         }
 
         // Strip protocol if included in host
-        rpcHost = rpcHost.replace(/^https?:\/\//, '');
+        rpcHost = rpcHost.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
 
         // Determine actual sender wallet for balance check
         const senderAddress = fromAddress || account.wallet_address;
