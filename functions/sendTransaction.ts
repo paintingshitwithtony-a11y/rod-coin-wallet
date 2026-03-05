@@ -111,9 +111,8 @@ Deno.serve(async (req) => {
         const rpcUrl = `${protocol}://${rpcHost}:${rpcPort}`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
         
-        // Always verify the sender address is imported into the RPC node
-        if (true) {
-        const checkAddress = fromAddress || account.wallet_address;
+        // If sending from specific wallet, verify it's imported to RPC first - auto-import if needed
+        if (fromAddress) {
             console.log('Verifying address is imported:', fromAddress);
             
             const validateResponse = await fetch(rpcUrl, {
