@@ -155,8 +155,14 @@ export default function Admin() {
             // Activate selected config
             await base44.entities.RPCConfiguration.update(config.id, { is_active: true });
             
-            toast.success(`${config.name} is now active`);
+            toast.success(`${config.name} is now active — pushing to users without their own node...`);
             loadConfigs();
+
+            // Push this as the default RPC to all users who haven't set up their own node
+            const result = await base44.functions.invoke('setDefaultRPC', { config_id: config.id });
+            if (result.data?.success) {
+                toast.success(`Default RPC pushed: ${result.data.updated} users updated, ${result.data.skipped} skipped (own node)`);
+            }
         } catch (err) {
             toast.error('Failed to set active configuration');
         }
