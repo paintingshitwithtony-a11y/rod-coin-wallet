@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
                     method: 'getblockchaininfo',
                     params: []
                 }),
-                signal: AbortSignal.timeout(15000)
+                signal: AbortSignal.timeout(8000)
             });
 
             if (!rpcResponse.ok) {

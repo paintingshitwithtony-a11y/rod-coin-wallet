@@ -63,7 +63,8 @@ Deno.serve(async (req) => {
                 id: 'rpc_console',
                 method: method,
                 params: params
-            })
+            }),
+            signal: AbortSignal.timeout(8000)
         });
 
         if (!rpcResponse.ok) {
