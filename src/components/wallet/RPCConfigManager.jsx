@@ -1516,20 +1516,7 @@ sudo service iptables save`}</pre>
                                 configs={configs}
                                 onConfigsChanged={async () => await loadConfigurations()}
                             />
-                    {/* dummy */}
-
-                                <Alert className="bg-blue-500/10 border-blue-500/30">
-                                    <AlertCircle className="h-4 w-4 text-blue-400" />
-                                    <AlertDescription className="text-blue-300/80 text-sm">
-                                        Set up a local tunnel to connect your ROD Core wallet to GetBlock.io via localhost
-                                    </AlertDescription>
-                                </Alert>
-
-                                <Tabs defaultValue="direct" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-2 bg-slate-800">
-                                        <TabsTrigger value="direct">Direct Connection</TabsTrigger>
-                                        <TabsTrigger value="tunnel">SSH Tunnel</TabsTrigger>
-                                    </TabsList>
+                    {/* Use Default Button placed in quick actions row */}
 
                                     <TabsContent value="direct" className="space-y-3 mt-3">
                                         <p className="text-sm text-slate-300 mb-3">Quick-connect to popular gateways:</p>
