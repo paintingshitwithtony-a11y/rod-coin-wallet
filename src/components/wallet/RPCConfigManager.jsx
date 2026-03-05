@@ -1843,6 +1843,7 @@ console.log(data.result);`}
                                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                             placeholder="__cookie__ or roduser"
                                             className="bg-slate-900 border-slate-600"
+                                            autoComplete="off"
                                         />
                                         <p className="text-xs text-slate-500">Use "__cookie__" for cookie auth</p>
                                     </div>
