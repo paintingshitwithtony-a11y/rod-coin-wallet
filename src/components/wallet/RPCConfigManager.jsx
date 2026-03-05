@@ -790,6 +790,13 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                             <Plug className="w-4 h-4 mr-2" />
                             Open Ports
                         </Button>
+                        <UseDefaultRPCButton
+                            account={account}
+                            onSuccess={async () => {
+                                await loadConfigurations();
+                                if (onConnectionSuccess) onConnectionSuccess();
+                            }}
+                        />
                     </div>
 
                     {/* Advanced RPC Settings */}
