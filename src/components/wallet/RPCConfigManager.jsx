@@ -1855,6 +1855,7 @@ console.log(data.result);`}
                                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                             placeholder=".cookie content or password"
                                             className="bg-slate-900 border-slate-600"
+                                            autoComplete="new-password"
                                         />
                                         <p className="text-xs text-slate-500">Paste .cookie file content if using cookie auth</p>
                                     </div>
