@@ -23,6 +23,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import RPCTroubleshooter from './RPCTroubleshooter';
+import UseDefaultRPCButton from './UseDefaultRPCButton';
 
 export default function RPCConfigManager({ account, onClose, onConnectionSuccess }) {
     const [configs, setConfigs] = useState([]);
