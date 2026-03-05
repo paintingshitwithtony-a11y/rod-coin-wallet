@@ -103,10 +103,11 @@ Deno.serve(async (req) => {
             });
         }
 
-    } catch (error) {
+        } catch (error) {
         console.error('RPC Status Check Error:', error);
         return Response.json({ 
             connected: false,
             error: error.message || 'Unknown error'
         });
-});
+        }
+        });
