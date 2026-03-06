@@ -69,10 +69,21 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // --- Step 1: Generate new address ---
+        // --- Step 1: Unlock wallet if a passphrase is configured ---
+        const walletPassphrase = Deno.env.get('WALLET_PASSPHRASE') || rpcConfig.password || null;
+        if (walletPassphrase) {
+            try {
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [walletPassphrase, 30]);
+            } catch (unlockErr) {
+                // Ignore error if wallet is already unlocked or unencrypted
+                console.log('walletpassphrase (ignored):', unlockErr.message);
+            }
+        }
+
+        // --- Step 2: Generate new address ---
         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [label || '']);
 
-        // --- Step 2: Export private key (WIF) — never returned to frontend, never logged ---
+        // --- Step 3: Export private key (WIF) — never returned to frontend, never logged ---
         const wifKey = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
 
         // --- Step 3: Encrypt WIF in backend memory ---
