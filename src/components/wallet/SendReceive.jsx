@@ -703,15 +703,15 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                         )}
                                     </Button>
 
-                                    <div className="mt-6 p-4 rounded-lg bg-green-900/20 border border-green-500/30">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                            <p className="text-sm font-medium text-green-400">Automatic Deposit Detection</p>
-                                        </div>
-                                        <p className="text-xs text-slate-400">
-                                            Incoming transactions are automatically detected via ROD Core RPC. 
-                                            Your balance will update automatically when you receive coins at this address.
-                                        </p>
+                                    <div className="mt-6 p-4 rounded-lg bg-slate-800/30 border border-slate-700">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <CheckCircle2 className="w-5 h-5 text-slate-400" />
+                                        <p className="text-sm font-medium text-slate-300">Deposit Monitoring</p>
+                                    </div>
+                                    <p className="text-xs text-slate-400">
+                                        Share this address to receive ROD. Balances are computed from live on-chain UTXOs. 
+                                        Refresh your wallet to see updated balances after receiving a deposit.
+                                    </p>
                                     </div>
                                 </div>
                             )}
