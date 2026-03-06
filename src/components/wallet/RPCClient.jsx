@@ -22,7 +22,9 @@ import { base44 } from '@/api/base44Client';
 export class RPCClient {
     constructor(config) {
         this.config = config;
-        this.protocol = config.use_ssl ? 'https' : 'http';
+        // For VPS/remote: always use https. For localhost: respect use_ssl setting
+        const isLocalhost = config.host === 'localhost' || config.host === '127.0.0.1';
+        this.protocol = isLocalhost ? (config.use_ssl ? 'https' : 'http') : 'https';
         // Clean host: remove any protocol prefixes
         let cleanHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
         this.url = `${this.protocol}://${cleanHost}:${config.port}`;
