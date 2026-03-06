@@ -51,9 +51,10 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Create two test wallets with explicit passphrases
-        const testPassphrase1 = 'TestWallet1Pass2026';
-        const testPassphrase2 = 'TestWallet2Pass2026';
+        // Use the actual wallet passphrase from secrets (same as RPC node uses)
+        const nodePassphrase = Deno.env.get('WALLET_PASSPHRASE') || account.wallet_passphrase;
+        const testPassphrase1 = nodePassphrase;
+        const testPassphrase2 = nodePassphrase;
 
         const wallets = [];
 
