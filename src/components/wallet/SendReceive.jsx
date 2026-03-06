@@ -123,6 +123,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
     };
 
+    // Correct UTXO-based balance: sum of listunspent outputs for this address only
     const fetchRPCBalances = async (wallets) => {
         setLoadingRPC(true);
         const balances = {};
@@ -130,22 +131,18 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         for (const wallet of wallets) {
             try {
                 const response = await base44.functions.invoke('executeRPCCommand', {
-                    method: 'getreceivedbyaddress',
-                    params: [wallet.wallet_address, 0]
+                    method: 'listunspent',
+                    params: [0, 9999999, [wallet.wallet_address]]
                 });
                 if (response.data.success) {
-                    const rpcBalance = response.data.result || 0;
-                    balances[wallet.wallet_address] = rpcBalance;
-                    
-                    // Update database to match RPC balance
-                    if (wallet.id === 'main-account') {
-                        await base44.entities.WalletAccount.update(account.id, { balance: rpcBalance });
-                    } else if (!wallet.id.startsWith('address-')) {
-                        await base44.entities.Wallet.update(wallet.id, { balance: rpcBalance });
-                    }
+                    const utxos = (response.data.result || []).filter(u => u.address === wallet.wallet_address);
+                    const utxoBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
+                    balances[wallet.wallet_address] = utxoBalance;
+                } else {
+                    balances[wallet.wallet_address] = null;
                 }
             } catch (err) {
-                console.error(`Failed to fetch RPC balance for ${wallet.wallet_address}:`, err);
+                console.error(`Failed to fetch UTXO balance for ${wallet.wallet_address}:`, err);
                 balances[wallet.wallet_address] = null;
             }
         }
