@@ -47,8 +47,9 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Send funds from main wallet to test address
-        const txid = await rpcCall(rpcUrl, rpcAuth, 'sendtoaddress', [toAddress, parseFloat(amount)]);
+        // Send funds from main wallet to test address with manual fee
+        const manualFee = 0.0001; // Adjust if needed
+        const txid = await rpcCall(rpcUrl, rpcAuth, 'sendtoaddress', [toAddress, parseFloat(amount), '', '', false, false, 1, 'UNSET', manualFee]);
 
         return Response.json({
             success: true,
