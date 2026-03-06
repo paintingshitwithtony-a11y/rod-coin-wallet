@@ -1863,7 +1863,7 @@ console.log(data.result);`}
                                 </div>
                                 </div>
                             
-                            {(formData.connection_type === 'electrum' || formData.connection_type === 'api') && (
+                            {currentUser?.role === 'admin' && (formData.connection_type === 'electrum' || formData.connection_type === 'api') && (
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
                                     <Label className="text-slate-300">Use SSL/TLS</Label>
                                     <Switch
