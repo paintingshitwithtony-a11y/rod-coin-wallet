@@ -30,11 +30,12 @@ async function rpcCall(rpcUrl, rpcAuth, method, params) {
     return data.result;
 }
 
-async function encryptWIF(wifKey, encryptionSecret) {
+async function encryptWIF(wifKey, passphrase) {
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(encryptionSecret.padEnd(32, '0').slice(0, 32));
+    const passphraseKey = await crypto.subtle.importKey('raw', encoder.encode(passphrase), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const derivedKey = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode('wallet_salt'), iterations: 100000 }, passphraseKey, 256);
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt']);
+    const cryptoKey = await crypto.subtle.importKey('raw', derivedKey, { name: 'AES-GCM' }, false, ['encrypt']);
     const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, encoder.encode(wifKey));
     const combined = new Uint8Array([...iv, ...new Uint8Array(encrypted)]);
     return btoa(String.fromCharCode(...combined));
