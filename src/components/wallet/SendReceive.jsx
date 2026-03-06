@@ -181,16 +181,16 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         const result = await validateRODAddress(address);
         setAddressValid(result.valid);
         
-        // Check if this is an internal transfer (recipient is one of user's wallets)
+        // Note whether recipient is one of user's own wallets (still an on-chain tx)
         const isMyWallet = myWallets.some(w => w.wallet_address === address);
-        setIsInternalTransfer(isMyWallet);
-        
+        setIsSendingToOwnWallet(isMyWallet);
+
         setValidating(false);
-        
+
         if (!result.valid) {
             toast.error(`Invalid address: ${result.error}`);
         } else if (isMyWallet) {
-            toast.info('Internal transfer - no network fee required', { duration: 3000 });
+            toast.info('Sending to your own wallet — network fee still applies', { duration: 3000 });
         }
     };
 
