@@ -50,6 +50,7 @@ import { testRPCConnection } from '../components/wallet/RPCClient';
 export default function Admin() {
     const [account, setAccount] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(null);
     const [configs, setConfigs] = useState([]);
     const [testing, setTesting] = useState(null);
     const [showNewConfig, setShowNewConfig] = useState(false);
