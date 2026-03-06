@@ -40,8 +40,12 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
 
-        // Build RPC URL — strip any protocol prefix the user may have included in host
-         const cleanHost = config.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        // Build RPC URL — strip any protocol prefix the user may have included in host (including nested protocols)
+         let cleanHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+         // Handle cases like "http://https://example.com"
+         while (cleanHost.match(/^https?:\/\//i)) {
+             cleanHost = cleanHost.replace(/^https?:\/\//i, '');
+         }
          const SSL_PORTS = new Set(['443', '9443', '8443']);
          const protocol = config.use_ssl || SSL_PORTS.has(config.port) ? 'https' : 'http';
          const rpcUrl = !config.port || config.port === ''
