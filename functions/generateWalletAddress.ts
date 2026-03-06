@@ -93,25 +93,50 @@ Deno.serve(async (req) => {
         const encryptedPrivateKey = await encryptWIF(wifKey, encryptionSecret);
 
         // --- Step 5: Store in Wallet entity — raw WIF is discarded after this point ---
-        const wallet = await base44.entities.Wallet.create({
-            account_id: account.id,
-            name: walletName || label || 'New Wallet',
-            wallet_address: address,
-            encrypted_private_key: encryptedPrivateKey,
-            balance: 0,
-            is_active: false,
-            wallet_type: 'standard',
-            color: color || null,
-            icon: icon || null
-        });
+         const wallet = await base44.entities.Wallet.create({
+             account_id: account.id,
+             name: walletName || label || 'New Wallet',
+             wallet_address: address,
+             encrypted_private_key: encryptedPrivateKey,
+             balance: 0,
+             is_active: false,
+             wallet_type: 'standard',
+             color: color || null,
+             icon: icon || null
+         });
 
-        // Return only the address — key stays on the backend
-        return Response.json({
-            success: true,
-            address,
-            walletId: wallet.id,
-            walletName: wallet.name
-        });
+         // --- Step 6: Import address to blockchain (watch-only) ---
+         try {
+             const importResponse = await fetch(rpcUrl, {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'Authorization': `Basic ${rpcAuth}`
+                 },
+                 body: JSON.stringify({
+                     jsonrpc: '1.0',
+                     id: 'importAddress',
+                     method: 'importaddress',
+                     params: [address, label || '', false]
+                 }),
+                 signal: AbortSignal.timeout(10000)
+             });
+
+             const importData = await importResponse.json();
+             if (importData.error && !importData.error.message?.toLowerCase().includes('already')) {
+                 console.warn('importaddress warning:', importData.error.message);
+             }
+         } catch (importErr) {
+             console.warn('importaddress error (non-fatal):', importErr.message);
+         }
+
+         // Return only the address — key stays on the backend
+         return Response.json({
+             success: true,
+             address,
+             walletId: wallet.id,
+             walletName: wallet.name
+         });
 
     } catch (error) {
         // Never log sensitive data
