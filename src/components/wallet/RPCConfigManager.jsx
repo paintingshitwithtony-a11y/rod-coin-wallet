@@ -483,10 +483,6 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)';
 
     const handleEditConfig = (config) => {
-        if (isAdminConfig(config)) {
-            toast.error('This configuration is managed by the admin and cannot be edited.');
-            return;
-        }
         setEditingConfig(config);
         // Non-admins can only edit the host URL
         if (currentUser?.role !== 'admin') {
