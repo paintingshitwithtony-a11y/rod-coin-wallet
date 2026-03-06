@@ -157,14 +157,16 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             </DialogContent>
         </Dialog>
 
-        <PassphraseModal
-            isOpen={showPassphraseModal}
-            title="Unlock Your Wallet"
-            description="Enter your wallet passphrase to create a new wallet address."
-            onSubmit={handlePassphraseSubmit}
-            onCancel={() => setShowPassphraseModal(false)}
-            loading={loading}
-        />
+        {showPassphraseModal && (
+            <PassphraseModal
+                isOpen={true}
+                title="Unlock Your Wallet"
+                description="Enter your wallet passphrase to create a new wallet address."
+                onSubmit={handlePassphraseSubmit}
+                onCancel={() => setShowPassphraseModal(false)}
+                loading={loading}
+            />
+        )}
         </>
     );
 }
