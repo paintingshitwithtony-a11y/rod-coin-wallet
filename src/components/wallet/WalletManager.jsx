@@ -127,7 +127,11 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             return;
         }
         
-        if (!confirm(`Delete wallet "${wallet.name}"? This cannot be undone!`)) {
+        const warningMsg = wallet.wallet_type === 'watch-only'
+            ? `Remove watch-only wallet "${wallet.name}"? The address itself is not affected.`
+            : `Delete wallet "${wallet.name}"? This removes the app record. If you have no backup, access to funds from this address may be lost. Continue?`;
+
+        if (!confirm(warningMsg)) {
             return;
         }
 
