@@ -24,15 +24,15 @@ const WALLET_COLORS = [
     { name: 'Cyan', class: 'from-cyan-500 to-cyan-700' }
 ];
 
-export default function WalletManager({ account, currentWallet, onWalletSwitch, onClose }) {
-    const [wallets, setWallets] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showCreate, setShowCreate] = useState(false);
-    const [showBackup, setShowBackup] = useState(null);
-    const [showRestore, setShowRestore] = useState(false);
-    const [totalBalance, setTotalBalance] = useState(0);
-    const [editingWallet, setEditingWallet] = useState(null);
-    const [editName, setEditName] = useState('');
+export default function WalletManager({ account, currentWallet, onWalletSwitch, onWalletCreated, onClose }) {
+     const [wallets, setWallets] = useState([]);
+     const [loading, setLoading] = useState(true);
+     const [showCreate, setShowCreate] = useState(false);
+     const [showBackup, setShowBackup] = useState(null);
+     const [showRestore, setShowRestore] = useState(false);
+     const [totalBalance, setTotalBalance] = useState(0);
+     const [editingWallet, setEditingWallet] = useState(null);
+     const [editName, setEditName] = useState('');
 
     useEffect(() => {
         fetchWallets();
@@ -47,7 +47,8 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
 
             const walletList = await base44.entities.Wallet.filter(
                 { account_id: account.id },
-                '-created_date'
+                '-created_date',
+                100
             );
             
             // Always include main account wallet with fresh balance
@@ -290,9 +291,12 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                     <WalletCreator
                         account={account}
                         onClose={() => setShowCreate(false)}
-                        onCreated={() => {
+                        onCreated={(newWallet) => {
                             setShowCreate(false);
                             fetchWallets();
+                            if (onWalletCreated) {
+                                onWalletCreated(newWallet);
+                            }
                         }}
                     />
                 )}
