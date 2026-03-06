@@ -448,7 +448,9 @@ export default function Admin() {
                                 onClick={async () => {
                                     setFixingProtocols(true);
                                     try {
+                                        console.log('Calling fixDuplicateProtocols...');
                                         const response = await base44.functions.invoke('fixDuplicateProtocols', {});
+                                        console.log('Response:', response);
                                         const fixed = response.data?.fixed || 0;
                                         if (fixed > 0) {
                                             toast.success(`Fixed ${fixed} RPC configuration(s)`);
@@ -457,7 +459,8 @@ export default function Admin() {
                                             toast.success('Checked all RPC configurations — no issues found');
                                         }
                                     } catch (err) {
-                                        toast.error('Fix failed: ' + err.message);
+                                        console.error('Error:', err);
+                                        toast.error('Fix failed: ' + (err?.response?.data?.message || err?.message || 'Unknown error'));
                                     } finally {
                                         setFixingProtocols(false);
                                     }
