@@ -51,15 +51,21 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Use the actual wallet passphrase from secrets (same as RPC node uses)
-        const nodePassphrase = Deno.env.get('WALLET_PASSPHRASE') || account.wallet_passphrase;
-        const testPassphrase1 = nodePassphrase;
-        const testPassphrase2 = nodePassphrase;
+        const body = await req.json();
+        const { passphrases } = body;
+
+        // Validate passphrases input
+        if (!passphrases || !Array.isArray(passphrases) || passphrases.length < 2) {
+            return Response.json({ error: 'Two passphrases required (passphrases: [string, string])' }, { status: 400 });
+        }
+        if (passphrases.some(p => !p || typeof p !== 'string')) {
+            return Response.json({ error: 'All passphrases must be non-empty strings' }, { status: 400 });
+        }
 
         const wallets = [];
 
         for (let i = 1; i <= 2; i++) {
-            // Unlock wallet
+            // Unlock wallet with node passphrase for address generation only
             try {
                 await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [account.wallet_passphrase, 30]);
             } catch (e) {
@@ -72,9 +78,9 @@ Deno.serve(async (req) => {
             // Dumpprivkey to get WIF
             const wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
             
-            // Encrypt WIF with test passphrase
-            const testPassphrase = i === 1 ? testPassphrase1 : testPassphrase2;
-            const encryptedWIF = await encryptWIF(wif, testPassphrase);
+            // Encrypt WIF with user-provided passphrase (not node passphrase)
+            const userPassphrase = passphrases[i - 1];
+            const encryptedWIF = await encryptWIF(wif, userPassphrase);
 
             // Create Wallet entity
             const wallet = await base44.entities.Wallet.create({
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
                 id: wallet.id,
                 name: wallet.name,
                 address: address,
-                passphrase: testPassphrase,
+                passphrase: userPassphrase,
                 encryptedKey: encryptedWIF
             });
         }
