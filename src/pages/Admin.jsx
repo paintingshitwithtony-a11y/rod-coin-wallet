@@ -1046,6 +1046,7 @@ export default function Admin() {
                                                            className="border-slate-700 text-red-400 hover:text-red-300">
                                                            <Trash2 className="w-4 h-4" />
                                                        </Button>
+                                                       )}
                                                     </div>
                                                 </div>
                                             </CardContent>
