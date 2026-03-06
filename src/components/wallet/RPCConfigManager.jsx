@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    RefreshCw, Activity, Server, Terminal, Copy, Upload, Download, Link, Settings, Shield
+    RefreshCw, Activity, Server, Terminal, Copy, Upload, Download, Link, Settings, Shield, RotateCcw
 } from 'lucide-react';
 import RPCConfigList from './RPCConfigList';
 import { base44 } from '@/api/base44Client';
