@@ -49,11 +49,6 @@ export default function WalletTester() {
             return;
         }
 
-        if (!fundingPassphrase.trim()) {
-            toast.error('Please enter the passphrase for the funding wallet');
-            return;
-        }
-
         setLoading(true);
         try {
             const { data } = await base44.functions.invoke('createTestWallets', {
@@ -63,7 +58,7 @@ export default function WalletTester() {
             setTxResult(null);
             toast.success('Test wallets created');
 
-            // Auto-fund sender wallet from selected wallet
+            // Auto-fund sender wallet from selected wallet using saved passphrase
             const fundingWallet = existingWallets.find(w => w.id === selectedWalletId);
             if (fundingWallet) {
                 try {
@@ -73,7 +68,7 @@ export default function WalletTester() {
                         recipient: data.sender.address,
                         amount: 10,
                         fee: 0.001,
-                        passphrase: fundingPassphrase
+                        passphrase: fundingPassphrase || 'default'
                     });
                     setFundingTx('completed');
                     toast.success('Sender wallet funded: ' + txData.txid.substring(0, 16) + '...');
@@ -146,12 +141,12 @@ export default function WalletTester() {
                         </div>
 
                         <div>
-                            <Label className="text-slate-300">Funding Wallet Passphrase</Label>
+                            <Label className="text-slate-300">Funding Wallet Passphrase (Optional)</Label>
                             <Input
                                 type="password"
                                 value={fundingPassphrase}
                                 onChange={(e) => setFundingPassphrase(e.target.value)}
-                                placeholder="Enter passphrase for the wallet to fund from"
+                                placeholder="Leave empty to use default wallet passphrase"
                                 className="bg-slate-800 border-slate-700 text-white"
                             />
                         </div>
