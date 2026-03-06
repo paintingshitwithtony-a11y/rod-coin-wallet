@@ -109,78 +109,129 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     };
 
     return (
-        <>
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="bg-slate-900 border-slate-700 text-white">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-purple-400" />
-                        Create New Wallet
-                    </DialogTitle>
-                </DialogHeader>
+                {step === 'create' ? (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-purple-400" />
+                                Create New Wallet
+                            </DialogTitle>
+                        </DialogHeader>
 
-                <div className="space-y-4">
-                    <div>
-                        <Label className="text-slate-300">Wallet Name</Label>
-                        <Input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g., Savings Wallet"
-                            className="bg-slate-800 border-slate-700 text-white"
-                            maxLength={30}
-                        />
-                    </div>
-
-                    <div>
-                        <Label className="text-slate-300 mb-2 block">Color Theme</Label>
-                        <div className="grid grid-cols-6 gap-2">
-                            {WALLET_COLORS.map((color) => (
-                                <button
-                                    key={color.name}
-                                    onClick={() => setSelectedColor(color)}
-                                    className={`h-10 rounded-lg bg-gradient-to-br ${color.class} ${
-                                        selectedColor.name === color.name ? 'ring-2 ring-white' : ''
-                                    }`}
-                                    title={color.name}
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-slate-300">Wallet Name</Label>
+                                <Input
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="e.g., Savings Wallet"
+                                    className="bg-slate-800 border-slate-700 text-white"
+                                    maxLength={30}
                                 />
-                            ))}
+                            </div>
+
+                            <div>
+                                <Label className="text-slate-300 mb-2 block">Color Theme</Label>
+                                <div className="grid grid-cols-6 gap-2">
+                                    {WALLET_COLORS.map((color) => (
+                                        <button
+                                            key={color.name}
+                                            onClick={() => setSelectedColor(color)}
+                                            className={`h-10 rounded-lg bg-gradient-to-br ${color.class} ${
+                                                selectedColor.name === color.name ? 'ring-2 ring-white' : ''
+                                            }`}
+                                            title={color.name}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-slate-500">
+                                The private key is encrypted and stored securely on the server. Your address is generated via the RPC node.
+                            </p>
+
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={onClose} className="flex-1 border-slate-700">
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleCreate}
+                                    disabled={loading}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                                >
+                                    {loading ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
+                                    ) : (
+                                        <><Sparkles className="w-4 h-4 mr-2" />Create Wallet</>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    </>
+                ) : (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <PassphraseModal.__proto__.constructor.name === 'Lock' ? <Lock className="w-5 h-5 text-amber-400" /> : null}
+                                Unlock Your Wallet
+                            </DialogTitle>
+                        </DialogHeader>
 
-                    <p className="text-xs text-slate-500">
-                        The private key is encrypted and stored securely on the server. Your address is generated via the RPC node.
-                    </p>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-slate-300">Wallet Passphrase</Label>
+                                <Input
+                                    type="password"
+                                    value={passphrase}
+                                    onChange={(e) => {
+                                        setPassphrase(e.target.value);
+                                        setPassphraseError('');
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !loading) {
+                                            handlePassphraseSubmit();
+                                        }
+                                    }}
+                                    placeholder="Enter your wallet passphrase"
+                                    className="bg-slate-800 border-slate-700 text-white mt-2"
+                                    disabled={loading}
+                                />
+                                {passphraseError && (
+                                    <p className="text-red-400 text-sm mt-2">{passphraseError}</p>
+                                )}
+                            </div>
 
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={onClose} className="flex-1 border-slate-700">
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleCreate}
-                            disabled={loading}
-                            className="flex-1 bg-purple-600 hover:bg-purple-700"
-                        >
-                            {loading ? (
-                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
-                            ) : (
-                                <><Sparkles className="w-4 h-4 mr-2" />Create Wallet</>
-                            )}
-                        </Button>
-                    </div>
-                </div>
+                            <p className="text-xs text-slate-500">
+                                Your passphrase is never stored. It's used only for this transaction and immediately discarded.
+                            </p>
+
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handlePassphraseCancel} 
+                                    className="flex-1 border-slate-700"
+                                    disabled={loading}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handlePassphraseSubmit}
+                                    disabled={loading || !passphrase.trim()}
+                                    className="flex-1 bg-amber-600 hover:bg-amber-700"
+                                >
+                                    {loading ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                                    ) : (
+                                        <>Confirm</>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
-
-        {showPassphraseModal && (
-            <PassphraseModal
-                isOpen={true}
-                title="Unlock Your Wallet"
-                description="Enter your wallet passphrase to create a new wallet address."
-                onSubmit={handlePassphraseSubmit}
-                onCancel={() => setShowPassphraseModal(false)}
-                loading={loading}
-            />
-        )}
-        </>
     );
 }
