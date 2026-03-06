@@ -78,6 +78,11 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     });
 
     useEffect(() => {
+        const initUser = async () => {
+            const user = await base44.auth.me();
+            setCurrentUser(user);
+        };
+        initUser();
         loadConfigurations();
         // Load saved scan config
         const saved = localStorage.getItem('rod_scan_config');
