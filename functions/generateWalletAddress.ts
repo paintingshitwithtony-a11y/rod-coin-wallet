@@ -89,9 +89,8 @@ Deno.serve(async (req) => {
         // --- Step 3: Export private key (WIF) — never returned to frontend, never logged ---
         const wifKey = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
 
-        // --- Step 4: Encrypt WIF in backend memory ---
-        const encryptionSecret = Deno.env.get('WALLET_ENCRYPTION_SECRET') || 'wallet_encryption_key';
-        const encryptedPrivateKey = await encryptWIF(wifKey, encryptionSecret);
+        // --- Step 4: Encrypt WIF using wallet-specific passphrase ---
+        const encryptedPrivateKey = await encryptWIF(wifKey, passphrase);
 
         // --- Step 5: Store in Wallet entity — raw WIF is discarded after this point ---
          const wallet = await base44.entities.Wallet.create({
