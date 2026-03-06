@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
         const config = configs[0];
 
         // Build RPC URL
-        const protocol = config.use_ssl ? 'https' : 'http';
+        const SSL_PORTS = new Set(['443', '9443', '8443']);
+        const protocol = (config.use_ssl || config.host.startsWith('https') || SSL_PORTS.has(String(config.port))) ? 'https' : 'http';
         const rpcUrl = !config.port || config.port === ''
             ? `${protocol}://${config.host}`
             : `${protocol}://${config.host}:${config.port}`;
