@@ -68,21 +68,66 @@ export default function NodeStatusCard() {
 
     if (error) {
         return (
-            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-white flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-400" />
-                        Node Status
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Alert className="bg-red-500/10 border-red-500/30">
-                        <AlertDescription className="text-red-300 text-xs">
-                            {error}
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
+            <>
+                <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
+                    <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                        <CardTitle className="text-base text-white flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-400" />
+                            Node Status
+                        </CardTitle>
+                        {currentUser?.role !== 'admin' && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowEditHost(true)}
+                                className="h-8 w-8 text-slate-400 hover:text-amber-400"
+                                title="Edit host URL">
+                                <Pencil className="w-4 h-4" />
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        <Alert className="bg-red-500/10 border-red-500/30">
+                            <AlertDescription className="text-red-300 text-xs">
+                                {error}
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+
+                <Dialog open={showEditHost} onOpenChange={setShowEditHost}>
+                    <DialogContent className="bg-slate-900 border-slate-700">
+                        <DialogHeader>
+                            <DialogTitle className="text-white">Edit Node Host URL</DialogTitle>
+                            <DialogDescription className="text-slate-400">
+                                Update the host URL to reconnect to the node
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <Input
+                                value={editedHost}
+                                onChange={(e) => setEditedHost(e.target.value)}
+                                placeholder="https://spacexpanse-rpc.duckdns.org:9443"
+                                className="bg-slate-800 border-slate-700 text-white"
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowEditHost(false)}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        toast.success('Host URL updated. Please reconnect in the RPC settings.');
+                                        setShowEditHost(false);
+                                    }}>
+                                    Save
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </>
         );
     }
 
