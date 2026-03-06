@@ -39,12 +39,17 @@ export default function WalletTester() {
 
     const handleCreateWallets = async () => {
         if (!passphrases[0].trim() || !passphrases[1].trim()) {
-            toast.error('Please enter both passphrases');
+            toast.error('Please enter both passphrases for test wallets');
             return;
         }
 
         if (!selectedWalletId) {
             toast.error('Please select a wallet to fund from');
+            return;
+        }
+
+        if (!fundingPassphrase.trim()) {
+            toast.error('Please enter the passphrase for the funding wallet');
             return;
         }
 
@@ -67,7 +72,7 @@ export default function WalletTester() {
                         recipient: data.sender.address,
                         amount: 10,
                         fee: 0.001,
-                        passphrase: passphrases[0] // Use a default or prompt user
+                        passphrase: fundingPassphrase
                     });
                     setFundingTx('completed');
                     toast.success('Sender wallet funded: ' + txData.txid.substring(0, 16) + '...');
@@ -139,24 +144,35 @@ export default function WalletTester() {
                             </select>
                         </div>
 
+                        <div>
+                            <Label className="text-slate-300">Funding Wallet Passphrase</Label>
+                            <Input
+                                type="password"
+                                value={fundingPassphrase}
+                                onChange={(e) => setFundingPassphrase(e.target.value)}
+                                placeholder="Enter passphrase for the wallet to fund from"
+                                className="bg-slate-800 border-slate-700 text-white"
+                            />
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                                <Label className="text-slate-300">Sender Passphrase</Label>
+                                <Label className="text-slate-300">Test Sender Passphrase</Label>
                                 <Input
                                     type="password"
                                     value={passphrases[0]}
                                     onChange={(e) => setPassphrases([e.target.value, passphrases[1]])}
-                                    placeholder="Enter passphrase for sender wallet"
+                                    placeholder="Enter passphrase for test sender"
                                     className="bg-slate-800 border-slate-700 text-white"
                                 />
                             </div>
                             <div>
-                                <Label className="text-slate-300">Receiver Passphrase</Label>
+                                <Label className="text-slate-300">Test Receiver Passphrase</Label>
                                 <Input
                                     type="password"
                                     value={passphrases[1]}
                                     onChange={(e) => setPassphrases([passphrases[0], e.target.value])}
-                                    placeholder="Enter passphrase for receiver wallet"
+                                    placeholder="Enter passphrase for test receiver"
                                     className="bg-slate-800 border-slate-700 text-white"
                                 />
                             </div>
