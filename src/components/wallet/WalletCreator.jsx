@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { generateNewRODAddress, generatePrivateKey } from './Base58';
 
 const WALLET_COLORS = [
     { name: 'Purple', class: 'from-purple-500 to-purple-700' },
@@ -17,47 +16,18 @@ const WALLET_COLORS = [
     { name: 'Cyan', class: 'from-cyan-500 to-cyan-700' }
 ];
 
-// Simple encryption for private key
+// Encrypt WIF private key with user's password using AES-GCM
 async function encryptPrivateKey(privateKey, password) {
     const encoder = new TextEncoder();
     const data = encoder.encode(privateKey);
     const keyData = encoder.encode(password.padEnd(32, '0').slice(0, 32));
-    
-    const key = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'AES-GCM' },
-        false,
-        ['encrypt']
-    );
-    
+    const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt']);
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        data
-    );
-    
+    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
     const combined = new Uint8Array(iv.length + encrypted.byteLength);
     combined.set(iv);
     combined.set(new Uint8Array(encrypted), iv.length);
-    
     return btoa(String.fromCharCode(...combined));
-}
-
-// Generate a simple seed phrase (12 words)
-function generateSeedPhrase() {
-    const words = [
-        'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
-        'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
-        'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual'
-    ];
-    
-    const phrase = [];
-    for (let i = 0; i < 12; i++) {
-        phrase.push(words[Math.floor(Math.random() * words.length)]);
-    }
-    return phrase.join(' ');
 }
 
 export default function WalletCreator({ account, onClose, onCreated }) {
