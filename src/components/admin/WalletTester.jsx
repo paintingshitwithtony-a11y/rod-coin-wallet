@@ -10,6 +10,7 @@ import { Loader2, CheckCircle2, Copy, Send, AlertCircle } from 'lucide-react';
 
 export default function WalletTester() {
     const [passphrases, setPassphrases] = useState(['', '']);
+    const [fundingPassphrase, setFundingPassphrase] = useState('');
     const [wallets, setWallets] = useState(null);
     const [existingWallets, setExistingWallets] = useState([]);
     const [selectedWalletId, setSelectedWalletId] = useState('');
