@@ -30,6 +30,7 @@ import GetBlockSetupGuide from './GetBlockSetupGuide';
 export default function RPCConfigManager({ account, onClose, onConnectionSuccess }) {
     const [configs, setConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [testing, setTesting] = useState({});
     const [editingConfig, setEditingConfig] = useState(null);
