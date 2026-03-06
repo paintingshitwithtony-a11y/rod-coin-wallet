@@ -23,7 +23,9 @@ export class RPCClient {
     constructor(config) {
         this.config = config;
         this.protocol = config.use_ssl ? 'https' : 'http';
-        this.url = `${this.protocol}://${config.host}:${config.port}`;
+        // Clean host: remove any protocol prefixes
+        let cleanHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+        this.url = `${this.protocol}://${cleanHost}:${config.port}`;
     }
 
     async call(method, params = []) {
