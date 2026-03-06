@@ -115,9 +115,15 @@ export default function NodeStatusCard() {
                                     Cancel
                                 </Button>
                                 <Button
-                                    onClick={() => {
-                                        toast.success('Host URL updated. Please reconnect in the RPC settings.');
-                                        setShowEditHost(false);
+                                    onClick={async () => {
+                                        try {
+                                            await base44.functions.invoke('fixDuplicateProtocols', {});
+                                            toast.success('Host URL fixed and updated.');
+                                            setEditedHost('');
+                                            setShowEditHost(false);
+                                        } catch (err) {
+                                            toast.error('Failed to update host URL: ' + err.message);
+                                        }
                                     }}>
                                     Save
                                 </Button>
