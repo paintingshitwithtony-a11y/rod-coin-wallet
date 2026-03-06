@@ -1780,13 +1780,16 @@ console.log(data.result);`}
                                                                              url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
                                                                          }
 
-                                                                         // Ensure URL has a protocol for parsing
+                                                                         // For VPS connections: always use https, never http
+                                                                         // If no protocol, assume https for VPS
                                                                          if (!url.startsWith('http://') && !url.startsWith('https://')) {
                                                                              url = 'https://' + url;
+                                                                         } else if (url.startsWith('http://')) {
+                                                                             // Convert http:// to https:// for VPS
+                                                                             url = url.replace(/^http:\/\//i, 'https://');
                                                                          }
 
                                                                          const parsed = new URL(url);
-                                                                         const isHttps = parsed.protocol === 'https:';
                                                                          const hasPath = parsed.pathname && parsed.pathname !== '/';
                                                                          let host = hasPath 
                                                                              ? parsed.hostname + parsed.pathname.replace(/\/$/, '')
@@ -1798,8 +1801,8 @@ console.log(data.result);`}
                                                                              host = host.replace(/^https?:\/\//i, '');
                                                                          }
 
-                                                                         // Only set port if explicitly provided, or if no path and no port (localhost case)
-                                                                         const port = parsed.port || (hasPath ? '' : (isHttps ? '443' : '80'));
+                                                                         // For VPS: always use port 443 (https), not 80
+                                                                         const port = parsed.port || (hasPath ? '' : '443');
 
                                                                          // Determine connection type based on URL
                                                                          const hasAuth = parsed.username || parsed.password;
