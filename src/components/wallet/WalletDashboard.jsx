@@ -987,6 +987,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                                 <Wallet className="w-4 h-4" />
                             </Button>
+                            {isAdmin && (
                             <Link to={createPageUrl('Admin')}>
                                 <Button
                             variant="ghost"
@@ -996,6 +997,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                     <Settings className="w-4 h-4" />
                                 </Button>
                             </Link>
+                            )}
                             <Link to={createPageUrl('SecuritySettings')}>
                                 <div className="relative p-2 rounded-lg bg-gradient-to-br from-purple-500 to-amber-500 cursor-pointer hover:opacity-80 transition-opacity">
                                     <Shield className="w-5 h-5 text-white" />
