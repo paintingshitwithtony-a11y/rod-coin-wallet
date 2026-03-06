@@ -952,24 +952,34 @@ export default function Admin() {
 
                                                     <div className="flex gap-2">
                                                        <Button
-                                                           size="sm"
-                                                           variant="outline"
-                                                           onClick={() => {
-                                                               setEditingConfig(config);
-                                                               setNewConfig({
-                                                                   name: config.name,
-                                                                   connection_type: config.connection_type,
-                                                                   host: config.host,
-                                                                   port: config.port,
-                                                                   username: config.username || '',
-                                                                   password: config.password || '',
-                                                                   use_ssl: config.use_ssl || false
-                                                               });
-                                                               setShowNewConfig(false);
-                                                           }}
-                                                           className="border-slate-700 text-blue-400 hover:text-blue-300">
-                                                           <Pencil className="w-4 h-4" />
-                                                       </Button>
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() => {
+                                                                                setEditingConfig(config);
+                                                                                setNewConfig({
+                                                                                    name: config.name,
+                                                                                    connection_type: config.connection_type,
+                                                                                    host: config.host,
+                                                                                    port: config.port,
+                                                                                    username: config.username || '',
+                                                                                    password: config.password || '',
+                                                                                    use_ssl: config.use_ssl || false
+                                                                                });
+                                                                                setShowNewConfig(false);
+                                                                            }}
+                                                                            className="border-slate-700 text-blue-400 hover:text-blue-300">
+                                                                            <Pencil className="w-4 h-4" />
+                                                                        </Button>
+
+                                                                        {config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)' ? (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                disabled
+                                                                                className="border-slate-700 text-slate-500 opacity-50">
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                        ) : (
 
                                                        <Button
                                                            size="sm"
