@@ -531,9 +531,9 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => {
-                                            const walletBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? balance;
-                                            const feeAmount = isInternalTransfer ? 0 : parseFloat(fee);
-                                            setAmount(String(Math.max(0, walletBalance - feeAmount)));
+                                            const walletBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? 0;
+                                            const feeAmount = parseFloat(fee) || 0;
+                                            setAmount(String(Math.max(0, walletBalance - feeAmount).toFixed(8)));
                                         }}
                                         className="h-6 px-2 text-xs text-purple-400"
                                     >
