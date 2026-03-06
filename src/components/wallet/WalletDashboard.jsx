@@ -82,7 +82,17 @@ export default function WalletDashboard({ account, onLogout }) {
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+
+    // Listen for wallet creation events
+    const handleWalletCreated = () => {
+      fetchAllWallets();
+    };
+    window.addEventListener('walletCreated', handleWalletCreated);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('walletCreated', handleWalletCreated);
+    };
   }, []);
 
   useEffect(() => {
@@ -1338,18 +1348,18 @@ export default function WalletDashboard({ account, onLogout }) {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 {addresses.length === 0 ?
-                  <div className="text-center py-8">
+                                <div className="text-center py-8">
                                         <p className="text-slate-500 text-sm">No addresses generated yet</p>
                                         <Button
-                      variant="link"
-                      className="text-purple-400 mt-2"
-                      onClick={() => setActiveTab('generate')}>
+                                variant="link"
+                                className="text-purple-400 mt-2"
+                                onClick={() => setActiveTab('generate')}>
 
                                             Generate your first address
                                         </Button>
                                     </div> :
 
-                  addresses.slice(0, 5).map((addr, index) =>
+                                addresses.map((addr, index) =>
                   <motion.div
                     key={addr.id}
                     initial={{ opacity: 0, x: 20 }}
