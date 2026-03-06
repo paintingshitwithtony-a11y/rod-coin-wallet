@@ -446,12 +446,13 @@ export default function Admin() {
                             <Button
                                 onClick={async () => {
                                     try {
-                                        const { data } = await base44.functions.invoke('fixDuplicateProtocols', {});
-                                        if (data.fixed > 0) {
-                                            toast.success(`Fixed ${data.fixed} RPC configuration(s)`);
+                                        const response = await base44.functions.invoke('fixDuplicateProtocols', {});
+                                        const fixed = response.data?.fixed || 0;
+                                        if (fixed > 0) {
+                                            toast.success(`Fixed ${fixed} RPC configuration(s)`);
                                             loadConfigs();
                                         } else {
-                                            toast.info('No duplicate protocols found to fix');
+                                            toast.success('Checked all RPC configurations — no issues found');
                                         }
                                     } catch (err) {
                                         toast.error('Fix failed: ' + err.message);
