@@ -1,304 +1,179 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+
+async function rpcCall(rpcUrl, rpcAuth, method, params) {
+    const response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${rpcAuth}`
+        },
+        body: JSON.stringify({ jsonrpc: '1.0', id: method, method, params }),
+        signal: AbortSignal.timeout(30000)
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(`RPC ${method} failed: ${data.error.message}`);
+    return data.result;
+}
+
+async function decryptPrivateKey(encryptedKey, password) {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(password.padEnd(32, '0').slice(0, 32));
+    const combined = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+
+    const key = await crypto.subtle.importKey(
+        'raw', keyData, { name: 'AES-GCM' }, false, ['decrypt']
+    );
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
+    return new TextDecoder().decode(decrypted);
+}
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
+        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        const { recipient, amount, fee, memo, fromAddress, wifKey } = await req.json();
 
-        const { recipient, amount, fee, memo, fromAddress, isInternalTransfer } = await req.json();
-
-        // Validate inputs
         if (!recipient || !amount || amount <= 0) {
             return Response.json({ error: 'Invalid transaction parameters' }, { status: 400 });
         }
-
-        // Get user's wallet account - use session ID from localStorage
-        const savedSession = req.headers.get('cookie');
-        let accountId = null;
-        
-        // Try to parse account ID from session
-        try {
-            const sessionMatch = savedSession?.match(/rod_wallet_session=([^;]+)/);
-            if (sessionMatch) {
-                const sessionData = JSON.parse(decodeURIComponent(sessionMatch[1]));
-                accountId = sessionData.id;
-            }
-        } catch (e) {
-            // Fallback to user email
+        if (!wifKey) {
+            return Response.json({ error: 'Private key (WIF) is required to sign the transaction' }, { status: 400 });
         }
 
-        let accounts;
-        if (accountId) {
-            accounts = await base44.entities.WalletAccount.filter({ id: accountId });
-        } else {
-            accounts = await base44.entities.WalletAccount.filter({ email: user.email });
-        }
-
-        if (accounts.length === 0) {
-            return Response.json({ error: 'Wallet not found' }, { status: 404 });
-        }
-
+        // Get wallet account
+        const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        if (accounts.length === 0) return Response.json({ error: 'Wallet not found' }, { status: 404 });
         const account = accounts[0];
 
-        // Batch fetch all needed data to avoid rate limits
-        const [rpcConfigs, allWallets] = await Promise.all([
-            base44.entities.RPCConfiguration.filter({ 
-                account_id: account.id,
-                is_active: true 
-            }),
-            base44.entities.Wallet.filter({
-                account_id: account.id
-            })
-        ]);
-
+        // Get active RPC config
+        const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
         if (rpcConfigs.length === 0) {
-            return Response.json({ 
-                error: 'No active RPC configuration found. Please configure an RPC connection in Admin panel.'
-            }, { status: 500 });
+            return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
         }
 
         const rpcConfig = rpcConfigs[0];
-        let rpcHost = rpcConfig.host;
-        const rpcPort = rpcConfig.port;
-        const rpcUser = rpcConfig.username;
-        const rpcPass = rpcConfig.password;
+        let rpcHost = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        const protocol = rpcConfig.port === '443' || rpcConfig.port === 443 ? 'https' : 'http';
+        const rpcUrl = `${protocol}://${rpcHost}:${rpcConfig.port}`;
+        const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        if (!rpcHost || !rpcPort || !rpcUser || !rpcPass) {
-            return Response.json({ 
-                error: 'RPC credentials incomplete. Please check your RPC configuration.'
-            }, { status: 500 });
-        }
-
-        // Strip protocol if included in host
-        rpcHost = rpcHost.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-
-        // Determine actual sender wallet for balance check
         const senderAddress = fromAddress || account.wallet_address;
-        let senderWallet = null;
-        let senderBalance = 0;
-        
-        if (senderAddress === account.wallet_address) {
-            senderBalance = account.balance;
-        } else {
-            senderWallet = allWallets.find(w => w.wallet_address === senderAddress);
-            senderBalance = senderWallet?.balance || 0;
+        const feeAmount = parseFloat(fee) || 0.0001;
+        const sendAmount = parseFloat(amount);
+        const totalNeeded = sendAmount + feeAmount;
+
+        console.log('=== RAW TRANSACTION SEND ===');
+        console.log('From:', senderAddress);
+        console.log('To:', recipient);
+        console.log('Amount:', sendAmount, 'Fee:', feeAmount);
+
+        // Step 1: Get UTXOs for the sender address only
+        const utxos = await rpcCall(rpcUrl, rpcAuth, 'listunspent', [0, 9999999, [senderAddress]]);
+        console.log('UTXOs found:', utxos.length);
+
+        if (!utxos || utxos.length === 0) {
+            return Response.json({ error: `No unspent outputs found for address ${senderAddress}` }, { status: 400 });
         }
 
-        // Check balance of actual sender
-        if (senderBalance < (amount + fee)) {
-            return Response.json({ 
-                error: 'Insufficient balance',
-                required: amount + fee,
-                available: senderBalance
+        // Step 2: Select UTXOs to cover amount + fee
+        const selectedUtxos = [];
+        let inputTotal = 0;
+        for (const utxo of utxos) {
+            selectedUtxos.push(utxo);
+            inputTotal += utxo.amount;
+            if (inputTotal >= totalNeeded) break;
+        }
+
+        if (inputTotal < totalNeeded) {
+            return Response.json({
+                error: 'Insufficient funds',
+                available: inputTotal,
+                required: totalNeeded
             }, { status: 400 });
         }
 
-        console.log('=== SEND TRANSACTION DEBUG ===');
-        console.log('Account ID:', account.id);
-        console.log('From Address:', fromAddress || 'default');
-        console.log('To Address:', recipient);
-        console.log('Amount:', amount);
-        console.log('Fee:', fee);
-        console.log('Current Balance:', account.balance);
-        console.log('Internal Transfer:', isInternalTransfer);
+        const change = parseFloat((inputTotal - totalNeeded).toFixed(8));
 
-        // Send transaction via ROD Core RPC
-        const protocol = rpcPort === '443' || rpcPort === 443 ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${rpcHost}:${rpcPort}`;
-        const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
-        
-        // Always ensure sender address is known to the RPC node (importaddress is idempotent)
-        const addressToImport = fromAddress || account.wallet_address;
-        if (addressToImport) {
-            console.log('Ensuring address is imported to RPC node:', addressToImport);
-            try {
-                const importResponse = await fetch(rpcUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${rpcAuth}` },
-                    body: JSON.stringify({
-                        jsonrpc: '1.0', id: 'importAddress',
-                        method: 'importaddress',
-                        params: [addressToImport, 'wallet-address', false]
-                    }),
-                    signal: AbortSignal.timeout(30000)
-                });
-                const importData = await importResponse.json();
-                if (importData.error) {
-                    console.warn('importaddress warning (non-fatal):', importData.error.message);
-                } else {
-                    console.log('Address import confirmed');
-                }
-            } catch (importErr) {
-                console.warn('importaddress failed (non-fatal):', importErr.message);
-            }
-        }
-        
-        // Auto-unlock wallet using the account's own passphrase (never use the global WALLET_PASSPHRASE secret for user wallets)
-        const passphrase = account.wallet_passphrase || null;
-        if (passphrase) {
-            try {
-                console.log('Attempting to unlock wallet with passphrase...');
-                const unlockResponse = await fetch(rpcUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Basic ${rpcAuth}`
-                    },
-                    body: JSON.stringify({
-                        jsonrpc: '1.0',
-                        id: 'unlockWallet',
-                        method: 'walletpassphrase',
-                        params: [passphrase, 300] // Unlock for 5 minutes
-                    })
-                });
-                
-                const unlockData = await unlockResponse.json();
-                if (unlockData.error) {
-                    console.warn('Wallet unlock RPC error:', unlockData.error);
-                    // Don't fail transaction if unlock fails - just warn
-                } else {
-                    console.log('Wallet unlocked successfully');
-                }
-            } catch (unlockErr) {
-                console.warn('Failed to unlock wallet, continuing anyway:', unlockErr.message);
-                // Don't fail transaction if unlock fails - just warn
-            }
-        }
-        
-        // Always use sendtoaddress (sendfrom is deprecated and doesn't work properly)
-        const rpcMethod = 'sendtoaddress';
-        const rpcParams = [recipient, amount, memo || '', '', false];
-        
-        console.log('RPC Method:', rpcMethod);
-        console.log('RPC Params:', rpcParams);
-        
-        const rpcResponse = await fetch(rpcUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${rpcAuth}`
-            },
-            body: JSON.stringify({
-                jsonrpc: '1.0',
-                id: 'sendTransaction',
-                method: rpcMethod,
-                params: rpcParams
-            })
-        });
-
-        if (!rpcResponse.ok) {
-            const errorText = await rpcResponse.text();
-            return Response.json({ 
-                error: 'Failed to broadcast transaction',
-                details: errorText
-            }, { status: 500 });
+        // Step 3: Build inputs and outputs
+        const inputs = selectedUtxos.map(u => ({ txid: u.txid, vout: u.vout }));
+        const outputs = { [recipient]: sendAmount };
+        if (change > 0.00000001) {
+            outputs[senderAddress] = change;
         }
 
-        const rpcData = await rpcResponse.json();
-        
-        if (rpcData.error) {
-            return Response.json({ 
-                error: 'Transaction failed',
-                details: rpcData.error.message
-            }, { status: 500 });
+        console.log('Inputs:', inputs.length, 'Change:', change);
+
+        // Step 4: Create raw transaction
+        const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
+        console.log('Raw TX created');
+
+        // Step 5: Sign with provided WIF key (key is NOT imported into node wallet)
+        const prevTxs = selectedUtxos.map(u => ({
+            txid: u.txid,
+            vout: u.vout,
+            scriptPubKey: u.scriptPubKey,
+            amount: u.amount
+        }));
+
+        const signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [
+            rawTx,
+            [wifKey],
+            prevTxs
+        ]);
+        console.log('Sign result complete:', signResult.complete);
+
+        if (!signResult.complete) {
+            return Response.json({ error: 'Transaction signing incomplete', details: signResult.errors }, { status: 500 });
         }
 
-        const txid = rpcData.result;
-        console.log('Transaction broadcasted. TxID:', txid);
+        // Step 6: Broadcast
+        const txid = await rpcCall(rpcUrl, rpcAuth, 'sendrawtransaction', [signResult.hex]);
+        console.log('Broadcasted TxID:', txid);
 
-        // Determine which wallet this is being sent from (using already fetched wallets)
-        const senderWalletId = senderWallet?.id || null;
-
-        // Check if recipient is also owned by this user (internal transfer)
+        // Record transaction in DB
+        const allWallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        const senderWallet = allWallets.find(w => w.wallet_address === senderAddress);
         const recipientWallet = allWallets.find(w => w.wallet_address === recipient);
-        const recipientWalletId = recipientWallet?.id || null;
-        const isRecipientMainWallet = recipient === account.wallet_address;
+        const isInternal = recipient === account.wallet_address || !!recipientWallet;
 
-        // Determine if this is actually an internal transfer
-        const isActuallyInternal = isRecipientMainWallet || !!recipientWallet;
-        
-        // Record send transaction
-        const memoText = isActuallyInternal ? 
-            `Internal Transfer | ${memo || ''} | TxID: ${txid}`.trim() :
-            memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
-        
-        const transaction = await base44.entities.Transaction.create({
+        const memoText = memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
+
+        await base44.entities.Transaction.create({
             account_id: account.id,
-            wallet_id: senderWalletId,
-            wallet_address: fromAddress || account.wallet_address,
+            wallet_id: senderWallet?.id || null,
+            wallet_address: senderAddress,
             type: 'send',
-            amount: -amount,
-            fee: fee,
+            amount: -sendAmount,
+            fee: feeAmount,
             address: recipient,
             memo: memoText,
             confirmations: 0,
-            status: 'confirmed'
+            status: 'pending'
         });
-        console.log('Send transaction recorded:', transaction.id);
-        
-        // If internal transfer, record receive transaction for the recipient wallet
-        if (isActuallyInternal && (recipientWalletId || isRecipientMainWallet)) {
-            const receiveTransaction = await base44.entities.Transaction.create({
+
+        if (isInternal && recipientWallet) {
+            await base44.entities.Transaction.create({
                 account_id: account.id,
-                wallet_id: recipientWalletId,
+                wallet_id: recipientWallet.id,
                 wallet_address: recipient,
                 type: 'receive',
-                amount: amount,
+                amount: sendAmount,
                 fee: 0,
-                address: fromAddress || account.wallet_address,
-                memo: `Internal Transfer | ${memo || ''} | TxID: ${txid}`.trim(),
-                confirmations: 1,
-                status: 'confirmed'
+                address: senderAddress,
+                memo: `Internal Transfer | TxID: ${txid}`,
+                confirmations: 0,
+                status: 'pending'
             });
-            console.log('Receive transaction recorded:', receiveTransaction.id);
-            
-            // Update recipient wallet balance
-            if (recipientWalletId && recipientWallet) {
-                const newRecipientBalance = (recipientWallet.balance || 0) + amount;
-                await base44.asServiceRole.entities.Wallet.update(recipientWallet.id, {
-                    balance: newRecipientBalance
-                });
-                console.log('Recipient wallet balance updated:', recipientWallet.balance, '->', newRecipientBalance);
-            }
         }
 
-        // Update account balance - fetch fresh data first to avoid stale balance
-        const freshAccounts = await base44.entities.WalletAccount.filter({ id: account.id });
-        const currentBalance = freshAccounts[0]?.balance || 0;
-        const newBalance = currentBalance - amount - fee;
-        
-        await base44.asServiceRole.entities.WalletAccount.update(account.id, {
-            balance: newBalance
-        });
-        console.log('Balance updated:', currentBalance, '->', newBalance);
-        
-        // Also update individual wallet balance if sending from specific wallet
-        if (fromAddress && senderWallet) {
-            const newWalletBalance = (senderWallet.balance || 0) - amount - fee;
-            await base44.asServiceRole.entities.Wallet.update(senderWallet.id, {
-                balance: newWalletBalance
-            });
-            console.log('Wallet balance updated:', senderWallet.balance, '->', newWalletBalance);
-        }
-
-        return Response.json({ 
-            success: true,
-            txid,
-            transaction,
-            newBalance
-        });
+        return Response.json({ success: true, txid, change });
 
     } catch (error) {
-        console.error('=== SEND TRANSACTION ERROR ===');
-        console.error('Error:', error);
-        console.error('Stack:', error.stack);
-        return Response.json({ 
-            error: error.message,
-            details: error.stack
-        }, { status: 500 });
+        console.error('Send transaction error:', error.message);
+        return Response.json({ error: error.message }, { status: 500 });
     }
 });
