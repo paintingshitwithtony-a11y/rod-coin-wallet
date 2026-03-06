@@ -577,7 +577,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
 
                 if (configs.length === 0) {
                     await base44.entities.WalletAccount.update(account.id, {
-                        rpc_host: formData.host,
+                        rpc_host: cleanedHost,
                         rpc_port: formData.port,
                         rpc_username: formData.username,
                         rpc_password: formData.password
