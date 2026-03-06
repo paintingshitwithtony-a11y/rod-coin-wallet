@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         }
 
         // Create new configuration
+        const useSSL = port === '9443' || port === '443' || port === '8443';
         const newConfig = await base44.entities.RPCConfiguration.create({
             account_id: account.id,
             name: 'ROD Core (from secrets)',
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
             password,
             api_key: '',
             curl_command: '',
-            use_ssl: false,
+            use_ssl: useSSL,
             is_active: true,
             connection_status: 'untested'
         });
