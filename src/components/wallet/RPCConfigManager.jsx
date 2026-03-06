@@ -1899,7 +1899,7 @@ console.log(data.result);`}
                                     </Alert>
                                 </>
                             )}
-                            {formData.connection_type === 'rpc' && (
+                            {formData.connection_type === 'rpc' && currentUser?.role === 'admin' && (
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300">Username</Label>
