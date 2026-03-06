@@ -45,7 +45,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             return;
         }
 
-        // Move to passphrase step
+        // Dialog should show passphrase step automatically
         setStep('passphrase');
     };
 
@@ -67,14 +67,16 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             });
 
             if (genResponse.data.error) {
-                toast.error(genResponse.data.error);
+                setPassphraseError(genResponse.data.error);
+                setLoading(false);
                 return;
             }
 
             const { address, walletId, walletName } = genResponse.data;
 
             if (!address || !walletId) {
-                toast.error('Wallet creation failed: incomplete response from server');
+                setPassphraseError('Wallet creation failed: incomplete response');
+                setLoading(false);
                 return;
             }
 
@@ -91,10 +93,11 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             };
 
             toast.success(`Wallet "${wallet.name}" created successfully`);
-            onCreated(wallet);
+            onCreated(wallet); // This will trigger fetchWallets in WalletManager
+            onClose(); // Close the dialog after successful creation
         } catch (err) {
             // Never include raw error details that could leak key info
-            toast.error('Failed to create wallet. Please check your RPC connection.');
+            setPassphraseError('Failed to create wallet. Check your RPC connection.');
         } finally {
             setLoading(false);
         }
