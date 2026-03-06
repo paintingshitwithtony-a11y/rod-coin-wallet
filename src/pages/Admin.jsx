@@ -260,10 +260,28 @@ export default function Admin() {
         }
     };
 
-    if (loading) {
+    if (loading || isAdmin === null) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <Shield className="w-16 h-16 text-red-400 mx-auto" />
+                    <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+                    <p className="text-slate-400">You need admin privileges to access this panel.</p>
+                    <Link to={createPageUrl('Wallet')}>
+                        <Button variant="outline" className="border-slate-700 text-slate-300">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Wallet
+                        </Button>
+                    </Link>
+                </div>
             </div>
         );
     }
