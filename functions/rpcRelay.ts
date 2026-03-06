@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
         const rpcUser = Deno.env.get('ROD_RPC_USERNAME')?.trim();
         const rpcPass = Deno.env.get('ROD_RPC_PASSWORD')?.trim();
 
-        const rpcUrl = `http://${rpcHost}:${rpcPort}/`;
+        const protocol = (rpcPort === '443' || rpcHost.startsWith('https')) ? 'https' : 'http';
+        const rpcUrl = `${protocol}://${rpcHost}:${rpcPort}/`;
         const rpcAuth = btoa(`${rpcUser}:${rpcPass}`);
 
         const response = await fetch(rpcUrl, {
