@@ -36,8 +36,10 @@ Deno.serve(async (req) => {
                 account_id: user.id
             });
             
+            console.log(`Found ${userConfigs.length} configs for user ${user.id}`);
+            
             for (const config of userConfigs) {
-                if (config.host && config.host.match(/^https?:\/\/https?:\/\//i)) {
+                if (config.host && config.host.match(/https?:\/\/https?:\/\//i)) {
                     let cleanedHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
                     while (cleanedHost.match(/^https?:\/\//i)) {
                         cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
