@@ -1766,52 +1766,59 @@ console.log(data.result);`}
                                  <Label className="text-slate-300">Quick Setup - Paste Endpoint URL (Optional)</Label>
                                  <div className="flex gap-2">
                                      <Input
-                                         placeholder="https://go.getblock.io/abc123 or http://localhost:9650"
-                                         className="bg-slate-900 border-slate-600 font-mono text-sm"
-                                         onPaste={(e) => {
-                                             let url = e.clipboardData.getData('text').trim();
-                                             try {
-                                                 // Fix double protocol issue (e.g., "http://https://...")
-                                                 if (url.match(/^https?:\/\/https?:\/\//)) {
-                                                     url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
-                                                 }
+                                                                 placeholder="https://go.getblock.io/abc123 or http://localhost:9650"
+                                                                 className="bg-slate-900 border-slate-600 font-mono text-sm"
+                                                                 onPaste={(e) => {
+                                                                     let url = e.clipboardData.getData('text').trim();
+                                                                     try {
+                                                                         // Fix double protocol issue (e.g., "http://https://...")
+                                                                         if (url.match(/^https?:\/\/https?:\/\//)) {
+                                                                             url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
+                                                                         }
 
-                                                 // Ensure URL has a protocol for parsing
-                                                 if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                                                     url = 'https://' + url;
-                                                 }
+                                                                         // Ensure URL has a protocol for parsing
+                                                                         if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                                                             url = 'https://' + url;
+                                                                         }
 
-                                                 const parsed = new URL(url);
-                                                 const isHttps = parsed.protocol === 'https:';
-                                                 const hasPath = parsed.pathname && parsed.pathname !== '/';
-                                                 const host = hasPath 
-                                                     ? parsed.hostname + parsed.pathname.replace(/\/$/, '')
-                                                     : parsed.hostname;
-                                                 // Only set port if explicitly provided, or if no path and no port (localhost case)
-                                                 const port = parsed.port || (hasPath ? '' : (isHttps ? '443' : '80'));
+                                                                         const parsed = new URL(url);
+                                                                         const isHttps = parsed.protocol === 'https:';
+                                                                         const hasPath = parsed.pathname && parsed.pathname !== '/';
+                                                                         let host = hasPath 
+                                                                             ? parsed.hostname + parsed.pathname.replace(/\/$/, '')
+                                                                             : parsed.hostname;
 
-                                                 // Determine connection type based on URL
-                                                 const hasAuth = parsed.username || parsed.password;
-                                                 const connectionType = hasAuth ? 'rpc' : 'api';
+                                                                         // Clean host: remove any remaining protocol prefixes
+                                                                         host = host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+                                                                         while (host.match(/^https?:\/\//i)) {
+                                                                             host = host.replace(/^https?:\/\//i, '');
+                                                                         }
 
-                                                 setFormData({
-                                                     ...formData,
-                                                     host: host,
-                                                     port: port,
-                                                     use_ssl: isHttps,
-                                                     connection_type: connectionType,
-                                                     username: parsed.username || '',
-                                                     password: parsed.password || '',
-                                                     name: formData.name || `${parsed.hostname} Connection`
-                                                 });
+                                                                         // Only set port if explicitly provided, or if no path and no port (localhost case)
+                                                                         const port = parsed.port || (hasPath ? '' : (isHttps ? '443' : '80'));
 
-                                                 toast.success('URL parsed successfully');
-                                                 e.target.value = '';
-                                             } catch (err) {
-                                                 toast.error('Invalid URL format');
-                                             }
-                                         }}
-                                     />
+                                                                         // Determine connection type based on URL
+                                                                         const hasAuth = parsed.username || parsed.password;
+                                                                         const connectionType = hasAuth ? 'rpc' : 'api';
+
+                                                                         setFormData({
+                                                                             ...formData,
+                                                                             host: host,
+                                                                             port: port,
+                                                                             use_ssl: isHttps,
+                                                                             connection_type: connectionType,
+                                                                             username: parsed.username || '',
+                                                                             password: parsed.password || '',
+                                                                             name: formData.name || `${parsed.hostname} Connection`
+                                                                         });
+
+                                                                         toast.success('URL parsed successfully');
+                                                                         e.target.value = '';
+                                                                     } catch (err) {
+                                                                         toast.error('Invalid URL format');
+                                                                     }
+                                                                 }}
+                                                             />
                                  </div>
                                  <p className="text-xs text-slate-500">Paste endpoint URL - credentials extracted automatically if present</p>
                              </div>
