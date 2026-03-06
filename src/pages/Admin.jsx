@@ -72,9 +72,13 @@ export default function Admin() {
     useEffect(() => {
         loadAccount();
         loadConfigs();
-        base44.auth.me().then(user => {
+        const checkAdmin = async () => {
+            const user = await base44.auth.me();
             setIsAdmin(user?.role === 'admin');
-        }).catch(() => setIsAdmin(false));
+        };
+        checkAdmin();
+        const interval = setInterval(checkAdmin, 2000);
+        return () => clearInterval(interval);
     }, []);
 
     const loadAccount = async () => {
