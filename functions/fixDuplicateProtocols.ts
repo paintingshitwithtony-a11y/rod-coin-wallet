@@ -5,29 +5,51 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
 
-        if (!user || user.role !== 'admin') {
-            return Response.json({ error: 'Admin access required' }, { status: 403 });
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get all RPC configurations with bad protocols
-        const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list();
-        
         let fixed = 0;
         
-        for (const config of allConfigs) {
-            if (config.host && config.host.match(/^https?:\/\/https?:\/\//i)) {
-                // Strip the duplicate protocol
-                let cleanedHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
-                while (cleanedHost.match(/^https?:\/\//i)) {
-                    cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
+        // Admins fix all configs globally; regular users fix only their own
+        if (user.role === 'admin') {
+            const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list();
+            
+            for (const config of allConfigs) {
+                if (config.host && config.host.match(/^https?:\/\/https?:\/\//i)) {
+                    let cleanedHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+                    while (cleanedHost.match(/^https?:\/\//i)) {
+                        cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
+                    }
+                    
+                    await base44.asServiceRole.entities.RPCConfiguration.update(config.id, {
+                        host: cleanedHost
+                    });
+                    
+                    fixed++;
+                    console.log(`Fixed: ${config.name} from ${config.host} to ${cleanedHost}`);
                 }
-                
-                await base44.asServiceRole.entities.RPCConfiguration.update(config.id, {
-                    host: cleanedHost
-                });
-                
-                fixed++;
-                console.log(`Fixed: ${config.name} from ${config.host} to ${cleanedHost}`);
+            }
+        } else {
+            // Regular users fix only their account's configs
+            const userConfigs = await base44.entities.RPCConfiguration.filter({
+                account_id: user.id
+            });
+            
+            for (const config of userConfigs) {
+                if (config.host && config.host.match(/^https?:\/\/https?:\/\//i)) {
+                    let cleanedHost = config.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+                    while (cleanedHost.match(/^https?:\/\//i)) {
+                        cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
+                    }
+                    
+                    await base44.entities.RPCConfiguration.update(config.id, {
+                        host: cleanedHost
+                    });
+                    
+                    fixed++;
+                    console.log(`Fixed: ${config.name} from ${config.host} to ${cleanedHost}`);
+                }
             }
         }
 
