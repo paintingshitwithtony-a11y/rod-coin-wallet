@@ -38,13 +38,14 @@ async function rpcCall(rpcUrl, rpcAuth, method, params) {
     return data.result;
 }
 
-async function decryptWIF(encryptedKey, encryptionSecret) {
+async function decryptWIF(encryptedKey, passphrase) {
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(encryptionSecret.padEnd(32, '0').slice(0, 32));
+    const passphraseKey = await crypto.subtle.importKey('raw', encoder.encode(passphrase), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const derivedKey = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode('wallet_salt'), iterations: 100000 }, passphraseKey, 256);
     const combined = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
     const iv = combined.slice(0, 12);
     const ciphertext = combined.slice(12);
-    const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['decrypt']);
+    const cryptoKey = await crypto.subtle.importKey('raw', derivedKey, { name: 'AES-GCM' }, false, ['decrypt']);
     const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext);
     return new TextDecoder().decode(decrypted);
 }
