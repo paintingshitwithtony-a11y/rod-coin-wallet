@@ -75,16 +75,14 @@ export default function NodeStatusCard() {
                             <AlertCircle className="w-4 h-4 text-red-400" />
                             Node Status
                         </CardTitle>
-                        {currentUser?.role !== 'admin' && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowEditHost(true)}
-                                className="h-8 w-8 text-slate-400 hover:text-amber-400"
-                                title="Edit host URL">
-                                <Pencil className="w-4 h-4" />
-                            </Button>
-                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowEditHost(true)}
+                            className="h-8 w-8 text-slate-400 hover:text-amber-400"
+                            title="Edit host URL">
+                            <Pencil className="w-4 h-4" />
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         <Alert className="bg-red-500/10 border-red-500/30">
@@ -144,16 +142,14 @@ export default function NodeStatusCard() {
                                 Synced
                             </Badge>
                         </CardTitle>
-                        {currentUser?.role !== 'admin' && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setShowEditHost(true)}
-                                className="h-8 w-8 text-slate-400 hover:text-amber-400"
-                                title="Edit host URL">
-                                <Pencil className="w-4 h-4" />
-                            </Button>
-                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowEditHost(true)}
+                            className="h-8 w-8 text-slate-400 hover:text-amber-400"
+                            title="Edit host URL">
+                            <Pencil className="w-4 h-4" />
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
