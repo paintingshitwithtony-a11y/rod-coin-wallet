@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { fromAddress, recipient, amount, fee, memo } = body;
+         const { fromAddress, recipient, amount, fee, memo, passphrase } = body;
 
         // --- Input validation ---
         if (!fromAddress) return Response.json({ error: 'fromAddress is required' }, { status: 400 });
@@ -73,6 +73,9 @@ Deno.serve(async (req) => {
         }
         if (fee === undefined || fee === null || isNaN(parseFloat(fee)) || parseFloat(fee) < 0) {
             return Response.json({ error: 'fee must be a non-negative number' }, { status: 400 });
+        }
+        if (!passphrase || typeof passphrase !== 'string') {
+            return Response.json({ error: 'Passphrase is required' }, { status: 400 });
         }
 
         const sendAmount = parseFloat((+amount).toFixed(8));
@@ -165,15 +168,12 @@ Deno.serve(async (req) => {
         // --- Step 9: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 10: Unlock wallet if a passphrase is configured ---
-        const walletPassphrase = Deno.env.get('WALLET_PASSPHRASE') || rpcConfig.password || null;
-        if (walletPassphrase) {
-            try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [walletPassphrase, 30]);
-            } catch (unlockErr) {
-                // Ignore error if wallet is already unlocked or unencrypted
-                console.log('walletpassphrase (ignored):', unlockErr.message);
-            }
+        // --- Step 10: Unlock wallet using provided passphrase ---
+        try {
+            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+        } catch (unlockErr) {
+            // Ignore error if wallet is already unlocked or unencrypted
+            console.log('walletpassphrase (ignored):', unlockErr.message);
         }
 
         // --- Step 11: Decrypt WIF in backend memory only — NEVER log it ---
