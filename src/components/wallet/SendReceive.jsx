@@ -237,6 +237,18 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         executeSend();
     };
 
+    // Decrypt WIF key client-side using user's password
+    const decryptWIF = async (encryptedKey, password) => {
+        const encoder = new TextEncoder();
+        const keyData = encoder.encode(password.padEnd(32, '0').slice(0, 32));
+        const combined = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
+        const iv = combined.slice(0, 12);
+        const encrypted = combined.slice(12);
+        const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['decrypt']);
+        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
+        return new TextDecoder().decode(decrypted);
+    };
+
     const executeSend = async () => {
         setSending(true);
         setShowConfirmation(false);
@@ -244,22 +256,34 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         try {
             const amountNum = parseFloat(amount);
             const feeNum = parseFloat(fee);
-            
-            console.log('=== SENDING TRANSACTION ===');
-            console.log('From:', selectedFromWallet?.wallet_address || account.wallet_address);
-            console.log('To:', recipient);
-            console.log('Amount:', amountNum);
-            console.log('Fee:', feeNum);
-            console.log('Internal Transfer:', isInternalTransfer);
-            
-            // Call backend function to broadcast transaction via ROD Core RPC
+            const senderAddress = selectedFromWallet?.wallet_address || account.wallet_address;
+
+            // Decrypt WIF key for the sender address
+            let wifKey = null;
+            const session = JSON.parse(localStorage.getItem('rod_wallet_session') || '{}');
+            const password = session.password_hash || 'wallet_encryption_key';
+
+            // Find the encrypted key for sender wallet
+            const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+            const senderWallet = wallets.find(w => w.wallet_address === senderAddress);
+            const encryptedKey = senderWallet?.encrypted_private_key || account.encrypted_private_key;
+
+            if (!encryptedKey) {
+                toast.error('Private key not found for sender address. Cannot sign transaction.');
+                setSending(false);
+                return;
+            }
+
+            wifKey = await decryptWIF(encryptedKey, password);
+
+            // Call backend function — WIF key is passed for signing, not stored
             const response = await base44.functions.invoke('sendTransaction', {
                 recipient,
                 amount: amountNum,
-                fee: isInternalTransfer ? 0 : feeNum, // No fee for internal transfers
+                fee: feeNum,
                 memo: memo || '',
-                fromAddress: selectedFromWallet?.wallet_address || account.wallet_address,
-                isInternalTransfer
+                fromAddress: senderAddress,
+                wifKey
             });
             
             console.log('Response:', response.data);
