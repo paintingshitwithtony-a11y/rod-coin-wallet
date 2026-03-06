@@ -569,7 +569,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
 
                         {amount && parseFloat(amount) > 0 && (
                             <div className="p-4 rounded-lg bg-slate-800/30 border border-slate-700">
-                                {isInternalTransfer && (
+                                {isSendingToOwnWallet && (
                                     <div className="flex items-center gap-2 mb-3 text-amber-400">
                                         <AlertCircle className="w-4 h-4" />
                                         <span className="text-xs font-medium">Sending to your own wallet — this is a real on-chain transaction. Network fee applies.</span>
