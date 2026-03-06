@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2 } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -803,22 +803,47 @@ export default function WalletDashboard({ account, onLogout }) {
         const updatedAddresses = additionalAddresses.map(addr => 
           addr.address === address.address ? { ...addr, label: editAddressLabel } : addr
         );
-        
+
         await base44.entities.WalletAccount.update(account.id, {
           additional_addresses: updatedAddresses
         });
-        
+
         // Update local state
         setAddresses(prev => prev.map(addr => 
           addr.id === address.id ? { ...addr, label: editAddressLabel } : addr
         ));
-        
+
         toast.success('Address label updated');
       }
       setEditingAddress(null);
     } catch (err) {
         console.error('Failed to update label:', err);
         toast.error('Failed to update label: ' + err.message);
+    }
+  };
+
+  const handleDeleteAddress = async (address) => {
+    if (!confirm(`Delete address "${address.label}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
+      if (currentAccount.length > 0) {
+        const additionalAddresses = currentAccount[0].additional_addresses || [];
+        const updatedAddresses = additionalAddresses.filter(addr => addr.address !== address.address);
+
+        await base44.entities.WalletAccount.update(account.id, {
+          additional_addresses: updatedAddresses
+        });
+
+        // Update local state
+        setAddresses(prev => prev.filter(addr => addr.id !== address.id));
+        toast.success(`Address "${address.label}" removed`);
+      }
+    } catch (err) {
+        console.error('Failed to delete address:', err);
+        toast.error('Failed to delete address: ' + err.message);
     }
   };
 
@@ -1438,6 +1463,16 @@ export default function WalletDashboard({ account, onLogout }) {
                         <Copy className="w-4 h-4" />
                         }
                                                 </Button>
+                                                {addr.id !== 'main' && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteAddress(addr)}
+                                                    className="text-slate-400 hover:text-red-400"
+                                                    title="Delete this address">
+                                                    <Trash2 className="w-4 h-4" />
+                                                  </Button>
+                                                )}
                                             </div>
                                         </motion.div>
                   )
