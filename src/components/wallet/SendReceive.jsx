@@ -567,11 +567,11 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         </div>
 
                         {amount && parseFloat(amount) > 0 && (
-                            <div className={`p-4 rounded-lg ${isInternalTransfer ? 'bg-green-900/20 border-green-500/30' : 'bg-slate-800/30 border-slate-700'} border`}>
+                            <div className="p-4 rounded-lg bg-slate-800/30 border border-slate-700">
                                 {isInternalTransfer && (
-                                    <div className="flex items-center gap-2 mb-3 text-green-400">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span className="text-xs font-medium">Internal Transfer - No Network Fee</span>
+                                    <div className="flex items-center gap-2 mb-3 text-amber-400">
+                                        <AlertCircle className="w-4 h-4" />
+                                        <span className="text-xs font-medium">Sending to your own wallet — this is a real on-chain transaction. Network fee applies.</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between text-sm mb-2">
@@ -579,16 +579,17 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     <span className="text-white">{amount} ROD</span>
                                 </div>
                                 <div className="flex justify-between text-sm mb-2">
-                                    <span className="text-slate-400">Fee</span>
-                                    <span className="text-white">{isInternalTransfer ? '0 ROD (internal)' : `${fee} ROD`}</span>
+                                    <span className="text-slate-400">Network Fee</span>
+                                    <span className="text-white">{fee} ROD</span>
                                 </div>
                                 <div className="border-t border-slate-700 pt-2 mt-2">
                                     <div className="flex justify-between text-sm font-semibold">
-                                        <span className="text-slate-300">Total</span>
+                                        <span className="text-slate-300">Total Deducted</span>
                                         <span className="text-amber-400">
-                                            {(parseFloat(amount || 0) + (isInternalTransfer ? 0 : parseFloat(fee))).toFixed(8)} ROD
+                                            {(parseFloat(amount || 0) + parseFloat(fee)).toFixed(8)} ROD
                                         </span>
                                     </div>
+                                    <p className="text-xs text-slate-500 mt-1">Change returns to source address automatically</p>
                                 </div>
                             </div>
                         )}
