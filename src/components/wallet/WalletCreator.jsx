@@ -43,26 +43,29 @@ export default function WalletCreator({ account, onClose, onCreated }) {
 
         setLoading(true);
         try {
-            // Generate new wallet address and keys
-            const { address, publicKeyHash } = await generateNewRODAddress();
-            const privateKey = generatePrivateKey();
-            const seedPhrase = generateSeedPhrase();
-            
-            // Get account password from session (in production, prompt user)
-            const session = JSON.parse(localStorage.getItem('rod_wallet_session') || '{}');
-            const password = 'wallet_encryption_key'; // In production, use actual password
-            
-            const encryptedPrivateKey = await encryptPrivateKey(privateKey, password);
-            const encryptedSeed = await encryptPrivateKey(seedPhrase, password);
+            // Step 1: Generate address via RPC node and get WIF private key
+            const genResponse = await base44.functions.invoke('generateWalletAddress', {
+                label: name.trim()
+            });
 
-            // Create wallet
+            if (genResponse.data.error) {
+                toast.error(genResponse.data.error);
+                return;
+            }
+
+            const { address, wifKey } = genResponse.data;
+
+            // Step 2: Encrypt WIF key client-side before storing
+            const session = JSON.parse(localStorage.getItem('rod_wallet_session') || '{}');
+            const password = session.password_hash || 'wallet_encryption_key';
+            const encryptedPrivateKey = await encryptPrivateKey(wifKey, password);
+
+            // Step 3: Store wallet with encrypted key — WIF never sent to DB in plaintext
             const wallet = await base44.entities.Wallet.create({
                 account_id: account.id,
                 name: name.trim(),
                 wallet_address: address,
-                public_key_hash: publicKeyHash,
                 encrypted_private_key: encryptedPrivateKey,
-                encrypted_seed_phrase: encryptedSeed,
                 additional_addresses: [],
                 balance: 0,
                 is_active: false,
@@ -70,21 +73,11 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 color: selectedColor.class
             });
 
-            // Import address to RPC
-            try {
-                await base44.functions.invoke('importAddress', {
-                    address: address,
-                    label: name.trim()
-                });
-            } catch (err) {
-                // Silently fail - will import when RPC is configured
-            }
-
             toast.success(`Wallet "${name}" created successfully!`);
             onCreated(wallet);
         } catch (err) {
             console.error('Failed to create wallet:', err);
-            toast.error('Failed to create wallet');
+            toast.error('Failed to create wallet: ' + err.message);
         } finally {
             setLoading(false);
         }
