@@ -1836,34 +1836,35 @@ console.log(data.result);`}
                                     />
                                 </div>
                             )}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">Host</Label>
-                                    <Input
-                                        value={formData.host}
-                                        onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                                        placeholder={
-                                            formData.connection_type === 'api' ? 'api.rod-mainnet.com' :
-                                            formData.connection_type === 'electrum' ? 'electrum.example.com' : 
-                                            'localhost'
-                                        }
-                                        className="bg-slate-900 border-slate-600"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">Port</Label>
-                                    <Input
-                                        value={formData.port}
-                                        onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                                        placeholder={
-                                            formData.connection_type === 'api' ? '443' :
-                                            formData.connection_type === 'electrum' ? '50002' : 
-                                            '9766'
-                                        }
-                                        className="bg-slate-900 border-slate-600"
-                                    />
-                                </div>
-                                </div>
+                            <div className="space-y-2">
+                                 <Label className="text-slate-300">Host URL</Label>
+                                 <Input
+                                     value={formData.host}
+                                     onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                                     placeholder={
+                                         formData.connection_type === 'api' ? 'api.rod-mainnet.com' :
+                                         formData.connection_type === 'electrum' ? 'electrum.example.com' : 
+                                         'localhost'
+                                     }
+                                     className="bg-slate-900 border-slate-600"
+                                 />
+                                 <p className="text-xs text-slate-500">Edit the host URL (remove http:// or https:// if present)</p>
+                             </div>
+                             {currentUser?.role === 'admin' && (
+                                 <div className="space-y-2">
+                                     <Label className="text-slate-300">Port</Label>
+                                     <Input
+                                         value={formData.port}
+                                         onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                                         placeholder={
+                                             formData.connection_type === 'api' ? '443' :
+                                             formData.connection_type === 'electrum' ? '50002' : 
+                                             '9766'
+                                         }
+                                         className="bg-slate-900 border-slate-600"
+                                     />
+                                 </div>
+                             )}
                             
                             {currentUser?.role === 'admin' && (formData.connection_type === 'electrum' || formData.connection_type === 'api') && (
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
