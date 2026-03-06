@@ -173,7 +173,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                     <>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <PassphraseModal.__proto__.constructor.name === 'Lock' ? <Lock className="w-5 h-5 text-amber-400" /> : null}
+                                <Lock className="w-5 h-5 text-amber-400" />
                                 Unlock Your Wallet
                             </DialogTitle>
                         </DialogHeader>
