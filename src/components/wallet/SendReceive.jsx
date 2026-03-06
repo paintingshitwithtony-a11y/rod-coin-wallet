@@ -206,9 +206,10 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
         
-        const rpcBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? balance;
-        if (amountNum > rpcBalance) {
-            toast.error('Insufficient balance');
+        const rpcBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? 0;
+        const feeNum = parseFloat(fee) || 0;
+        if (amountNum + feeNum > rpcBalance) {
+            toast.error(`Insufficient balance — need ${(amountNum + feeNum).toFixed(8)} ROD (amount + fee), have ${rpcBalance.toFixed(8)} ROD`);
             return;
         }
 
