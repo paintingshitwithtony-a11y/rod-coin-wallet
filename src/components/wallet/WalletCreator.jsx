@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import PassphraseModal from './PassphraseModal';
 
 /**
  * WalletCreator — Creates a new wallet via the backend.
@@ -35,6 +36,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
     const [loading, setLoading] = useState(false);
+    const [showPassphraseModal, setShowPassphraseModal] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -42,13 +44,20 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             return;
         }
 
+        // Show passphrase modal instead of creating directly
+        setShowPassphraseModal(true);
+    };
+
+    const handlePassphraseSubmit = async (passphrase) => {
         setLoading(true);
+        setShowPassphraseModal(false);
         try {
             // Backend generates address, encrypts and stores WIF — raw key never returned
             const genResponse = await base44.functions.invoke('generateWalletAddress', {
                 walletName: name.trim(),
                 label: name.trim(),
-                color: selectedColor.class
+                color: selectedColor.class,
+                passphrase: passphrase // Pass user's passphrase
             });
 
             if (genResponse.data.error) {
@@ -146,5 +155,14 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 </div>
             </DialogContent>
         </Dialog>
+
+        <PassphraseModal
+            isOpen={showPassphraseModal}
+            title="Unlock Your Wallet"
+            description="Enter your wallet passphrase to create a new wallet address."
+            onSubmit={handlePassphraseSubmit}
+            onCancel={() => setShowPassphraseModal(false)}
+            loading={loading}
+        />
     );
 }
