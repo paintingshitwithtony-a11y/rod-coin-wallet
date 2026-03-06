@@ -564,7 +564,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                     account_id: account.id,
                     name: formData.name,
                     connection_type: formData.connection_type,
-                    host: formData.host,
+                    host: cleanedHost,
                     port: formData.port,
                     username: formData.username || '',
                     password: formData.password || '',
