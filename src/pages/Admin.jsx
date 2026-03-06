@@ -56,6 +56,7 @@ export default function Admin() {
     const [showNewConfig, setShowNewConfig] = useState(false);
     const [showWizard, setShowWizard] = useState(false);
     const [editingConfig, setEditingConfig] = useState(null);
+    const [fixingProtocols, setFixingProtocols] = useState(false);
     
     // New config form
     const [newConfig, setNewConfig] = useState({
