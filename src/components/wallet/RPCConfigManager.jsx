@@ -59,6 +59,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     const [portToOpen, setPortToOpen] = useState('9766');
     const [troubleshootingError, setTroubleshootingError] = useState(null);
     const [troubleshootingConfig, setTroubleshootingConfig] = useState(null);
+    const [fixingProtocols, setFixingProtocols] = useState(false);
     const [scanConfig, setScanConfig] = useState({
         ports: '9766, 8332, 8333',
         usernames: '__cookie__, roduser, rod',
