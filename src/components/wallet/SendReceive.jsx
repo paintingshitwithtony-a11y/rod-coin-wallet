@@ -374,7 +374,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         <div className="space-y-2">
                             <Label className="text-slate-300">From Wallet</Label>
                             <Select 
-                                value={selectedFromWallet?.id} 
+                                value={selectedFromWallet?.id || ''} 
                                 disabled={!canSwitch}
                                 onValueChange={async (id) => {
                                     if (!canSwitch) return;
@@ -686,7 +686,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         <>
                             <div className="space-y-2">
                                 <Label className="text-slate-300">Select Address</Label>
-                                <Select value={selectedAddress} onValueChange={setSelectedAddress}>
+                                <Select value={selectedAddress || ''} onValueChange={setSelectedAddress}>
                                     <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
                                         <SelectValue placeholder="Choose an address" />
                                     </SelectTrigger>
