@@ -551,46 +551,52 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     const handleSaveConfig = async () => {
          setSaving(true);
 
-         // Validate and test connection first
-         const isValid = await validateAndTestConnection();
-         if (!isValid) {
-             setSaving(false);
-             return;
-         }
-         try {
-             // Clean host: remove any protocol prefixes
-             let cleanedHost = formData.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
-             while (cleanedHost.match(/^https?:\/\//i)) {
-                 cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
-             }
+          // Validate and test connection first
+          const isValid = await validateAndTestConnection();
+          if (!isValid) {
+              setSaving(false);
+              return;
+          }
+          try {
+              // Clean host: remove any protocol prefixes
+              let cleanedHost = formData.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+              while (cleanedHost.match(/^https?:\/\//i)) {
+                  cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
+              }
 
-             if (editingConfig) {
-                 // Update existing config
-                 await base44.entities.RPCConfiguration.update(editingConfig.id, {
-                     name: formData.name,
-                     connection_type: formData.connection_type,
-                     host: cleanedHost,
-                    port: formData.port,
-                    username: formData.username || '',
-                    password: formData.password || '',
-                    api_key: formData.api_key || '',
-                    curl_command: formData.curl_command || '',
-                    use_ssl: formData.use_ssl,
-                    connection_status: 'untested'
-                });
+              if (editingConfig) {
+                  // Update existing config
+                  const updateData = {
+                      host: cleanedHost,
+                      connection_status: 'untested'
+                  };
 
-                // If this was the active config, update account too
-                if (editingConfig.is_active) {
-                    await base44.entities.WalletAccount.update(account.id, {
-                        rpc_host: cleanedHost,
-                        rpc_port: formData.port,
-                        rpc_username: formData.username,
-                        rpc_password: formData.password
-                    });
-                }
+                  // Only admins can update credentials and other fields
+                  if (currentUser?.role === 'admin') {
+                      updateData.name = formData.name;
+                      updateData.connection_type = formData.connection_type;
+                      updateData.port = formData.port;
+                      updateData.username = formData.username || '';
+                      updateData.password = formData.password || '';
+                      updateData.api_key = formData.api_key || '';
+                      updateData.curl_command = formData.curl_command || '';
+                      updateData.use_ssl = formData.use_ssl;
+                  }
 
-                toast.success('Configuration updated');
-            } else {
+                  await base44.entities.RPCConfiguration.update(editingConfig.id, updateData);
+
+                 // If this was the active config and user is admin, update account too
+                 if (editingConfig.is_active && currentUser?.role === 'admin') {
+                     await base44.entities.WalletAccount.update(account.id, {
+                         rpc_host: cleanedHost,
+                         rpc_port: formData.port,
+                         rpc_username: formData.username,
+                         rpc_password: formData.password
+                     });
+                 }
+
+                 toast.success('Configuration updated');
+             } else {
                 // Create new config
                 const newConfig = await base44.entities.RPCConfiguration.create({
                     account_id: account.id,
