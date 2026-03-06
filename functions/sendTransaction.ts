@@ -38,13 +38,10 @@ async function rpcCall(rpcUrl, rpcAuth, method, params) {
     return data.result;
 }
 
-async function decryptWIF(encryptedKey) {
+async function decryptWIF(encryptedKey, passphrase) {
     const encoder = new TextEncoder();
-    const encryptionSecret = Deno.env.get('WALLET_ENCRYPTION_SECRET');
-    if (!encryptionSecret) throw new Error('WALLET_ENCRYPTION_SECRET is not set');
-    
-    const secretKey = await crypto.subtle.importKey('raw', encoder.encode(encryptionSecret), { name: 'PBKDF2' }, false, ['deriveBits']);
-    const derivedKey = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode('wallet_salt'), iterations: 100000 }, secretKey, 256);
+    const passphraseKey = await crypto.subtle.importKey('raw', encoder.encode(passphrase), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const derivedKey = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode('wallet_salt'), iterations: 100000 }, passphraseKey, 256);
     const combined = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
     const iv = combined.slice(0, 12);
     const ciphertext = combined.slice(12);
@@ -180,8 +177,8 @@ Deno.serve(async (req) => {
             console.log('walletpassphrase (ignored):', unlockErr.message);
         }
 
-        // --- Step 11: Decrypt WIF using encryption secret ---
-        const wifKey = await decryptWIF(encryptedPrivateKey);
+        // --- Step 11: Decrypt WIF using wallet passphrase ---
+        const wifKey = await decryptWIF(encryptedPrivateKey, passphrase);
 
         // --- Step 12: Sign with key — key is NOT imported into node wallet ---
         const prevTxs = selectedUtxos.map(u => ({
