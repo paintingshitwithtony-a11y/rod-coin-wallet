@@ -517,21 +517,27 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     };
 
     const handleSaveConfig = async () => {
-        setSaving(true);
-        
-        // Validate and test connection first
-        const isValid = await validateAndTestConnection();
-        if (!isValid) {
-            setSaving(false);
-            return;
-        }
-        try {
-            if (editingConfig) {
-                // Update existing config
-                await base44.entities.RPCConfiguration.update(editingConfig.id, {
-                    name: formData.name,
-                    connection_type: formData.connection_type,
-                    host: formData.host,
+         setSaving(true);
+
+         // Validate and test connection first
+         const isValid = await validateAndTestConnection();
+         if (!isValid) {
+             setSaving(false);
+             return;
+         }
+         try {
+             // Clean host: remove any protocol prefixes
+             let cleanedHost = formData.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+             while (cleanedHost.match(/^https?:\/\//i)) {
+                 cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
+             }
+
+             if (editingConfig) {
+                 // Update existing config
+                 await base44.entities.RPCConfiguration.update(editingConfig.id, {
+                     name: formData.name,
+                     connection_type: formData.connection_type,
+                     host: cleanedHost,
                     port: formData.port,
                     username: formData.username || '',
                     password: formData.password || '',
