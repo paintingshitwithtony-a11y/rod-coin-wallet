@@ -458,7 +458,14 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         setSaving(false);
     };
 
+    const isAdminConfig = (config) =>
+        config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)';
+
     const handleEditConfig = (config) => {
+        if (isAdminConfig(config)) {
+            toast.error('This configuration is managed by the admin and cannot be edited.');
+            return;
+        }
         setEditingConfig(config);
         setFormData({
             name: config.name,
