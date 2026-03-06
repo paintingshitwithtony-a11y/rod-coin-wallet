@@ -59,6 +59,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
         setLoading(true);
         setPassphraseError('');
         try {
+        try {
             // Backend generates address, encrypts and stores WIF — raw key never returned
             const genResponse = await base44.functions.invoke('generateWalletAddress', {
                 walletName: name.trim(),
@@ -99,6 +100,12 @@ export default function WalletCreator({ account, onClose, onCreated }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePassphraseCancel = () => {
+        setStep('create');
+        setPassphrase('');
+        setPassphraseError('');
     };
 
     return (
