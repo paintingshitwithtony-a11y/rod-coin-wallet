@@ -165,11 +165,22 @@ Deno.serve(async (req) => {
         // --- Step 9: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 10: Decrypt WIF in backend memory only — NEVER log it ---
+        // --- Step 10: Unlock wallet if a passphrase is configured ---
+        const walletPassphrase = Deno.env.get('WALLET_PASSPHRASE') || rpcConfig.password || null;
+        if (walletPassphrase) {
+            try {
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [walletPassphrase, 30]);
+            } catch (unlockErr) {
+                // Ignore error if wallet is already unlocked or unencrypted
+                console.log('walletpassphrase (ignored):', unlockErr.message);
+            }
+        }
+
+        // --- Step 11: Decrypt WIF in backend memory only — NEVER log it ---
         const encryptionSecret = Deno.env.get('WALLET_ENCRYPTION_SECRET') || 'wallet_encryption_key';
         const wifKey = await decryptWIF(encryptedPrivateKey, encryptionSecret);
 
-        // --- Step 11: Sign with key — key is NOT imported into node wallet ---
+        // --- Step 12: Sign with key — key is NOT imported into node wallet ---
         const prevTxs = selectedUtxos.map(u => ({
             txid: u.txid,
             vout: u.vout,
@@ -193,10 +204,10 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // --- Step 12: Broadcast ---
+        // --- Step 13: Broadcast ---
         const txid = await rpcCall(rpcUrl, rpcAuth, 'sendrawtransaction', [signResult.hex]);
 
-        // --- Step 13: Record in database ---
+        // --- Step 14: Record in database ---
         const selectedInputs = selectedUtxos.map(u => ({ txid: u.txid, vout: u.vout, amount: u.amount }));
         const memoText = memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
 
