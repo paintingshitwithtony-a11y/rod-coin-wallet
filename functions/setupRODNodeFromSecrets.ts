@@ -42,9 +42,11 @@ Deno.serve(async (req) => {
 
         if (existing.length > 0) {
             // Update existing config
+            const useSSL = port === '9443' || port === '443' || port === '8443';
             await base44.entities.RPCConfiguration.update(existing[0].id, {
                 username,
                 password,
+                use_ssl: useSSL,
                 is_active: true
             });
 
