@@ -1505,7 +1505,9 @@ export default function WalletDashboard({ account, onLogout }) {
                     </TabsContent>
 
                     <TabsContent value="generate" className="mt-6">
-                    <AddressGenerator onAddressGenerated={handleAddressGenerated} />
+                    <AddressGenerator 
+                        account={account}
+                        onAddressGenerated={handleAddressGenerated} />
                 </TabsContent>
 
                 <TabsContent value="import" className="mt-6">
