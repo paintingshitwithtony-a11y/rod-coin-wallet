@@ -554,11 +554,15 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
               return;
           }
           try {
-              // Clean host: remove any protocol prefixes
+              // Clean host: remove any protocol prefixes (recursive cleaning)
               let cleanedHost = formData.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
               while (cleanedHost.match(/^https?:\/\//i)) {
                   cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
               }
+              
+              // Double-check: remove http:// at the beginning if it somehow got duplicated
+              cleanedHost = cleanedHost.replace(/^https?:\/\/https?:\/\//gi, '');
+              cleanedHost = cleanedHost.replace(/^https?:\/\//gi, '');
 
               if (editingConfig) {
                   // Update existing config
