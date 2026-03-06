@@ -13,6 +13,21 @@ export default function NodeStatusCard() {
     const [nodeInfo, setNodeInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showEditHost, setShowEditHost] = useState(false);
+    const [editedHost, setEditedHost] = useState('https://spacexpanse-rpc.duckdns.org:9443');
+    const [currentUser, setCurrentUser] = useState(null);
+
+    useEffect(() => {
+        const checkUser = async () => {
+            try {
+                const user = await base44.auth.me();
+                setCurrentUser(user);
+            } catch (err) {
+                setCurrentUser(null);
+            }
+        };
+        checkUser();
+    }, []);
 
     useEffect(() => {
         fetchNodeInfo();
