@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,40 @@ import { Loader2, CheckCircle2, Copy, Send, AlertCircle } from 'lucide-react';
 export default function WalletTester() {
     const [passphrases, setPassphrases] = useState(['', '']);
     const [wallets, setWallets] = useState(null);
+    const [existingWallets, setExistingWallets] = useState([]);
+    const [selectedWalletId, setSelectedWalletId] = useState('');
     const [loading, setLoading] = useState(false);
     const [testingTx, setTestingTx] = useState(false);
     const [txResult, setTxResult] = useState(null);
+    const [fundingTx, setFundingTx] = useState(null);
+
+    useEffect(() => {
+        loadExistingWallets();
+    }, []);
+
+    const loadExistingWallets = async () => {
+        try {
+            const savedSession = localStorage.getItem('rod_wallet_session');
+            if (!savedSession) return;
+            const session = JSON.parse(savedSession);
+            const allWallets = await base44.entities.Wallet.filter({ account_id: session.id });
+            setExistingWallets(allWallets);
+            if (allWallets.length > 0) {
+                setSelectedWalletId(allWallets[0].id);
+            }
+        } catch (err) {
+            console.error('Failed to load wallets:', err);
+        }
+    };
 
     const handleCreateWallets = async () => {
         if (!passphrases[0].trim() || !passphrases[1].trim()) {
             toast.error('Please enter both passphrases');
+            return;
+        }
+
+        if (!selectedWalletId) {
+            toast.error('Please select a wallet to fund from');
             return;
         }
 
@@ -28,7 +55,27 @@ export default function WalletTester() {
             });
             setWallets(data);
             setTxResult(null);
-            toast.success('Test wallets created successfully');
+            toast.success('Test wallets created');
+
+            // Auto-fund sender wallet from selected wallet
+            const fundingWallet = existingWallets.find(w => w.id === selectedWalletId);
+            if (fundingWallet) {
+                try {
+                    setFundingTx('pending');
+                    const { data: txData } = await base44.functions.invoke('sendTransaction', {
+                        fromAddress: fundingWallet.wallet_address,
+                        recipient: data.sender.address,
+                        amount: 10,
+                        fee: 0.001,
+                        passphrase: passphrases[0] // Use a default or prompt user
+                    });
+                    setFundingTx('completed');
+                    toast.success('Sender wallet funded: ' + txData.txid.substring(0, 16) + '...');
+                } catch (fundErr) {
+                    setFundingTx('failed');
+                    toast.error('Auto-funding failed: ' + fundErr.message);
+                }
+            }
         } catch (err) {
             toast.error('Failed to create wallets: ' + err.message);
         } finally {
@@ -73,6 +120,25 @@ export default function WalletTester() {
                     </Alert>
 
                     <div className="space-y-4">
+                        <div>
+                            <Label className="text-slate-300">Fund From (Existing Wallet)</Label>
+                            <select
+                                value={selectedWalletId}
+                                onChange={(e) => setSelectedWalletId(e.target.value)}
+                                className="w-full h-10 px-3 rounded-md bg-slate-800 border border-slate-700 text-white"
+                                disabled={existingWallets.length === 0}>
+                                {existingWallets.length === 0 ? (
+                                    <option>No wallets available</option>
+                                ) : (
+                                    existingWallets.map(w => (
+                                        <option key={w.id} value={w.id}>
+                                            {w.name} ({w.wallet_address?.substring(0, 8)}...)
+                                        </option>
+                                    ))
+                                )}
+                            </select>
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <Label className="text-slate-300">Sender Passphrase</Label>
@@ -98,14 +164,14 @@ export default function WalletTester() {
 
                         <Button
                             onClick={handleCreateWallets}
-                            disabled={loading}
+                            disabled={loading || existingWallets.length === 0}
                             className="w-full bg-purple-600 hover:bg-purple-700">
                             {loading ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             ) : (
                                 <CheckCircle2 className="w-4 h-4 mr-2" />
                             )}
-                            {loading ? 'Creating Wallets...' : 'Create Test Wallets'}
+                            {loading ? 'Creating & Funding...' : 'Create Test Wallets (Auto-Fund)'}
                         </Button>
                     </div>
 
@@ -179,10 +245,25 @@ export default function WalletTester() {
                                 </div>
                             </div>
 
+                            {/* Funding Status */}
+                            {fundingTx && (
+                                <div className={`p-3 rounded-lg text-sm ${
+                                    fundingTx === 'failed'
+                                        ? 'bg-red-500/10 border border-red-500/50 text-red-400'
+                                        : fundingTx === 'completed'
+                                        ? 'bg-green-500/10 border border-green-500/50 text-green-400'
+                                        : 'bg-blue-500/10 border border-blue-500/50 text-blue-400'
+                                }`}>
+                                    {fundingTx === 'pending' && 'Funding sender wallet...'}
+                                    {fundingTx === 'completed' && 'Sender wallet funded successfully'}
+                                    {fundingTx === 'failed' && 'Funding failed - check wallet passphrase'}
+                                </div>
+                            )}
+
                             {/* Send Transaction Button */}
                             <Button
                                 onClick={handleSendTransaction}
-                                disabled={testingTx}
+                                disabled={testingTx || fundingTx === 'pending' || fundingTx === 'failed'}
                                 className="w-full bg-green-600 hover:bg-green-700">
                                 {testingTx ? (
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
