@@ -132,17 +132,30 @@ export default function NodeStatusCard() {
     }
 
     return (
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
-            <CardHeader className="pb-3">
-                <CardTitle className="text-base text-white flex items-center gap-2">
-                    <Server className="w-4 h-4 text-purple-400" />
-                    Node Status
-                    <Badge className="ml-auto bg-green-500/20 text-green-400 border-green-500/30">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        Synced
-                    </Badge>
-                </CardTitle>
-            </CardHeader>
+        <>
+            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-base text-white flex items-center gap-2">
+                            <Server className="w-4 h-4 text-purple-400" />
+                            Node Status
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Synced
+                            </Badge>
+                        </CardTitle>
+                        {currentUser?.role !== 'admin' && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowEditHost(true)}
+                                className="h-8 w-8 text-slate-400 hover:text-amber-400"
+                                title="Edit host URL">
+                                <Pencil className="w-4 h-4" />
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
             <CardContent className="space-y-3">
                 {nodeInfo && (
                     <div className="space-y-2 text-sm">
