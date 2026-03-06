@@ -157,16 +157,17 @@ export default function WalletDashboard({ account, onLogout }) {
     }, [account]);
 
   const fetchAllWallets = async () => {
-    setWalletsLoading(true);
-    try {
-      // Fetch fresh account data
-      const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
-      const freshAccount = accounts.length > 0 ? accounts[0] : account;
+   setWalletsLoading(true);
+   try {
+     // Fetch fresh account data
+     const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+     const freshAccount = accounts.length > 0 ? accounts[0] : account;
 
-      const walletList = await base44.entities.Wallet.filter(
-        { account_id: account.id },
-        '-created_date'
-      );
+     const walletList = await base44.entities.Wallet.filter(
+       { account_id: account.id },
+       '-created_date',
+       100
+     );
 
       // Fetch RPC balance for main wallet
       let mainBalance = 0;
