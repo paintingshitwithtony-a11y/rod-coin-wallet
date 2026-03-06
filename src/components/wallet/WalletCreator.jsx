@@ -36,7 +36,9 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
     const [loading, setLoading] = useState(false);
-    const [showPassphraseModal, setShowPassphraseModal] = useState(false);
+    const [step, setStep] = useState('create'); // 'create' or 'passphrase'
+    const [passphrase, setPassphrase] = useState('');
+    const [passphraseError, setPassphraseError] = useState('');
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -44,13 +46,18 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             return;
         }
 
-        // Show passphrase modal instead of creating directly
-        setShowPassphraseModal(true);
+        // Move to passphrase step
+        setStep('passphrase');
     };
 
-    const handlePassphraseSubmit = async (passphrase) => {
+    const handlePassphraseSubmit = async () => {
+        if (!passphrase.trim()) {
+            setPassphraseError('Passphrase is required');
+            return;
+        }
+
         setLoading(true);
-        setShowPassphraseModal(false);
+        setPassphraseError('');
         try {
             // Backend generates address, encrypts and stores WIF — raw key never returned
             const genResponse = await base44.functions.invoke('generateWalletAddress', {
