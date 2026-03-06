@@ -1721,13 +1721,13 @@ console.log(data.result);`}
                                 {editingConfig ? 'Edit Configuration' : 'Add New Configuration'}
                             </h4>
                             
-                            <Tabs value={formData.connection_type} onValueChange={(val) => setFormData({ ...formData, connection_type: val })}>
-                                <TabsList className="grid w-full grid-cols-4 bg-slate-800">
-                                    <TabsTrigger value="rpc">RPC</TabsTrigger>
-                                    <TabsTrigger value="electrum">Electrum</TabsTrigger>
-                                    <TabsTrigger value="api">API Key</TabsTrigger>
-                                    <TabsTrigger value="curl">cURL</TabsTrigger>
-                                </TabsList>
+                            <Tabs value={formData.connection_type} onValueChange={(val) => currentUser?.role === 'admin' && setFormData({ ...formData, connection_type: val })}>
+                                 <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+                                     <TabsTrigger value="rpc" disabled={currentUser?.role !== 'admin'}>RPC</TabsTrigger>
+                                     <TabsTrigger value="electrum" disabled={currentUser?.role !== 'admin'}>Electrum</TabsTrigger>
+                                     <TabsTrigger value="api" disabled={currentUser?.role !== 'admin'}>API Key</TabsTrigger>
+                                     <TabsTrigger value="curl" disabled={currentUser?.role !== 'admin'}>cURL</TabsTrigger>
+                                 </TabsList>
 
                                 <TabsContent value="rpc" className="space-y-3 mt-3">
                                     <Alert className="bg-blue-500/10 border-blue-500/30">
