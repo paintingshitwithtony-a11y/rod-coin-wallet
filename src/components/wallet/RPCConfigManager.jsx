@@ -137,6 +137,16 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 });
                 toast.success(`Connected to ${config.name}!`);
 
+                // Auto-fix duplicate protocols on successful connection
+                try {
+                    const fixResponse = await base44.functions.invoke('fixDuplicateProtocols', {});
+                    if (fixResponse.data?.fixed > 0) {
+                        await loadConfigurations();
+                    }
+                } catch (err) {
+                    console.log('Auto-fix protocols skipped');
+                }
+
                 if (onConnectionSuccess) {
                     onConnectionSuccess();
                 }
