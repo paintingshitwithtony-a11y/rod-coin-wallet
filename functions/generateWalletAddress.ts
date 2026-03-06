@@ -53,9 +53,14 @@ Deno.serve(async (req) => {
         const user = await base44.auth.me();
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { label, walletName, color, icon } = await req.json();
+        const { label, walletName, color, icon, passphrase } = await req.json();
 
-        // --- Load account ---
+         // --- Validate passphrase input ---
+         if (!passphrase || typeof passphrase !== 'string') {
+             return Response.json({ error: 'Passphrase is required' }, { status: 400 });
+         }
+
+         // --- Load account ---
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) return Response.json({ error: 'Wallet account not found' }, { status: 404 });
         const account = accounts[0];
@@ -69,15 +74,12 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // --- Step 1: Unlock wallet if a passphrase is configured ---
-        const walletPassphrase = Deno.env.get('WALLET_PASSPHRASE') || rpcConfig.password || null;
-        if (walletPassphrase) {
-            try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [walletPassphrase, 30]);
-            } catch (unlockErr) {
-                // Ignore error if wallet is already unlocked or unencrypted
-                console.log('walletpassphrase (ignored):', unlockErr.message);
-            }
+        // --- Step 1: Unlock wallet using provided passphrase ---
+        try {
+            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+        } catch (unlockErr) {
+            // Ignore error if wallet is already unlocked or unencrypted
+            console.log('walletpassphrase (ignored):', unlockErr.message);
         }
 
         // --- Step 2: Generate new address ---
