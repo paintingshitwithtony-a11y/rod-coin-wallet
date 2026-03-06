@@ -39,7 +39,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [myWallets, setMyWallets] = useState([]);
     const [selectedFromWallet, setSelectedFromWallet] = useState(null);
     const [showMyWallets, setShowMyWallets] = useState(false);
-    const [isInternalTransfer, setIsInternalTransfer] = useState(false);
+    const [isSendingToOwnWallet, setIsSendingToOwnWallet] = useState(false);
     const [duplicates, setDuplicates] = useState([]);
     const [rpcBalances, setRpcBalances] = useState({});
     const [loadingRPC, setLoadingRPC] = useState(false);
