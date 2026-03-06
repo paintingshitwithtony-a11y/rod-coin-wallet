@@ -1820,20 +1820,22 @@ console.log(data.result);`}
                                  <p className="text-xs text-slate-500">Paste endpoint URL - credentials extracted automatically if present</p>
                              </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-slate-300">Configuration Name</Label>
-                                <Input
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder={
-                                        formData.connection_type === 'curl' ? 'e.g., Custom cURL Connection' :
-                                        formData.connection_type === 'api' ? 'e.g., ROD Mainnet API' :
-                                        formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 
-                                        'e.g., Local Node, Mining Pool'
-                                    }
-                                    className="bg-slate-900 border-slate-600"
-                                />
-                            </div>
+                            {currentUser?.role === 'admin' && (
+                                <div className="space-y-2">
+                                    <Label className="text-slate-300">Configuration Name</Label>
+                                    <Input
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder={
+                                            formData.connection_type === 'curl' ? 'e.g., Custom cURL Connection' :
+                                            formData.connection_type === 'api' ? 'e.g., ROD Mainnet API' :
+                                            formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 
+                                            'e.g., Local Node, Mining Pool'
+                                        }
+                                        className="bg-slate-900 border-slate-600"
+                                    />
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">Host</Label>
