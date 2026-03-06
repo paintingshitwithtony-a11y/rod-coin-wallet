@@ -447,23 +447,29 @@ export default function Admin() {
                             <Button
                                 onClick={async () => {
                                     setFixingProtocols(true);
-                                    try {
-                                        console.log('Calling fixDuplicateProtocols...');
-                                        const response = await base44.functions.invoke('fixDuplicateProtocols', {});
-                                        console.log('Response:', response);
-                                        const fixed = response.data?.fixed || 0;
-                                        if (fixed > 0) {
-                                            toast.success(`Fixed ${fixed} RPC configuration(s)`);
-                                            loadConfigs();
-                                        } else {
-                                            toast.success('Checked all RPC configurations — no issues found');
+                                    setTimeout(() => {
+                                        try {
+                                            console.log('Calling fixDuplicateProtocols...');
+                                            base44.functions.invoke('fixDuplicateProtocols', {}).then((response) => {
+                                                console.log('Response:', response);
+                                                const fixed = response.data?.fixed ?? 0;
+                                                const msg = fixed > 0 
+                                                    ? `Fixed ${fixed} RPC configuration(s)` 
+                                                    : 'Checked all RPC configurations — no issues found';
+                                                console.log('Toast message:', msg);
+                                                toast.success(msg);
+                                                if (fixed > 0) loadConfigs();
+                                            }).catch((err) => {
+                                                console.error('Error:', err);
+                                                toast.error('Fix failed: ' + (err?.message || 'Unknown error'));
+                                            }).finally(() => {
+                                                setFixingProtocols(false);
+                                            });
+                                        } catch (err) {
+                                            console.error('Sync error:', err);
+                                            setFixingProtocols(false);
                                         }
-                                    } catch (err) {
-                                        console.error('Error:', err);
-                                        toast.error('Fix failed: ' + (err?.response?.data?.message || err?.message || 'Unknown error'));
-                                    } finally {
-                                        setFixingProtocols(false);
-                                    }
+                                    }, 100);
                                 }}
                                 disabled={fixingProtocols}
                                 variant="outline"
