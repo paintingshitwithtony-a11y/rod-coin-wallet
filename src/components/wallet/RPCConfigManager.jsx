@@ -1801,8 +1801,8 @@ console.log(data.result);`}
                                                                              host = host.replace(/^https?:\/\//i, '');
                                                                          }
 
-                                                                         // For VPS: always use port 443 (https), not 80
-                                                                         const port = parsed.port || (hasPath ? '' : '443');
+                                                                         // For VPS: always use port 9443 (https), not 80
+                                                                         const port = parsed.port || (hasPath ? '' : '9443');
 
                                                                          // Determine connection type based on URL
                                                                          const hasAuth = parsed.username || parsed.password;
