@@ -71,6 +71,9 @@ export default function Admin() {
     useEffect(() => {
         loadAccount();
         loadConfigs();
+        base44.auth.me().then(user => {
+            setIsAdmin(user?.role === 'admin');
+        }).catch(() => setIsAdmin(false));
     }, []);
 
     const loadAccount = async () => {
