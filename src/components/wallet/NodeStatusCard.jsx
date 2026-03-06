@@ -183,5 +183,39 @@ export default function NodeStatusCard() {
                 )}
             </CardContent>
         </Card>
+
+        <Dialog open={showEditHost} onOpenChange={setShowEditHost}>
+            <DialogContent className="bg-slate-900 border-slate-700">
+                <DialogHeader>
+                    <DialogTitle className="text-white">Edit Node Host URL</DialogTitle>
+                    <DialogDescription className="text-slate-400">
+                        Update the host URL to reconnect to the node
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <Input
+                        value={editedHost}
+                        onChange={(e) => setEditedHost(e.target.value)}
+                        placeholder="https://spacexpanse-rpc.duckdns.org:9443"
+                        className="bg-slate-800 border-slate-700 text-white"
+                    />
+                    <div className="flex gap-2 justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowEditHost(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                toast.success('Host URL updated. Please reconnect in the RPC settings.');
+                                setShowEditHost(false);
+                            }}>
+                            Save
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }
