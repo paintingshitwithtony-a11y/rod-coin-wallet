@@ -444,6 +444,25 @@ export default function Admin() {
                                 Test All Connections
                             </Button>
                             <Button
+                                onClick={async () => {
+                                    try {
+                                        const { data } = await base44.functions.invoke('fixDuplicateProtocols', {});
+                                        if (data.fixed > 0) {
+                                            toast.success(`Fixed ${data.fixed} RPC configuration(s)`);
+                                            loadConfigs();
+                                        } else {
+                                            toast.info('No duplicate protocols found to fix');
+                                        }
+                                    } catch (err) {
+                                        toast.error('Fix failed: ' + err.message);
+                                    }
+                                }}
+                                variant="outline"
+                                className="border-amber-500/50 text-amber-400">
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                Fix Duplicate Protocols
+                            </Button>
+                            <Button
                                 onClick={() => {
                                     const configsData = configs.map(c => ({
                                         name: c.name,
