@@ -207,6 +207,10 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     };
 
     const deleteConfig = async (config) => {
+        if (isAdminConfig(config)) {
+            toast.error('This configuration is managed by the admin and cannot be deleted.');
+            return;
+        }
         if (!confirm(`Delete "${config.name}"?`)) return;
         
         try {
