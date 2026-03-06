@@ -95,6 +95,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     };
 
     return (
+        <>
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="bg-slate-900 border-slate-700 text-white">
                 <DialogHeader>
@@ -164,5 +165,6 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             onCancel={() => setShowPassphraseModal(false)}
             loading={loading}
         />
+        </>
     );
 }
