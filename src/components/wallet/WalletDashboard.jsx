@@ -1584,17 +1584,21 @@ export default function WalletDashboard({ account, onLogout }) {
       }
 
             {/* Wallet Manager Modal */}
-            {showWalletManager && (
-                <WalletManager
-                    account={account}
-                    currentWallet={currentWallet}
-                    onWalletSwitch={(wallet) => {
-                        setCurrentWallet(wallet);
-                        fetchWalletData();
-                    }}
-                    onClose={() => setShowWalletManager(false)}
-                />
-            )}
+             {showWalletManager && (
+                 <WalletManager
+                     account={account}
+                     currentWallet={currentWallet}
+                     onWalletSwitch={(wallet) => {
+                         setCurrentWallet(wallet);
+                         fetchWalletData();
+                     }}
+                     onWalletCreated={handleWalletCreated}
+                     onClose={() => {
+                         setShowWalletManager(false);
+                         fetchAllWallets();
+                     }}
+                 />
+             )}
 
             {/* Node Setup Guide */}
             {showNodeGuide && (
