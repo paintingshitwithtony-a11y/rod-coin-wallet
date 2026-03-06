@@ -97,12 +97,15 @@ Deno.serve(async (req) => {
              account_id: account.id,
              name: walletName || label || 'New Wallet',
              wallet_address: address,
+             public_key_hash: address,
              encrypted_private_key: encryptedPrivateKey,
+             encrypted_seed_phrase: '',
              balance: 0,
              is_active: false,
              wallet_type: 'standard',
              color: color || null,
-             icon: icon || null
+             icon: icon || null,
+             additional_addresses: []
          });
 
          // --- Step 6: Import address to blockchain (watch-only) ---
