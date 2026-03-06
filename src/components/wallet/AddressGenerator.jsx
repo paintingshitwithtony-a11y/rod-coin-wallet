@@ -298,9 +298,12 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                     address={selectedAddressToSave}
                     account={account}
                     onClose={() => setSelectedAddressToSave(null)}
-                    onSaved={() => {
+                    onSaved={(wallet) => {
                         setSelectedAddressToSave(null);
-                        // Refresh addresses
+                        if (onAddressGenerated) {
+                            // Trigger parent refresh
+                            window.dispatchEvent(new CustomEvent('walletCreated', { detail: wallet }));
+                        }
                     }}
                 />
             )}

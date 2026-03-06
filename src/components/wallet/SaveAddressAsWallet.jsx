@@ -45,7 +45,10 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
 
             if (wallet?.id) {
                 toast.success(`Wallet "${walletName}" saved successfully`);
-                onSaved(wallet);
+                // Call onSaved with the new wallet
+                if (onSaved) {
+                    onSaved(wallet);
+                }
                 onClose();
             } else {
                 toast.error('Failed to save wallet');
