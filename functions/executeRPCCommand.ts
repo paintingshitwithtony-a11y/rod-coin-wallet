@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
 
         const rpcConfig = rpcConfigs[0];
         const cleanHost = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-        const protocol = (rpcConfig.port === '443' || rpcConfig.port === 443) ? 'https' : 'http';
+        const protocol = (rpcConfig.use_ssl || rpcConfig.host.startsWith('https') || rpcConfig.port === '443' || rpcConfig.port === 443) ? 'https' : 'http';
         const rpcUrl = `${protocol}://${cleanHost}:${rpcConfig.port}`;
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
