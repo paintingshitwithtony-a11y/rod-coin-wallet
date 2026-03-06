@@ -156,33 +156,33 @@ export default function NodeStatusCard() {
                         )}
                     </div>
                 </CardHeader>
-            <CardContent className="space-y-3">
-                {nodeInfo && (
-                    <div className="space-y-2 text-sm">
-                        <div className="flex justify-between text-slate-400">
-                            <span>Block Height:</span>
-                            <span className="text-white font-semibold">{nodeInfo.blocks?.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-400">
-                            <span>Network:</span>
-                            <span className="text-white font-semibold">{nodeInfo.chain === 'main' ? 'Mainnet' : 'Testnet'}</span>
-                        </div>
-                        {nodeInfo.connections !== undefined && (
+                <CardContent className="space-y-3">
+                    {nodeInfo && (
+                        <div className="space-y-2 text-sm">
                             <div className="flex justify-between text-slate-400">
-                                <span>Peers Connected:</span>
-                                <span className="text-white font-semibold">{nodeInfo.connections}</span>
+                                <span>Block Height:</span>
+                                <span className="text-white font-semibold">{nodeInfo.blocks?.toLocaleString()}</span>
                             </div>
-                        )}
-                        {nodeInfo.difficulty && (
                             <div className="flex justify-between text-slate-400">
-                                <span>Difficulty:</span>
-                                <span className="text-white font-semibold">{(nodeInfo.difficulty).toFixed(2)}</span>
+                                <span>Network:</span>
+                                <span className="text-white font-semibold">{nodeInfo.chain === 'main' ? 'Mainnet' : 'Testnet'}</span>
                             </div>
-                        )}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                            {nodeInfo.connections !== undefined && (
+                                <div className="flex justify-between text-slate-400">
+                                    <span>Peers Connected:</span>
+                                    <span className="text-white font-semibold">{nodeInfo.connections}</span>
+                                </div>
+                            )}
+                            {nodeInfo.difficulty && (
+                                <div className="flex justify-between text-slate-400">
+                                    <span>Difficulty:</span>
+                                    <span className="text-white font-semibold">{(nodeInfo.difficulty).toFixed(2)}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
         <Dialog open={showEditHost} onOpenChange={setShowEditHost}>
             <DialogContent className="bg-slate-900 border-slate-700">
