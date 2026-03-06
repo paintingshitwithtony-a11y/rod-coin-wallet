@@ -180,8 +180,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         setValidating(true);
         const result = await validateRODAddress(address);
         setAddressValid(result.valid);
-        
-        // Note whether recipient is one of user's own wallets (still an on-chain tx)
+
+        // Note whether recipient is one of user's own wallets (still a real on-chain tx, fee always applies)
         const isMyWallet = myWallets.some(w => w.wallet_address === address);
         setIsSendingToOwnWallet(isMyWallet);
 
@@ -190,7 +190,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         if (!result.valid) {
             toast.error(`Invalid address: ${result.error}`);
         } else if (isMyWallet) {
-            toast.info('Sending to your own wallet — network fee still applies', { duration: 3000 });
+            toast.info('Sending to your own wallet — on-chain, network fee applies', { duration: 3000 });
         }
     };
 
