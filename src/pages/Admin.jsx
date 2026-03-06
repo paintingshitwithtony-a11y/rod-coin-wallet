@@ -1039,13 +1039,22 @@ export default function Admin() {
                                                            <Copy className="w-4 h-4" />
                                                        </Button>
 
-                                                       <Button
-                                                           size="sm"
-                                                           variant="outline"
-                                                           onClick={() => handleDeleteConfig(config)}
-                                                           className="border-slate-700 text-red-400 hover:text-red-300">
-                                                           <Trash2 className="w-4 h-4" />
-                                                       </Button>
+                                                       {config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)' ? (
+                                                           <Button
+                                                               size="sm"
+                                                               variant="outline"
+                                                               disabled
+                                                               className="border-slate-700 text-slate-500 opacity-50">
+                                                               <Trash2 className="w-4 h-4" />
+                                                           </Button>
+                                                       ) : (
+                                                           <Button
+                                                               size="sm"
+                                                               variant="outline"
+                                                               onClick={() => handleDeleteConfig(config)}
+                                                               className="border-slate-700 text-red-400 hover:text-red-300">
+                                                               <Trash2 className="w-4 h-4" />
+                                                           </Button>
                                                        )}
                                                     </div>
                                                 </div>
