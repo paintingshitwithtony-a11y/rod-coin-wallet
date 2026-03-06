@@ -8,7 +8,7 @@ async function rpcCall(rpcUrl, rpcAuth, method, params) {
             'Authorization': `Basic ${rpcAuth}`
         },
         body: JSON.stringify({ jsonrpc: '1.0', id: method, method, params }),
-        signal: AbortSignal.timeout(30000)
+        signal: AbortSignal.timeout(120000)
     });
     const data = await response.json();
     if (data.error) throw new Error(`RPC ${method} failed: ${data.error.message}`);
