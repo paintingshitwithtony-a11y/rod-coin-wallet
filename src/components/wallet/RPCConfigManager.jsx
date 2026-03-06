@@ -488,17 +488,32 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
             return;
         }
         setEditingConfig(config);
-        setFormData({
-            name: config.name,
-            connection_type: config.connection_type || 'rpc',
-            host: config.host,
-            port: config.port,
-            username: config.username || '',
-            password: config.password || '',
-            api_key: config.api_key || '',
-            curl_command: config.curl_command || '',
-            use_ssl: config.use_ssl || false
-        });
+        // Non-admins can only edit the host URL
+        if (currentUser?.role !== 'admin') {
+            setFormData({
+                name: config.name,
+                connection_type: config.connection_type || 'rpc',
+                host: config.host,
+                port: config.port,
+                username: '',
+                password: '',
+                api_key: '',
+                curl_command: '',
+                use_ssl: config.use_ssl || false
+            });
+        } else {
+            setFormData({
+                name: config.name,
+                connection_type: config.connection_type || 'rpc',
+                host: config.host,
+                port: config.port,
+                username: config.username || '',
+                password: config.password || '',
+                api_key: config.api_key || '',
+                curl_command: config.curl_command || '',
+                use_ssl: config.use_ssl || false
+            });
+        }
         setShowAddForm(true);
     };
 
