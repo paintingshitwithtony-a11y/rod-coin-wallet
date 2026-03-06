@@ -163,7 +163,10 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                             <span className="text-xl text-slate-400 ml-2">ROD</span>
                         </p>
                         <p className="text-sm text-slate-500 mt-2">
-                            {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'} • {wallets.filter(w => w.is_active).length} active
+                            {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'} •{' '}
+                            {wallets.filter(w => w.wallet_type === 'watch-only').length > 0 &&
+                                `${wallets.filter(w => w.wallet_type === 'watch-only').length} watch-only • `}
+                            Balances shown from last sync
                         </p>
                     </CardContent>
                 </Card>
