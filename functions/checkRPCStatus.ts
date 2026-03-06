@@ -46,8 +46,11 @@ Deno.serve(async (req) => {
          while (cleanHost.match(/^https?:\/\//i)) {
              cleanHost = cleanHost.replace(/^https?:\/\//i, '');
          }
-         const SSL_PORTS = new Set(['443', '9443', '8443']);
-         const protocol = config.use_ssl || SSL_PORTS.has(config.port) ? 'https' : 'http';
+
+         // Determine protocol: for VPS (non-localhost) always use https, for localhost respect use_ssl setting
+         const isLocalhost = cleanHost === 'localhost' || cleanHost === '127.0.0.1';
+         const protocol = isLocalhost ? (config.use_ssl ? 'https' : 'http') : 'https';
+
          const rpcUrl = !config.port || config.port === ''
              ? `${protocol}://${cleanHost}`
              : `${protocol}://${cleanHost}:${config.port}`;
