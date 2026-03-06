@@ -173,19 +173,16 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const validateAddress = async (address) => {
         if (!address || address.length < 26) {
             setAddressValid(null);
-            setIsSendingToOwnWallet(false);
+            setIsInternalTransfer(false);
             return;
         }
         
         setValidating(true);
         const result = await validateRODAddress(address);
         setAddressValid(result.valid);
-
-        // Determine if recipient is one of user's own addresses.
-        // Own-wallet sends are still real on-chain transactions — fee ALWAYS applies.
-        const isMyWallet = result.valid
-            ? myWallets.some(w => w.wallet_address === address)
-            : false;
+        
+        // Note whether recipient is one of user's own wallets (still an on-chain tx)
+        const isMyWallet = myWallets.some(w => w.wallet_address === address);
         setIsSendingToOwnWallet(isMyWallet);
 
         setValidating(false);
@@ -193,7 +190,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         if (!result.valid) {
             toast.error(`Invalid address: ${result.error}`);
         } else if (isMyWallet) {
-            toast.info('Sending to your own wallet — on-chain, network fee applies', { duration: 3000 });
+            toast.info('Sending to your own wallet — network fee still applies', { duration: 3000 });
         }
     };
 

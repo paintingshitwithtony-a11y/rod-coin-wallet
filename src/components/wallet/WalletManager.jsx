@@ -127,11 +127,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             return;
         }
         
-        const warningMsg = wallet.wallet_type === 'watch-only'
-            ? `Remove watch-only wallet "${wallet.name}"? The address itself is not affected.`
-            : `Delete wallet "${wallet.name}"? This removes the app record. If you have no backup, access to funds from this address may be lost. Continue?`;
-
-        if (!confirm(warningMsg)) {
+        if (!confirm(`Delete wallet "${wallet.name}"? This cannot be undone!`)) {
             return;
         }
 
@@ -163,10 +159,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                             <span className="text-xl text-slate-400 ml-2">ROD</span>
                         </p>
                         <p className="text-sm text-slate-500 mt-2">
-                            {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'} •{' '}
-                            {wallets.filter(w => w.wallet_type === 'watch-only').length > 0 &&
-                                `${wallets.filter(w => w.wallet_type === 'watch-only').length} watch-only • `}
-                            Balances shown from last sync
+                            {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'} • {wallets.filter(w => w.is_active).length} active
                         </p>
                     </CardContent>
                 </Card>
@@ -239,12 +232,9 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                             Active
                                                         </Badge>
                                                     )}
-                                                    {wallet.id !== 'main-account' && wallet.wallet_type && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={`text-xs ${wallet.wallet_type === 'watch-only' ? 'border-slate-500 text-slate-400' : 'border-purple-500/50 text-purple-400'}`}
-                                                        >
-                                                            {wallet.wallet_type === 'watch-only' ? '👁 watch-only' : wallet.wallet_type}
+                                                    {wallet.id !== 'main-account' && (
+                                                        <Badge variant="outline" className="text-xs">
+                                                            {wallet.wallet_type}
                                                         </Badge>
                                                     )}
                                                     </div>
@@ -253,9 +243,6 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                 </p>
                                                 <p className="text-lg font-bold text-white mt-1">
                                                     {(wallet.balance || 0).toFixed(4)} ROD
-                                                    {wallet.wallet_type === 'watch-only' && (
-                                                        <span className="ml-2 text-xs text-slate-500 font-normal">(receive only)</span>
-                                                    )}
                                                 </p>
                                             </div>
 
