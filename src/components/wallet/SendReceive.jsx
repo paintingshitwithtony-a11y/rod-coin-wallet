@@ -474,7 +474,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     exit={{ opacity: 0, height: 0 }}
                                     className="p-3 rounded-lg bg-amber-900/20 border border-amber-500/30 space-y-2"
                                 >
-                                    <p className="text-xs text-amber-400 mb-2">Transfer to My Wallet (No Fee)</p>
+                                                    <p className="text-xs text-amber-400 mb-2">Transfer to My Wallet (on-chain, fee applies)</p>
                                     {myWallets.filter(w => w.id !== selectedFromWallet?.id).map((wallet) => (
                                         <button
                                             key={wallet.id}
