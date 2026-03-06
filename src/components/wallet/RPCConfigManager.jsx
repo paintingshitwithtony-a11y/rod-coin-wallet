@@ -1708,6 +1708,11 @@ console.log(data.result);`}
                                                      url = url.replace(/^https?:\/\/https?:\/\//, 'https://');
                                                  }
 
+                                                 // Ensure URL has a protocol for parsing
+                                                 if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                                     url = 'https://' + url;
+                                                 }
+
                                                  const parsed = new URL(url);
                                                  const isHttps = parsed.protocol === 'https:';
                                                  const hasPath = parsed.pathname && parsed.pathname !== '/';
