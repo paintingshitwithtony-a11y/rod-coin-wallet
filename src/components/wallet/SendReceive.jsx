@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import TransactionConfirmation from './TransactionConfirmation';
 import MFAVerification from './MFAVerification';
+import PassphraseModal from './PassphraseModal';
 
 export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete, fromAddress }) {
     const [recipient, setRecipient] = useState('');
@@ -45,6 +46,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [loadingRPC, setLoadingRPC] = useState(false);
     const [canSwitch, setCanSwitch] = useState(true);
     const switchTimeoutRef = useRef(null);
+    const [showPassphraseModal, setShowPassphraseModal] = useState(false);
 
     useEffect(() => {
         if (mode === 'send' && account) {
@@ -213,29 +215,41 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
 
-        // Show confirmation screen
-        setShowConfirmation(true);
+        // Show passphrase modal before confirmation
+        setShowPassphraseModal(true);
     };
 
-    const handleConfirmTransaction = () => {
+    const handlePassphraseSubmit = (passphrase) => {
+        setShowPassphraseModal(false);
         // Check if MFA is enabled
         if (account.mfa_enabled && !mfaVerified) {
-            setShowConfirmation(false);
+            // Store passphrase temporarily in state for executeSend
+            setSendPassphrase(passphrase);
             setShowMFA(true);
             return;
         }
 
-        // Proceed with transaction
-        executeSend();
+        // Proceed directly with transaction
+        executeSendWithPassphrase(passphrase);
     };
+
+    const handleConfirmTransaction = () => {
+        // Just show confirmation — passphrase was already entered
+        setShowConfirmation(true);
+    };
+
+    const [sendPassphrase, setSendPassphrase] = useState('');
 
     const handleMFAVerified = () => {
         setShowMFA(false);
         setMfaVerified(true);
-        executeSend();
+        if (sendPassphrase) {
+            executeSendWithPassphrase(sendPassphrase);
+            setSendPassphrase('');
+        }
     };
 
-    const executeSend = async () => {
+    const executeSendWithPassphrase = async (passphrase) => {
         setSending(true);
         setShowConfirmation(false);
         
@@ -256,7 +270,8 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 recipient,
                 amount: amountNum,
                 fee: feeNum,
-                memo: memo || ''
+                memo: memo || '',
+                passphrase: passphrase
             });
             
             console.log('Response:', response.data);
@@ -288,6 +303,11 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         } finally {
             setSending(false);
         }
+    };
+
+    const executeSend = async () => {
+        // This is now called from confirmation with passphrase already entered
+        executeSendWithPassphrase(sendPassphrase);
     };
 
     const copyAddress = async (address) => {
@@ -628,6 +648,15 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                         }}
                     />
                 )}
+
+                <PassphraseModal
+                    isOpen={showPassphraseModal}
+                    title="Unlock Your Wallet"
+                    description="Enter your wallet passphrase to authorize this transaction."
+                    onSubmit={handlePassphraseSubmit}
+                    onCancel={() => setShowPassphraseModal(false)}
+                    loading={sending}
+                />
             </motion.div>
         );
     }
