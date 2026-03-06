@@ -232,9 +232,12 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                             Active
                                                         </Badge>
                                                     )}
-                                                    {wallet.id !== 'main-account' && (
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {wallet.wallet_type}
+                                                    {wallet.id !== 'main-account' && wallet.wallet_type && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={`text-xs ${wallet.wallet_type === 'watch-only' ? 'border-slate-500 text-slate-400' : 'border-purple-500/50 text-purple-400'}`}
+                                                        >
+                                                            {wallet.wallet_type === 'watch-only' ? '👁 watch-only' : wallet.wallet_type}
                                                         </Badge>
                                                     )}
                                                     </div>
