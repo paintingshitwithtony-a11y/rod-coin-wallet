@@ -42,7 +42,8 @@ Deno.serve(async (req) => {
 
         // Build RPC URL — strip any protocol prefix the user may have included in host
         const cleanHost = config.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-        const protocol = config.use_ssl || config.host.startsWith('https') ? 'https' : 'http';
+        const SSL_PORTS = new Set(['443', '9443', '8443']);
+        const protocol = config.use_ssl || config.host.startsWith('https') || SSL_PORTS.has(config.port) ? 'https' : 'http';
         const rpcUrl = !config.port || config.port === ''
             ? `${protocol}://${cleanHost}`
             : `${protocol}://${cleanHost}:${config.port}`;
