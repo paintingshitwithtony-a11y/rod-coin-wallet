@@ -214,8 +214,15 @@ export default function Admin() {
         }
 
         try {
+            // Clean host: remove any protocol prefixes
+            let cleanedHost = newConfig.host.replace(/^https?:\/\//gi, '').replace(/\/+$/, '');
+            while (cleanedHost.match(/^https?:\/\//i)) {
+                cleanedHost = cleanedHost.replace(/^https?:\/\//i, '');
+            }
+
             await base44.entities.RPCConfiguration.update(editingConfig.id, {
                 ...newConfig,
+                host: cleanedHost,
                 connection_status: 'untested'
             });
 
