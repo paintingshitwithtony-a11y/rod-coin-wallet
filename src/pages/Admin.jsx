@@ -971,6 +971,64 @@ export default function Admin() {
                                                                             <Pencil className="w-4 h-4" />
                                                                         </Button>
 
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() => handleTestConnection(config)}
+                                                                            disabled={testing === config.id}
+                                                                            className="border-slate-700">
+                                                                            {testing === config.id ? (
+                                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Plug className="w-4 h-4 mr-1" />
+                                                                                    Test
+                                                                                </>
+                                                                            )}
+                                                                        </Button>
+
+                                                                        {!config.is_active ? (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={() => handleSetActive(config)}
+                                                                                className="bg-purple-600 hover:bg-purple-700">
+                                                                                Activate
+                                                                            </Button>
+                                                                        ) : (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={async () => {
+                                                                                    try {
+                                                                                        await base44.entities.RPCConfiguration.update(config.id, { is_active: false });
+                                                                                        toast.success('Configuration deactivated');
+                                                                                        loadConfigs();
+                                                                                    } catch (err) {
+                                                                                        toast.error('Failed to deactivate');
+                                                                                    }
+                                                                                }}
+                                                                                className="border-amber-500/50 text-amber-400">
+                                                                                Deactivate
+                                                                            </Button>
+                                                                        )}
+
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(JSON.stringify({
+                                                                                    name: config.name,
+                                                                                    host: config.host,
+                                                                                    port: config.port,
+                                                                                    connection_type: config.connection_type,
+                                                                                    use_ssl: config.use_ssl
+                                                                                }, null, 2));
+                                                                                toast.success('Config copied to clipboard');
+                                                                            }}
+                                                                            className="border-slate-700 text-blue-400 hover:text-blue-300">
+                                                                            <Copy className="w-4 h-4" />
+                                                                        </Button>
+
                                                                         {config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)' ? (
                                                                             <Button
                                                                                 size="sm"
@@ -980,82 +1038,15 @@ export default function Admin() {
                                                                                 <Trash2 className="w-4 h-4" />
                                                                             </Button>
                                                                         ) : (
-
-                                                       <Button
-                                                           size="sm"
-                                                           variant="outline"
-                                                           onClick={() => handleTestConnection(config)}
-                                                           disabled={testing === config.id}
-                                                           className="border-slate-700">
-                                                           {testing === config.id ? (
-                                                               <Loader2 className="w-4 h-4 animate-spin" />
-                                                           ) : (
-                                                               <>
-                                                                   <Plug className="w-4 h-4 mr-1" />
-                                                                   Test
-                                                               </>
-                                                           )}
-                                                       </Button>
-
-                                                       {!config.is_active ? (
-                                                           <Button
-                                                               size="sm"
-                                                               onClick={() => handleSetActive(config)}
-                                                               className="bg-purple-600 hover:bg-purple-700">
-                                                               Activate
-                                                           </Button>
-                                                       ) : (
-                                                           <Button
-                                                               size="sm"
-                                                               variant="outline"
-                                                               onClick={async () => {
-                                                                   try {
-                                                                       await base44.entities.RPCConfiguration.update(config.id, { is_active: false });
-                                                                       toast.success('Configuration deactivated');
-                                                                       loadConfigs();
-                                                                   } catch (err) {
-                                                                       toast.error('Failed to deactivate');
-                                                                   }
-                                                               }}
-                                                               className="border-amber-500/50 text-amber-400">
-                                                               Deactivate
-                                                           </Button>
-                                                       )}
-
-                                                       <Button
-                                                           size="sm"
-                                                           variant="outline"
-                                                           onClick={() => {
-                                                               navigator.clipboard.writeText(JSON.stringify({
-                                                                   name: config.name,
-                                                                   host: config.host,
-                                                                   port: config.port,
-                                                                   connection_type: config.connection_type,
-                                                                   use_ssl: config.use_ssl
-                                                               }, null, 2));
-                                                               toast.success('Config copied to clipboard');
-                                                           }}
-                                                           className="border-slate-700 text-blue-400 hover:text-blue-300">
-                                                           <Copy className="w-4 h-4" />
-                                                       </Button>
-
-                                                       {config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)' ? (
-                                                           <Button
-                                                               size="sm"
-                                                               variant="outline"
-                                                               disabled
-                                                               className="border-slate-700 text-slate-500 opacity-50">
-                                                               <Trash2 className="w-4 h-4" />
-                                                           </Button>
-                                                       ) : (
-                                                           <Button
-                                                               size="sm"
-                                                               variant="outline"
-                                                               onClick={() => handleDeleteConfig(config)}
-                                                               className="border-slate-700 text-red-400 hover:text-red-300">
-                                                               <Trash2 className="w-4 h-4" />
-                                                           </Button>
-                                                       )}
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleDeleteConfig(config)}
+                                                                                className="border-slate-700 text-red-400 hover:text-red-300">
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                        )}
+                                                                        )}
                                                     </div>
                                                 </div>
                                             </CardContent>
