@@ -1781,11 +1781,14 @@ console.log(data.result);`}
                                                                          }
 
                                                                          // For VPS connections: always use https, never http
+                                                                         // Detect if localhost (should use http)
+                                                                         const isLocalhost = url.includes('localhost') || url.includes('127.0.0.1');
+
                                                                          // If no protocol, assume https for VPS
                                                                          if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                                                                             url = 'https://' + url;
-                                                                         } else if (url.startsWith('http://')) {
-                                                                             // Convert http:// to https:// for VPS
+                                                                             url = isLocalhost ? 'http://' + url : 'https://' + url;
+                                                                         } else if (!isLocalhost && url.startsWith('http://')) {
+                                                                             // Convert http:// to https:// for VPS only (not localhost)
                                                                              url = url.replace(/^http:\/\//i, 'https://');
                                                                          }
 
@@ -1801,18 +1804,22 @@ console.log(data.result);`}
                                                                              host = host.replace(/^https?:\/\//i, '');
                                                                          }
 
-                                                                         // For VPS: always use port 9443 (https), not 80
-                                                                         const port = parsed.port || (hasPath ? '' : '9443');
+                                                                         // Set port based on connection type
+                                                                         let port = parsed.port || '';
+                                                                         if (!port) {
+                                                                             port = isLocalhost ? '9766' : '9443';
+                                                                         }
 
                                                                          // Determine connection type based on URL
                                                                          const hasAuth = parsed.username || parsed.password;
                                                                          const connectionType = hasAuth ? 'rpc' : 'api';
+                                                                         const useSSL = parsed.protocol === 'https:';
 
                                                                          setFormData({
                                                                              ...formData,
                                                                              host: host,
                                                                              port: port,
-                                                                             use_ssl: isHttps,
+                                                                             use_ssl: useSSL,
                                                                              connection_type: connectionType,
                                                                              username: parsed.username || '',
                                                                              password: parsed.password || '',
