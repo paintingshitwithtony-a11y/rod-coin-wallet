@@ -595,31 +595,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         }
     };
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'connected':
-                return <Wifi className="w-4 h-4 text-green-400" />;
-            case 'disconnected':
-                return <WifiOff className="w-4 h-4 text-red-400" />;
-            case 'error':
-                return <AlertCircle className="w-4 h-4 text-red-400" />;
-            default:
-                return <Activity className="w-4 h-4 text-slate-400" />;
-        }
-    };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'connected':
-                return 'border-green-500/50 bg-green-500/10';
-            case 'disconnected':
-                return 'border-red-500/50 bg-red-500/10';
-            case 'error':
-                return 'border-red-500/50 bg-red-500/10';
-            default:
-                return 'border-slate-700/50 bg-slate-800/50';
-        }
-    };
 
     return (
         <>
