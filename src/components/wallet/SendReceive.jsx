@@ -175,7 +175,6 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const validateAddress = async (address) => {
         if (!address || address.length < 26) {
             setAddressValid(null);
-            setIsInternalTransfer(false);
             return;
         }
         
