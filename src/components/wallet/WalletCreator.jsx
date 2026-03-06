@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, Lock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import PassphraseModal from './PassphraseModal';
 
 /**
  * WalletCreator — Creates a new wallet via the backend.
