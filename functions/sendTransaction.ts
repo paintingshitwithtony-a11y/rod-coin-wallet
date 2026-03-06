@@ -51,7 +51,8 @@ async function decryptWIF(encryptedKey, encryptionSecret) {
 
 function buildRpcUrl(rpcConfig) {
     const host = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-    const protocol = (rpcConfig.port === '443' || rpcConfig.port === 443) ? 'https' : 'http';
+    const SSL_PORTS = new Set(['443', '9443', '8443']);
+    const protocol = (rpcConfig.use_ssl || rpcConfig.host.startsWith('https') || SSL_PORTS.has(String(rpcConfig.port))) ? 'https' : 'http';
     return `${protocol}://${host}:${rpcConfig.port}`;
 }
 
