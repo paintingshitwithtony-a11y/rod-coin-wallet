@@ -363,21 +363,12 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                     const wallet = myWallets.find(w => w.id === id);
                                     setSelectedFromWallet(wallet);
 
-                                    // Update wallet active status
+                                    // Update active wallet flag in DB (user-scoped, no service role needed)
                                     if (wallet && wallet.id !== 'main-account') {
-                                        try {
-                                            // Set selected wallet to active and others to inactive
-                                            const updates = myWallets.map(w => {
-                                                if (w.id === 'main-account') return null;
-                                                return base44.asServiceRole.entities.Wallet.update(w.id, {
-                                                    is_active: w.id === id
-                                                });
-                                            }).filter(Boolean);
-
-                                            await Promise.all(updates);
-                                        } catch (err) {
-                                            console.error('Failed to update wallet status:', err);
-                                        }
+                                        const updates = myWallets
+                                            .filter(w => w.id !== 'main-account')
+                                            .map(w => base44.entities.Wallet.update(w.id, { is_active: w.id === id }));
+                                        await Promise.all(updates);
                                     }
 
                                     // Re-enable switching after 2 seconds
