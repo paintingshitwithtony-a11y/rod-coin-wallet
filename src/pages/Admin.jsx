@@ -45,6 +45,7 @@ import SetupComplete from '../components/admin/SetupComplete';
 import DirectAppIdFix from '../components/admin/DirectAppIdFix';
 import OriginalMainDownload from '../components/admin/OriginalMainDownload';
 import GlobalsCssDownload from '../components/admin/GlobalsCssDownload';
+import WalletTester from '../components/admin/WalletTester';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
@@ -1071,18 +1072,8 @@ export default function Admin() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="settings">
-                        <Card className="bg-slate-900/80 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2">
-                                    <Settings className="w-5 h-5 text-purple-400" />
-                                    System Settings
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-slate-400">Additional system settings coming soon...</p>
-                            </CardContent>
-                        </Card>
+                    <TabsContent value="settings" className="space-y-6">
+                        <WalletTester />
                     </TabsContent>
                 </Tabs>
             </div>
