@@ -5,18 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
     Plus, Copy, CheckCircle2, RefreshCw, QrCode, 
-    Shield, Key, Sparkles, Download, Clock, AlertCircle
+    Shield, Key, Sparkles, Download, Clock, AlertCircle, Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateNewRODAddress, validateRODAddress, generatePrivateKey } from './Base58';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
+import SaveAddressAsWallet from './SaveAddressAsWallet';
 
-export default function AddressGenerator({ onAddressGenerated }) {
+export default function AddressGenerator({ onAddressGenerated, account }) {
     const [addresses, setAddresses] = useState([]);
     const [generating, setGenerating] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
     const [showPrivateKeys, setShowPrivateKeys] = useState(false);
+    const [selectedAddressToSave, setSelectedAddressToSave] = useState(null);
 
     const generateAddress = async () => {
         setGenerating(true);
@@ -185,7 +187,7 @@ export default function AddressGenerator({ onAddressGenerated }) {
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex items-center gap-2 mb-4">
                                                     <span className="text-sm font-medium text-slate-300">{addr.label}</span>
                                                     <Badge 
                                                         variant="outline" 
@@ -272,6 +274,14 @@ export default function AddressGenerator({ onAddressGenerated }) {
                                                 <p className="text-xs text-slate-500 mt-2">
                                                     Created {new Date(addr.createdAt).toLocaleString()}
                                                 </p>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => setSelectedAddressToSave(addr)}
+                                                    className="mt-3 bg-blue-600 hover:bg-blue-700"
+                                                >
+                                                    <Save className="w-4 h-4 mr-2" />
+                                                    Save as Wallet
+                                                </Button>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -281,6 +291,19 @@ export default function AddressGenerator({ onAddressGenerated }) {
                     </AnimatePresence>
                 </CardContent>
             </Card>
+            
+            {/* Save Address as Wallet Modal */}
+            {selectedAddressToSave && (
+                <SaveAddressAsWallet
+                    address={selectedAddressToSave}
+                    account={account}
+                    onClose={() => setSelectedAddressToSave(null)}
+                    onSaved={() => {
+                        setSelectedAddressToSave(null);
+                        // Refresh addresses
+                    }}
+                />
+            )}
             
             {/* Info Card */}
             <Card className="bg-slate-900/40 border-slate-700/50">
