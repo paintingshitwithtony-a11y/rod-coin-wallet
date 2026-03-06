@@ -1872,7 +1872,7 @@ console.log(data.result);`}
                                     />
                                 </div>
                             )}
-                            {formData.connection_type === 'curl' && (
+                            {currentUser?.role === 'admin' && formData.connection_type === 'curl' && (
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">cURL Command</Label>
                                     <Textarea
