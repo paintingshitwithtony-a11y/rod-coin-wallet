@@ -180,8 +180,8 @@ Deno.serve(async (req) => {
             console.log('walletpassphrase (ignored):', unlockErr.message);
         }
 
-        // --- Step 11: Decrypt WIF using wallet-specific passphrase ---
-        const wifKey = await decryptWIF(encryptedPrivateKey, passphrase);
+        // --- Step 11: Decrypt WIF using encryption secret ---
+        const wifKey = await decryptWIF(encryptedPrivateKey);
 
         // --- Step 12: Sign with key — key is NOT imported into node wallet ---
         const prevTxs = selectedUtxos.map(u => ({
