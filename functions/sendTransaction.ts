@@ -177,9 +177,8 @@ Deno.serve(async (req) => {
             console.log('walletpassphrase (ignored):', unlockErr.message);
         }
 
-        // --- Step 11: Decrypt WIF in backend memory only — NEVER log it ---
-        const encryptionSecret = Deno.env.get('WALLET_ENCRYPTION_SECRET') || 'wallet_encryption_key';
-        const wifKey = await decryptWIF(encryptedPrivateKey, encryptionSecret);
+        // --- Step 11: Decrypt WIF using wallet-specific passphrase ---
+        const wifKey = await decryptWIF(encryptedPrivateKey, passphrase);
 
         // --- Step 12: Sign with key — key is NOT imported into node wallet ---
         const prevTxs = selectedUtxos.map(u => ({
