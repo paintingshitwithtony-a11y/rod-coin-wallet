@@ -793,6 +793,34 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                 if (onConnectionSuccess) onConnectionSuccess();
                             }}
                         />
+                        <Button
+                            onClick={async () => {
+                                setFixingProtocols(true);
+                                try {
+                                    const response = await base44.functions.invoke('fixDuplicateProtocols', {});
+                                    const fixed = response.data?.fixed ?? 0;
+                                    const msg = fixed > 0 
+                                        ? `Fixed ${fixed} configuration(s)` 
+                                        : 'No duplicate protocols found';
+                                    toast.success(msg);
+                                    if (fixed > 0) await loadConfigurations();
+                                } catch (err) {
+                                    toast.error('Fix failed: ' + (err?.message || 'Unknown error'));
+                                } finally {
+                                    setFixingProtocols(false);
+                                }
+                            }}
+                            disabled={fixingProtocols}
+                            variant="outline"
+                            className="border-amber-600 text-amber-400 hover:bg-amber-600/10"
+                        >
+                            {fixingProtocols ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                            )}
+                            {fixingProtocols ? 'Fixing...' : 'Fix Protocols'}
+                        </Button>
                     </div>
 
                     {/* Advanced RPC Settings */}
