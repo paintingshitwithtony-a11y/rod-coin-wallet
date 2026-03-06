@@ -93,11 +93,9 @@ export default function RPCConfigList({ configs, loading, testing, onEdit, onTes
                                 </div>
                             </div>
                             <div className="flex gap-1 items-center" onClick={(e) => e.stopPropagation()}>
-                                {!adminConfig && (
-                                    <Button size="icon" variant="ghost" onClick={() => onEdit(config)} className="text-slate-400 hover:text-blue-400">
-                                        <Edit className="w-4 h-4" />
-                                    </Button>
-                                )}
+                                <Button size="icon" variant="ghost" onClick={() => onEdit(config)} className="text-slate-400 hover:text-blue-400">
+                                    <Edit className="w-4 h-4" />
+                                </Button>
                                 <Button size="icon" variant="ghost" onClick={() => onTest(config)} disabled={testing[config.id]} className="text-slate-400 hover:text-white">
                                     {testing[config.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                                 </Button>
