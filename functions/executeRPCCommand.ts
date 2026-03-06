@@ -1,111 +1,108 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+/**
+ * executeRPCCommand — Backend RPC relay with strict method allowlist.
+ *
+ * Only read-only, non-sensitive RPC methods may be called through this relay.
+ * Sensitive methods (dumpprivkey, importprivkey, sendtoaddress, walletpassphrase,
+ * signrawtransaction*, createrawtransaction, etc.) are NEVER allowed here.
+ * Those are handled exclusively inside dedicated backend functions (sendTransaction,
+ * generateWalletAddress) which perform proper ownership verification.
+ *
+ * RPC credentials are stored in the RPCConfiguration entity (server-side only).
+ * They are never returned to the browser.
+ */
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+
+// Strict allowlist — only safe read-only methods
+const ALLOWED_METHODS = new Set([
+    'getblockchaininfo',
+    'getblockcount',
+    'getnetworkinfo',
+    'getpeerinfo',
+    'listunspent',
+    'gettransaction',
+    'getrawtransaction',
+    'decoderawtransaction',
+    'validateaddress',
+    'getmempoolinfo',
+    'getdifficulty',
+    'getmininginfo',
+    'getbestblockhash',
+    'getblock',
+    'listtransactions',
+    'getnettotals'
+]);
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const { method, params = [] } = await req.json();
 
         if (!method) {
-            return Response.json({ 
-                success: false, 
-                error: 'Method is required' 
-            }, { status: 400 });
+            return Response.json({ success: false, error: 'Method is required' }, { status: 400 });
         }
 
-        // Get user's account and RPC configuration
-        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-            email: user.email 
-        });
-
-        if (accounts.length === 0) {
-            return Response.json({ 
-                success: false, 
-                error: 'Account not found' 
-            }, { status: 404 });
+        // Enforce allowlist — reject anything not explicitly permitted
+        if (!ALLOWED_METHODS.has(method.toLowerCase())) {
+            return Response.json({
+                success: false,
+                error: `Method '${method}' is not permitted via this relay. Sensitive or write operations must use dedicated backend functions.`
+            }, { status: 403 });
         }
 
+        // Load user's account and active RPC config
+        const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        if (accounts.length === 0) return Response.json({ success: false, error: 'Account not found' }, { status: 404 });
         const account = accounts[0];
 
-        // Get active RPC configuration
-        const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            account_id: account.id,
-            is_active: true
-        });
-
+        const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
         if (rpcConfigs.length === 0) {
-            return Response.json({ 
-                success: false, 
-                error: 'No active RPC configuration. Please configure RPC connection first.' 
-            }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
         }
 
         const rpcConfig = rpcConfigs[0];
-
-        // Build RPC URL — strip any protocol the user may have included in host
         const cleanHost = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-        const protocol = rpcConfig.use_ssl || rpcConfig.host.startsWith('https') ? 'https' : 'http';
-        const auth = `${rpcConfig.username}:${rpcConfig.password}`;
-        const rpcUrl = `${protocol}://${auth}@${cleanHost}:${rpcConfig.port}`;
+        const protocol = (rpcConfig.port === '443' || rpcConfig.port === 443) ? 'https' : 'http';
+        const rpcUrl = `${protocol}://${cleanHost}:${rpcConfig.port}`;
+        const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Execute RPC command
         let rpcResponse;
         try {
             rpcResponse = await fetch(rpcUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Basic ${rpcAuth}`
                 },
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: 'rpc_console',
-                    method: method,
-                    params: params
-                }),
+                body: JSON.stringify({ jsonrpc: '1.0', id: 'relay', method, params }),
                 signal: AbortSignal.timeout(25000)
             });
         } catch (fetchErr) {
-            // Network-level error (connection reset, timeout, unreachable, etc.)
             const msg = fetchErr.message || 'Connection failed';
             const friendly = msg.includes('Connection refused') || msg.includes('tcp connect error')
-                ? `Connection refused at ${rpcConfig.host}:${rpcConfig.port} — make sure your node is running and the port is reachable.`
+                ? `Connection refused at ${rpcConfig.host}:${rpcConfig.port} — ensure your node is running.`
                 : 'Could not connect to RPC node: ' + msg;
             return Response.json({ success: false, error: friendly });
         }
 
         if (!rpcResponse.ok) {
             const errorText = await rpcResponse.text();
-            return Response.json({ 
-                success: false, 
-                error: `RPC Error: ${errorText}` 
-            });
+            return Response.json({ success: false, error: `RPC Error: ${errorText}` });
         }
 
         const data = await rpcResponse.json();
 
         if (data.error) {
-            return Response.json({ 
-                success: false, 
-                error: data.error.message || 'RPC command failed',
-                code: data.error.code
-            });
+            return Response.json({ success: false, error: data.error.message || 'RPC command failed', code: data.error.code });
         }
 
-        return Response.json({ 
-            success: true, 
-            result: data.result 
-        });
+        return Response.json({ success: true, result: data.result });
 
     } catch (error) {
-        console.error('RPC Command Error:', error);
-        return Response.json({ 
-            success: false, 
-            error: error.message 
-        });
+        // Never log RPC credentials or sensitive data
+        console.error('executeRPCCommand error:', error.message);
+        return Response.json({ success: false, error: error.message });
     }
 });

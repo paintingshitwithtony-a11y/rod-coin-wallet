@@ -1,6 +1,24 @@
 import { base44 } from '@/api/base44Client';
 
-// Client-side RPC connection handler for Electron/local nodes
+/**
+ * RPCClient — Local/Electron-only direct RPC client.
+ *
+ * SECURITY NOTICE:
+ * This client is intended ONLY for trusted local Electron environments where the
+ * RPC node runs on localhost and credentials never leave the machine.
+ *
+ * Do NOT use this client in a hosted web app to connect to a remote RPC node.
+ * For hosted/web scenarios, all RPC calls go through backend functions which
+ * hold credentials server-side (executeRPCCommand, sendTransaction, etc.).
+ *
+ * Methods intentionally excluded:
+ *   - sendToAddress: NEVER used for user withdrawals. All sends go through
+ *     sendTransaction backend function via UTXO-explicit raw transaction flow.
+ *   - getBalance: Returns wallet-level aggregate balance, not per-address UTXO
+ *     balance. Use listUnspent() and sum amounts for correct per-address balance.
+ *   - dumpprivkey, importprivkey, walletpassphrase: Sensitive key-management
+ *     operations handled exclusively in backend functions.
+ */
 export class RPCClient {
     constructor(config) {
         this.config = config;
@@ -9,164 +27,111 @@ export class RPCClient {
     }
 
     async call(method, params = []) {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
+        const headers = { 'Content-Type': 'application/json' };
 
-        // Add authentication if using RPC
         if (this.config.connection_type === 'rpc' && this.config.username && this.config.password) {
             headers['Authorization'] = `Basic ${btoa(`${this.config.username}:${this.config.password}`)}`;
         }
 
-        // Try Electron proxy first (port 9767)
+        // Try Electron local proxy first (localhost:9767 only — credentials stay local)
         try {
-            const electronProxyUrl = 'http://localhost:9767';
-            const response = await fetch(electronProxyUrl, {
+            const response = await fetch('http://localhost:9767', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: Date.now(),
-                    method,
-                    params
-                }),
+                body: JSON.stringify({ jsonrpc: '1.0', id: Date.now(), method, params }),
                 signal: AbortSignal.timeout(2000)
             });
-
             if (response.ok) {
                 const data = await response.json();
-                if (!data.error) {
-                    return data.result;
-                }
+                if (!data.error) return data.result;
             }
-        } catch (e) {
-            // Electron proxy not available, continue to next method
+        } catch (_) {
+            // Electron proxy not available, fall through
         }
 
-        // Try configured direct connection
-        try {
-            const response = await fetch(this.url, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: Date.now(),
-                    method,
-                    params
-                }),
-                signal: AbortSignal.timeout(5000)
-            });
-
-            if (!response.ok) {
-                throw new Error(`RPC call failed: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error.message || 'RPC error');
-            }
-
-            return data.result;
-        } catch (directError) {
-            // Fall back to backend relay function
+        // Try direct local connection (only safe when node is on localhost)
+        if (this.config.host === 'localhost' || this.config.host === '127.0.0.1') {
             try {
-                const { data } = await base44.functions.invoke('rpcRelay', { method, params });
-                if (data.error) {
-                    throw new Error(data.error.message || data.error);
-                }
+                const response = await fetch(this.url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ jsonrpc: '1.0', id: Date.now(), method, params }),
+                    signal: AbortSignal.timeout(5000)
+                });
+                if (!response.ok) throw new Error(`RPC ${response.status}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || 'RPC error');
                 return data.result;
-            } catch (relayError) {
-                throw new Error(`Electron: unavailable | Direct: ${directError.message} | Relay: ${relayError.message}`);
+            } catch (directError) {
+                throw new Error(`Local RPC failed: ${directError.message}`);
             }
         }
+
+        // For remote nodes: route through backend relay (credentials stay server-side)
+        const { data } = await base44.functions.invoke('executeRPCCommand', { method, params });
+        if (data.error) throw new Error(data.error);
+        return data.result;
     }
+
+    // --- Safe read-only helpers ---
 
     async getBlockchainInfo() {
-        return await this.call('getblockchaininfo');
+        return this.call('getblockchaininfo');
     }
 
-    async getBalance() {
-        return await this.call('getbalance');
-    }
-
-    async getNewAddress(label = '') {
-        return await this.call('getnewaddress', [label]);
-    }
-
-    async sendToAddress(address, amount) {
-        return await this.call('sendtoaddress', [address, amount]);
+    /**
+     * Returns spendable UTXOs for a specific address.
+     * Sum .amount fields for the correct per-address UTXO balance.
+     * This is the only correct way to get a per-address balance.
+     */
+    async listUnspent(address, minConf = 0) {
+        const utxos = await this.call('listunspent', [minConf, 9999999, [address]]);
+        return (utxos || []).filter(u => u.address === address);
     }
 
     async listTransactions(count = 10) {
-        return await this.call('listtransactions', ['*', count]);
+        return this.call('listtransactions', ['*', count]);
+    }
+
+    async getNewAddress(label = '') {
+        return this.call('getnewaddress', [label]);
+    }
+
+    async validateAddress(address) {
+        return this.call('validateaddress', [address]);
     }
 }
 
 export async function testRPCConnection(config) {
-    // Special handling for Electron proxy (port 9767)
     if (config.host === 'localhost' && config.port === '9767') {
         try {
             const response = await fetch('http://localhost:9767', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jsonrpc: '1.0',
-                    id: Date.now(),
-                    method: 'getblockchaininfo',
-                    params: []
-                }),
+                body: JSON.stringify({ jsonrpc: '1.0', id: Date.now(), method: 'getblockchaininfo', params: [] }),
                 signal: AbortSignal.timeout(3000)
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
-            if (data.error) {
-                throw new Error(data.error.message || 'RPC error from proxy');
-            }
-            
-            return {
-                connected: true,
-                nodeInfo: {
-                    blocks: data.result?.blocks,
-                    chain: data.result?.chain,
-                    version: data.result?.version
-                }
-            };
+            if (data.error) throw new Error(data.error.message || 'RPC error');
+            return { connected: true, nodeInfo: { blocks: data.result?.blocks, chain: data.result?.chain, version: data.result?.version } };
         } catch (err) {
-            const errorMsg = err.name === 'AbortError' 
-                ? 'Timeout: Electron proxy not responding'
-                : err.message.includes('Failed to fetch')
-                ? 'Network error: Is Electron running? (npm run electron:dev)'
-                : err.message;
-            
             return {
                 connected: false,
-                error: errorMsg
+                error: err.name === 'AbortError'
+                    ? 'Timeout: Electron proxy not responding'
+                    : err.message.includes('Failed to fetch')
+                    ? 'Network error: Is Electron running?'
+                    : err.message
             };
         }
     }
 
-    // Standard RPC test
     try {
         const client = new RPCClient(config);
         const info = await client.getBlockchainInfo();
-        return {
-            connected: true,
-            nodeInfo: {
-                blocks: info.blocks,
-                chain: info.chain,
-                version: info.version,
-                difficulty: info.difficulty
-            }
-        };
+        return { connected: true, nodeInfo: { blocks: info.blocks, chain: info.chain, version: info.version, difficulty: info.difficulty } };
     } catch (err) {
-        return {
-            connected: false,
-            error: err.message
-        };
+        return { connected: false, error: err.message };
     }
 }

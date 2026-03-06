@@ -7,28 +7,29 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
+/**
+ * WalletCreator — Creates a new wallet via the backend.
+ *
+ * Architecture: Option A (Backend-Signed / Semi-Custodial)
+ * The backend (generateWalletAddress function) handles:
+ *   - address generation via getnewaddress RPC
+ *   - private key export via dumpprivkey RPC
+ *   - AES-GCM encryption of the WIF using a backend-controlled secret
+ *   - storage of the encrypted key in the Wallet entity
+ *
+ * The raw WIF key is NEVER returned to the frontend.
+ * The frontend only receives the address and wallet metadata.
+ * This ensures backend signing (sendTransaction) can always decrypt and sign.
+ */
+
 const WALLET_COLORS = [
     { name: 'Purple', class: 'from-purple-500 to-purple-700' },
-    { name: 'Blue', class: 'from-blue-500 to-blue-700' },
-    { name: 'Green', class: 'from-green-500 to-green-700' },
-    { name: 'Amber', class: 'from-amber-500 to-amber-700' },
-    { name: 'Pink', class: 'from-pink-500 to-pink-700' },
-    { name: 'Cyan', class: 'from-cyan-500 to-cyan-700' }
+    { name: 'Blue',   class: 'from-blue-500 to-blue-700' },
+    { name: 'Green',  class: 'from-green-500 to-green-700' },
+    { name: 'Amber',  class: 'from-amber-500 to-amber-700' },
+    { name: 'Pink',   class: 'from-pink-500 to-pink-700' },
+    { name: 'Cyan',   class: 'from-cyan-500 to-cyan-700' }
 ];
-
-// Encrypt WIF private key with user's password using AES-GCM
-async function encryptPrivateKey(privateKey, password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(privateKey);
-    const keyData = encoder.encode(password.padEnd(32, '0').slice(0, 32));
-    const key = await crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt']);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
-    const combined = new Uint8Array(iv.length + encrypted.byteLength);
-    combined.set(iv);
-    combined.set(new Uint8Array(encrypted), iv.length);
-    return btoa(String.fromCharCode(...combined));
-}
 
 export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
@@ -43,9 +44,11 @@ export default function WalletCreator({ account, onClose, onCreated }) {
 
         setLoading(true);
         try {
-            // Step 1: Generate address via RPC node and get WIF private key
+            // Backend generates address, encrypts and stores WIF — raw key never returned
             const genResponse = await base44.functions.invoke('generateWalletAddress', {
-                label: name.trim()
+                walletName: name.trim(),
+                label: name.trim(),
+                color: selectedColor.class
             });
 
             if (genResponse.data.error) {
@@ -53,31 +56,30 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 return;
             }
 
-            const { address, wifKey } = genResponse.data;
+            const { address, walletId, walletName } = genResponse.data;
 
-            // Step 2: Encrypt WIF key client-side before storing
-            const session = JSON.parse(localStorage.getItem('rod_wallet_session') || '{}');
-            const password = session.password_hash || 'wallet_encryption_key';
-            const encryptedPrivateKey = await encryptPrivateKey(wifKey, password);
+            if (!address || !walletId) {
+                toast.error('Wallet creation failed: incomplete response from server');
+                return;
+            }
 
-            // Step 3: Store wallet with encrypted key — WIF never sent to DB in plaintext
-            const wallet = await base44.entities.Wallet.create({
-                account_id: account.id,
-                name: name.trim(),
+            // Return a minimal wallet object to the parent — no key material
+            const wallet = {
+                id: walletId,
+                name: walletName || name.trim(),
                 wallet_address: address,
-                encrypted_private_key: encryptedPrivateKey,
-                additional_addresses: [],
                 balance: 0,
                 is_active: false,
                 wallet_type: 'standard',
-                color: selectedColor.class
-            });
+                color: selectedColor.class,
+                account_id: account.id
+            };
 
-            toast.success(`Wallet "${name}" created successfully!`);
+            toast.success(`Wallet "${wallet.name}" created successfully`);
             onCreated(wallet);
         } catch (err) {
-            console.error('Failed to create wallet:', err);
-            toast.error('Failed to create wallet: ' + err.message);
+            // Never include raw error details that could leak key info
+            toast.error('Failed to create wallet. Please check your RPC connection.');
         } finally {
             setLoading(false);
         }
@@ -121,12 +123,12 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                         </div>
                     </div>
 
+                    <p className="text-xs text-slate-500">
+                        The private key is encrypted and stored securely on the server. Your address is generated via the RPC node.
+                    </p>
+
                     <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={onClose}
-                            className="flex-1 border-slate-700"
-                        >
+                        <Button variant="outline" onClick={onClose} className="flex-1 border-slate-700">
                             Cancel
                         </Button>
                         <Button
@@ -135,15 +137,9 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             className="flex-1 bg-purple-600 hover:bg-purple-700"
                         >
                             {loading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Creating...
-                                </>
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
                             ) : (
-                                <>
-                                    <Sparkles className="w-4 h-4 mr-2" />
-                                    Create Wallet
-                                </>
+                                <><Sparkles className="w-4 h-4 mr-2" />Create Wallet</>
                             )}
                         </Button>
                     </div>
