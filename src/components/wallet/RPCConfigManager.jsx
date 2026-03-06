@@ -1884,7 +1884,7 @@ console.log(data.result);`}
                                     <p className="text-xs text-slate-500">Paste your full cURL command including headers and authentication</p>
                                 </div>
                             )}
-                            {formData.connection_type === 'api' && (
+                            {currentUser?.role === 'admin' && formData.connection_type === 'api' && (
                                 <>
                                     <div className="space-y-2">
                                         <Label className="text-slate-300">API Key</Label>
