@@ -446,6 +446,7 @@ export default function Admin() {
                             </Button>
                             <Button
                                 onClick={async () => {
+                                    setFixingProtocols(true);
                                     try {
                                         const response = await base44.functions.invoke('fixDuplicateProtocols', {});
                                         const fixed = response.data?.fixed || 0;
@@ -457,12 +458,19 @@ export default function Admin() {
                                         }
                                     } catch (err) {
                                         toast.error('Fix failed: ' + err.message);
+                                    } finally {
+                                        setFixingProtocols(false);
                                     }
                                 }}
+                                disabled={fixingProtocols}
                                 variant="outline"
                                 className="border-amber-500/50 text-amber-400">
-                                <RotateCcw className="w-4 h-4 mr-2" />
-                                Fix Duplicate Protocols
+                                {fixingProtocols ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                )}
+                                {fixingProtocols ? 'Fixing...' : 'Fix Duplicate Protocols'}
                             </Button>
                             <Button
                                 onClick={() => {
