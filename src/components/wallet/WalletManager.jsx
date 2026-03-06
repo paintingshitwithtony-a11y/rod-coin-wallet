@@ -246,6 +246,9 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                 </p>
                                                 <p className="text-lg font-bold text-white mt-1">
                                                     {(wallet.balance || 0).toFixed(4)} ROD
+                                                    {wallet.wallet_type === 'watch-only' && (
+                                                        <span className="ml-2 text-xs text-slate-500 font-normal">(receive only)</span>
+                                                    )}
                                                 </p>
                                             </div>
 
