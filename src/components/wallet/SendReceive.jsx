@@ -181,8 +181,10 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         const result = await validateRODAddress(address);
         setAddressValid(result.valid);
 
-        // Note whether recipient is one of user's own wallets (still a real on-chain tx, fee always applies)
-        const isMyWallet = myWallets.some(w => w.wallet_address === address);
+        // Note whether recipient is one of user's own wallets (still a real on-chain tx — fee always applies)
+        const isMyWallet = result.valid
+            ? myWallets.some(w => w.wallet_address === address)
+            : false;
         setIsSendingToOwnWallet(isMyWallet);
 
         setValidating(false);
