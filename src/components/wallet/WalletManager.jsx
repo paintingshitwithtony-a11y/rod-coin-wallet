@@ -209,6 +209,13 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                         Create New Wallet
                     </Button>
                     <Button
+                        onClick={() => setShowRootWalletSetup(true)}
+                        className="bg-red-600 hover:bg-red-700"
+                    >
+                        <ShieldCheck className="w-4 h-4 mr-2" />
+                        Create Root Wallet
+                    </Button>
+                    <Button
                         onClick={() => setShowRestore(true)}
                         variant="outline"
                         className="border-slate-700 text-slate-300"
