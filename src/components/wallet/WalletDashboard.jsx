@@ -1427,6 +1427,12 @@ export default function WalletDashboard({ account, onLogout }) {
                                                             Imported
                                                         </Badge>
                         }
+                                                    {allWallets.find(w => w.wallet_address === addr.address && w.encrypted_private_key && w.wallet_type === 'standard') && (
+                                                        <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
+                                                            <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80] inline-block flex-shrink-0" />
+                                                            Properly Encrypted
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-xs text-amber-400/80 font-mono truncate">
                                                     {addr.address}
