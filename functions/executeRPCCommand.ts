@@ -30,7 +30,10 @@ const ALLOWED_METHODS = new Set([
     'getblock',
     'listtransactions',
     'getnettotals',
-    'getwalletinfo'
+    'getwalletinfo',
+    'walletpassphrase',
+    'walletlock',
+    'encryptwallet'
 ]);
 
 Deno.serve(async (req) => {
