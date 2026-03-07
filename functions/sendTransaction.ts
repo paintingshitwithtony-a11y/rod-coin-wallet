@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         if (fee === undefined || fee === null || isNaN(parseFloat(fee)) || parseFloat(fee) < 0) {
             return Response.json({ error: 'fee must be a non-negative number' }, { status: 400 });
         }
-        // passphrase is optional — if wallet is already unlocked, it's not needed
+
 
         const sendAmount = parseFloat((+amount).toFixed(8));
         const feeAmount = parseFloat((+fee).toFixed(8));
