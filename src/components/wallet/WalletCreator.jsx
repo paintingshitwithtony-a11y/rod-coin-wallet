@@ -57,6 +57,10 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             setPassphraseError('Passphrase is required');
             return;
         }
+        if (passphrase !== confirmPassphrase) {
+            setPassphraseError('Passphrases do not match');
+            return;
+        }
 
         setLoading(true);
         setPassphraseError('');
