@@ -114,6 +114,17 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             </div>
 
                             <div>
+                                <Label className="text-slate-300">Node Wallet Passphrase <span className="text-slate-500 text-xs">(if encrypted)</span></Label>
+                                <Input
+                                    type="password"
+                                    value={passphrase}
+                                    onChange={(e) => setPassphrase(e.target.value)}
+                                    placeholder="Leave blank if wallet is unencrypted"
+                                    className="bg-slate-800 border-slate-700 text-white"
+                                />
+                            </div>
+
+                            <div>
                                 <Label className="text-slate-300 mb-2 block">Color Theme</Label>
                                 <div className="grid grid-cols-6 gap-2">
                                     {WALLET_COLORS.map((color) => (
