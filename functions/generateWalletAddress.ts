@@ -79,8 +79,12 @@ Deno.serve(async (req) => {
         try {
             await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
         } catch (unlockErr) {
-            // Ignore error if wallet is already unlocked or unencrypted
-            console.log('walletpassphrase (ignored):', unlockErr.message);
+            // Only ignore if already unlocked or wallet is unencrypted
+            const msg = unlockErr.message || '';
+            if (!msg.includes('already unlocked') && !msg.includes('unencrypted')) {
+                return Response.json({ error: 'Failed to unlock wallet. Check your passphrase.' }, { status: 401 });
+            }
+            console.log('walletpassphrase (ignored):', msg);
         }
 
         // --- Step 2: Generate new address ---
