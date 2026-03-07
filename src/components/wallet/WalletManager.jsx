@@ -127,12 +127,12 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             toast.error('Cannot delete main wallet');
             return;
         }
-        
+
         if (wallets.length <= 2) {
             toast.error('Cannot delete your only additional wallet');
             return;
         }
-        
+
         if (!confirm(`Delete wallet "${wallet.name}"? This cannot be undone!`)) {
             return;
         }
@@ -143,6 +143,35 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             fetchWallets();
         } catch (err) {
             toast.error('Failed to delete wallet');
+        }
+    };
+
+    const handleCreateRootWallet = async () => {
+        if (!rootWalletPassphrase.trim()) {
+            toast.error('Please enter a passphrase');
+            return;
+        }
+
+        setRootWalletLoading(true);
+        try {
+            const response = await base44.functions.invoke('createRootWallet', {
+                passphrase: rootWalletPassphrase
+            });
+
+            if (response.data.error) {
+                toast.error(response.data.error);
+                return;
+            }
+
+            setRecoveryInfo(response.data);
+            setShowRootWalletSetup(false);
+            setRootWalletPassphrase('');
+            fetchWallets();
+            toast.success('Root wallet created successfully');
+        } catch (err) {
+            toast.error('Failed to create root wallet');
+        } finally {
+            setRootWalletLoading(false);
         }
     };
 
