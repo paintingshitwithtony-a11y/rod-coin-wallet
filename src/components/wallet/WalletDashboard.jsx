@@ -217,6 +217,25 @@ export default function WalletDashboard({ account, onLogout }) {
       const allWallets = [mainWallet, ...walletsWithImportStatus];
       setAllWallets(allWallets);
 
+      // Merge wallet-entity addresses into the addresses list so the "Properly Encrypted" badge works
+      setAddresses(prev => {
+        const existingAddrs = new Map(prev.map(a => [a.address, a]));
+        // Add any wallet-entity addresses not already in the list
+        walletsWithImportStatus.forEach(w => {
+          if (!existingAddrs.has(w.wallet_address)) {
+            existingAddrs.set(w.wallet_address, {
+              id: `wallet-${w.id}`,
+              address: w.wallet_address,
+              label: w.name,
+              createdAt: w.created_date,
+              isValid: true,
+              importStatus: w.importStatus
+            });
+          }
+        });
+        return Array.from(existingAddrs.values());
+      });
+
       // Set current wallet to active one or keep existing if still valid
       const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
       const updatedCurrent = allWallets.find(w => w.id === (currentWallet?.id || activeWallet.id)) || activeWallet;
