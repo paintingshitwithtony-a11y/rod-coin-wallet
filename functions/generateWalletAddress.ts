@@ -83,10 +83,10 @@ Deno.serve(async (req) => {
         try {
             await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [nodePassphrase, 30]);
         } catch (unlockErr) {
-            const msg = unlockErr.message || '';
-            if (!msg.includes('already unlocked') && !msg.includes('unencrypted')) {
-                console.warn('walletpassphrase warning (non-fatal):', msg);
-                // Non-fatal: node may be unencrypted or already unlocked
+            const msg = (unlockErr.message || '').toLowerCase();
+            // Only ignore if already unlocked or wallet is unencrypted — otherwise it's fatal
+            if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
+                return Response.json({ error: 'Failed to unlock node wallet. Please check the WALLET_PASSPHRASE secret.' }, { status: 401 });
             }
         }
 
