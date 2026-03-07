@@ -167,15 +167,29 @@ Deno.serve(async (req) => {
         // --- Step 9: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 10: Unlock node wallet if needed (best-effort) ---
-        // Note: passphrase is always required for WIF decryption (step 11), regardless of node lock state
+        // --- Step 10: Check wallet encryption state; encrypt or unlock as needed ---
         try {
             const walletInfo = await rpcCall(rpcUrl, rpcAuth, 'getwalletinfo', []);
-            const isLocked = walletInfo.unlocked_until !== undefined && walletInfo.unlocked_until <= Math.floor(Date.now() / 1000);
-            if (isLocked && passphrase) {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+            const isUnencrypted = walletInfo.unlocked_until === undefined; // no unlocked_until means unencrypted
+
+            if (isUnencrypted) {
+                // Wallet not encrypted — encrypt it now with the user's passphrase
+                console.log('Node wallet is unencrypted — encrypting now...');
+                await rpcCall(rpcUrl, rpcAuth, 'encryptwallet', [passphrase]);
+                // Node will restart after encryption; wait briefly and try to unlock
+                await new Promise(r => setTimeout(r, 3000));
+                try { await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]); } catch (_) { /* node may still be restarting */ }
+            } else {
+                // Already encrypted — unlock if locked
+                const isLocked = walletInfo.unlocked_until <= Math.floor(Date.now() / 1000);
+                if (isLocked) {
+                    await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+                }
             }
-        } catch (_) { /* unencrypted wallet or already unlocked — continue */ }
+        } catch (encryptErr) {
+            // If encryptwallet was called, the node restarts — the tx will fail gracefully
+            console.log('Wallet encryption/unlock note:', encryptErr.message);
+        }
 
         // --- Step 11: Decrypt WIF using provided passphrase ---
         if (!passphrase || typeof passphrase !== 'string' || passphrase.trim() === '') {
