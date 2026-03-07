@@ -267,10 +267,13 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleWalletCreated = async (newWallet) => {
-     // Immediately add new wallet to the list
-     setAllWallets(prev => [mainWallet => prev.find(w => w.id === 'main-account'), ...prev.filter(w => w.id !== 'main-account'), newWallet]);
+     // Immediately add new wallet to the list, preserving the main account wallet
+     setAllWallets(prev => {
+       const mainWallet = prev.find(w => w.id === 'main-account');
+       const others = prev.filter(w => w.id !== 'main-account');
+       return mainWallet ? [mainWallet, ...others, newWallet] : [...others, newWallet];
+     });
      await fetchAllWallets();
-     toast.success(`Wallet "${newWallet.name}" created successfully`);
   };
 
 
