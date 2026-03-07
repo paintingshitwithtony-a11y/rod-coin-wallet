@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import WalletCreator from './WalletCreator';
 import WalletBackup from './WalletBackup';
 import WalletRestore from './WalletRestore';
+import WalletRecoveryInfo from './WalletRecoveryInfo';
 
 const WALLET_COLORS = [
     { name: 'Purple', class: 'from-purple-500 to-purple-700' },
