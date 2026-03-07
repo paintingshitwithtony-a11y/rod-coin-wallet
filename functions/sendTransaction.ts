@@ -143,20 +143,27 @@ Deno.serve(async (req) => {
         // --- Step 6: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 7: Unlock node wallet using user-provided passphrase ---
-        if (passphrase) {
-            try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
-            } catch (unlockErr) {
-                const msg = (unlockErr.message || '').toLowerCase();
-                if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
-                    return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
+        // --- Step 7: Unlock node wallet or sign with private key ---
+        let signResult;
+        if (privateKey) {
+            // Sign directly with provided WIF private key — no node wallet unlock needed
+            signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [rawTx, [privateKey]]);
+        } else {
+            // Unlock the encrypted node wallet with passphrase, then sign
+            if (passphrase) {
+                try {
+                    await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+                } catch (unlockErr) {
+                    const msg = (unlockErr.message || '').toLowerCase();
+                    if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
+                        return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
+                    }
                 }
             }
+            signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
         }
 
         // --- Step 8: Sign with node wallet ---
-        const signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
 
         if (!signResult.complete) {
             return Response.json({
