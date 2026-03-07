@@ -373,6 +373,66 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                         }}
                     />
                 )}
+
+                {/* Root Wallet Setup Modal */}
+                {showRootWalletSetup && (
+                    <Dialog open={true} onOpenChange={() => !rootWalletLoading && setShowRootWalletSetup(false)}>
+                        <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-red-400">
+                                    <ShieldCheck className="w-5 h-5" />
+                                    Create Root Wallet
+                                </DialogTitle>
+                            </DialogHeader>
+                            <Alert className="bg-amber-900/20 border-amber-700">
+                                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                <AlertDescription className="text-amber-200">
+                                    This creates a new encrypted wallet at the node level. You must save the passphrase and private key.
+                                </AlertDescription>
+                            </Alert>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-slate-300 text-sm font-semibold block mb-2">Encryption Passphrase</label>
+                                    <Input
+                                        type="password"
+                                        value={rootWalletPassphrase}
+                                        onChange={(e) => setRootWalletPassphrase(e.target.value)}
+                                        placeholder="Enter a strong passphrase"
+                                        className="bg-slate-800 border-slate-700 text-white"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowRootWalletSetup(false)}
+                                        disabled={rootWalletLoading}
+                                        className="flex-1 border-slate-700"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handleCreateRootWallet}
+                                        disabled={rootWalletLoading}
+                                        className="flex-1 bg-red-600 hover:bg-red-700"
+                                    >
+                                        {rootWalletLoading ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
+                                        ) : (
+                                            'Create Wallet'
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
+
+                {/* Recovery Info Modal */}
+                <WalletRecoveryInfo
+                    isOpen={!!recoveryInfo}
+                    onClose={() => setRecoveryInfo(null)}
+                    walletData={recoveryInfo}
+                />
             </DialogContent>
         </Dialog>
     );
