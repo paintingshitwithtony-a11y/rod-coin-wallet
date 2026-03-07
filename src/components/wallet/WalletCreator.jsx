@@ -141,7 +141,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             </div>
 
                             <p className="text-xs text-slate-500">
-                                Your address is generated on the RPC node. The node manages the private key securely.
+                                Your address is generated on the RPC node. The passphrase is used once to unlock the node and is never stored.
                             </p>
 
                             {error && <p className="text-red-400 text-sm">{error}</p>}
