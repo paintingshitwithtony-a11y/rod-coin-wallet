@@ -35,11 +35,8 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
     const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState('create'); // 'create', 'passphrase', or 'success'
-    const [passphrase, setPassphrase] = useState('');
-    const [confirmPassphrase, setConfirmPassphrase] = useState('');
-    const [passphraseError, setPassphraseError] = useState('');
-    const [showPassphrase, setShowPassphrase] = useState(false);
+    const [step, setStep] = useState('create'); // 'create' or 'success'
+    const [error, setError] = useState('');
     const [createdAddress, setCreatedAddress] = useState('');
 
     const handleCreate = async () => {

@@ -38,47 +38,6 @@ async function rpcCall(rpcUrl, rpcAuth, method, params) {
     return data.result;
 }
 
-// Decrypt WIF encrypted with user passphrase (PBKDF2 scheme — used by generateWalletAddress)
-async function decryptWIFWithPassphrase(encryptedKey, passphrase) {
-    const encoder = new TextEncoder();
-    const passphraseKey = await crypto.subtle.importKey('raw', encoder.encode(passphrase), { name: 'PBKDF2' }, false, ['deriveBits']);
-    const derivedKey = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: encoder.encode('wallet_salt'), iterations: 100000 }, passphraseKey, 256);
-    const combined = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
-    const iv = combined.slice(0, 12);
-    const ciphertext = combined.slice(12);
-    const cryptoKey = await crypto.subtle.importKey('raw', derivedKey, { name: 'AES-GCM' }, false, ['decrypt']);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext);
-    return new TextDecoder().decode(decrypted);
-}
-
-// Decrypt WIF encrypted with WALLET_ENCRYPTION_SECRET (used by importSpendableWallet and older wallets)
-async function decryptWIFWithSecret(encryptedKey) {
-    const secret = Deno.env.get('WALLET_ENCRYPTION_SECRET');
-    if (!secret) throw new Error('WALLET_ENCRYPTION_SECRET not set');
-    const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(secret.padEnd(32, '0').slice(0, 32)),
-        { name: 'AES-GCM' },
-        false,
-        ['decrypt']
-    );
-    const combined = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
-    const iv = combined.slice(0, 12);
-    const ciphertext = combined.slice(12);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, keyMaterial, ciphertext);
-    return new TextDecoder().decode(decrypted);
-}
-
-// Try passphrase first, fall back to WALLET_ENCRYPTION_SECRET for imported/legacy wallets
-async function decryptWIF(encryptedKey, passphrase) {
-    if (passphrase) {
-        try {
-            return await decryptWIFWithPassphrase(encryptedKey, passphrase);
-        } catch (_) { /* wrong passphrase or different scheme — try secret */ }
-    }
-    return await decryptWIFWithSecret(encryptedKey);
-}
-
 function buildRpcUrl(rpcConfig) {
     const host = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
     const SSL_PORTS = new Set(['443', '9443', '8443']);
