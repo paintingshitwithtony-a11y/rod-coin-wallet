@@ -197,13 +197,13 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 <code className="text-xs text-green-400 bg-slate-800 p-2 rounded block mt-1 break-all">{createdAddress}</code>
                             </div>
                             <div>
-                                <Label className="text-slate-400 text-xs">Passphrase Used</Label>
+                                <Label className="text-slate-400 text-xs">Your Passphrase — copy and store this now</Label>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <code className="text-sm text-amber-400 bg-slate-800 p-2 rounded flex-1 break-all">
-                                        {showPassphrase ? passphrase : '•'.repeat(passphrase.length)}
+                                    <code className="text-sm text-amber-400 bg-slate-800 p-2 rounded flex-1 break-all select-all">
+                                        {passphrase}
                                     </code>
-                                    <Button size="sm" variant="ghost" onClick={() => setShowPassphrase(!showPassphrase)}>
-                                        {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(passphrase); toast.success('Passphrase copied'); }}>
+                                        <Copy className="w-4 h-4" />
                                     </Button>
                                 </div>
                             </div>
