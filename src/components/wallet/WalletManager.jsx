@@ -34,6 +34,10 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
      const [totalBalance, setTotalBalance] = useState(0);
      const [editingWallet, setEditingWallet] = useState(null);
      const [editName, setEditName] = useState('');
+     const [showRootWalletSetup, setShowRootWalletSetup] = useState(false);
+     const [rootWalletPassphrase, setRootWalletPassphrase] = useState('');
+     const [rootWalletLoading, setRootWalletLoading] = useState(false);
+     const [recoveryInfo, setRecoveryInfo] = useState(null);
 
     useEffect(() => {
         fetchWallets();
