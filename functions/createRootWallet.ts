@@ -78,20 +78,19 @@ Deno.serve(async (req) => {
 
         // Step 3: Get the private key for this address
          let privateKey = '';
-         try {
-             // Unlock wallet if it's encrypted (timeout after 10 seconds of operations)
+
+         // If wallet is encrypted, unlock it temporarily
+         if (walletIsEncrypted) {
              try {
-                 await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 10]);
+                 await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
              } catch (unlockError) {
-                 // Wallet might not be encrypted or passphrase invalid
                  console.warn('Could not unlock wallet:', unlockError.message);
              }
+         }
 
-             // Try to dump the private key
+         try {
              privateKey = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
          } catch (e) {
-             // If wallet is encrypted and needs unlocking, we can't get the key without unlocking
-             // Return what we have and let user handle recovery manually
              console.warn('Could not retrieve private key:', e.message);
          }
 
