@@ -75,9 +75,7 @@ Deno.serve(async (req) => {
         if (fee === undefined || fee === null || isNaN(parseFloat(fee)) || parseFloat(fee) < 0) {
             return Response.json({ error: 'fee must be a non-negative number' }, { status: 400 });
         }
-        if (!passphrase || typeof passphrase !== 'string') {
-            return Response.json({ error: 'Passphrase is required' }, { status: 400 });
-        }
+        // passphrase is optional — if wallet is already unlocked, it's not needed
 
         const sendAmount = parseFloat((+amount).toFixed(8));
         const feeAmount = parseFloat((+fee).toFixed(8));
@@ -169,12 +167,22 @@ Deno.serve(async (req) => {
         // --- Step 9: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 10: Unlock wallet using provided passphrase ---
+        // --- Step 10: Unlock wallet if needed ---
+        // Check current lock state first — skip unlock if already unlocked or unencrypted
         try {
-            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+            const walletInfo = await rpcCall(rpcUrl, rpcAuth, 'getwalletinfo', []);
+            const isLocked = walletInfo.unlocked_until !== undefined && walletInfo.unlocked_until <= Math.floor(Date.now() / 1000);
+            if (isLocked) {
+                if (!passphrase || typeof passphrase !== 'string') {
+                    return Response.json({ error: 'Wallet is locked. Please provide your passphrase to send.' }, { status: 400 });
+                }
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+            }
         } catch (unlockErr) {
-            // Ignore error if wallet is already unlocked or unencrypted
-            console.log('walletpassphrase (ignored):', unlockErr.message);
+            // If getwalletinfo doesn't have unlocked_until (unencrypted wallet), proceed
+            if (passphrase) {
+                try { await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]); } catch (_) { /* already unlocked */ }
+            }
         }
 
         // --- Step 11: Decrypt WIF using provided passphrase ---
