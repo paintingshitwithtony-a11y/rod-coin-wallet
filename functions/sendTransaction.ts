@@ -186,6 +186,9 @@ Deno.serve(async (req) => {
         }
 
         // --- Step 11: Decrypt WIF using provided passphrase ---
+        if (!passphrase || typeof passphrase !== 'string' || passphrase.trim() === '') {
+            return Response.json({ error: 'Passphrase is required to sign the transaction.' }, { status: 400 });
+        }
         const wifKey = await decryptWIF(encryptedPrivateKey, passphrase);
 
         // --- Step 12: Sign with key — key is NOT imported into node wallet ---
