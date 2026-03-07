@@ -167,23 +167,15 @@ Deno.serve(async (req) => {
         // --- Step 9: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 10: Unlock wallet if needed ---
-        // Check current lock state first — skip unlock if already unlocked or unencrypted
+        // --- Step 10: Unlock node wallet if needed (best-effort) ---
+        // Note: passphrase is always required for WIF decryption (step 11), regardless of node lock state
         try {
             const walletInfo = await rpcCall(rpcUrl, rpcAuth, 'getwalletinfo', []);
             const isLocked = walletInfo.unlocked_until !== undefined && walletInfo.unlocked_until <= Math.floor(Date.now() / 1000);
-            if (isLocked) {
-                if (!passphrase || typeof passphrase !== 'string') {
-                    return Response.json({ error: 'Wallet is locked. Please provide your passphrase to send.' }, { status: 400 });
-                }
+            if (isLocked && passphrase) {
                 await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
             }
-        } catch (unlockErr) {
-            // If getwalletinfo doesn't have unlocked_until (unencrypted wallet), proceed
-            if (passphrase) {
-                try { await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]); } catch (_) { /* already unlocked */ }
-            }
-        }
+        } catch (_) { /* unencrypted wallet or already unlocked — continue */ }
 
         // --- Step 11: Decrypt WIF using provided passphrase ---
         if (!passphrase || typeof passphrase !== 'string' || passphrase.trim() === '') {
