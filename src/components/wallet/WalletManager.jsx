@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
     Wallet, Plus, Download, Upload, CheckCircle2, 
-    Trash2, Edit2, Eye, EyeOff, Copy, Settings, Pencil, ShieldCheck
+    Trash2, Edit2, Eye, EyeOff, Copy, Settings, Pencil, ShieldCheck,
+    AlertTriangle, Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
