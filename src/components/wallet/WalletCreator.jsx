@@ -161,25 +161,14 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                         </DialogHeader>
                         <div className="space-y-4">
                             <p className="text-slate-300 text-sm">
-                                Your wallet has been created. <span className="text-amber-400 font-semibold">Save your passphrase now</span> — it cannot be recovered later.
+                                Your wallet has been created and is managed by the RPC node.
                             </p>
                             <div>
                                 <Label className="text-slate-400 text-xs">Address</Label>
                                 <code className="text-xs text-green-400 bg-slate-800 p-2 rounded block mt-1 break-all">{createdAddress}</code>
                             </div>
-                            <div>
-                                <Label className="text-slate-400 text-xs">Your Passphrase — copy and store this now</Label>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <code className="text-sm text-amber-400 bg-slate-800 p-2 rounded flex-1 break-all select-all">
-                                        {passphrase}
-                                    </code>
-                                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(passphrase); toast.success('Passphrase copied'); }}>
-                                        <Copy className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
                             <Button onClick={onClose} className="w-full bg-green-600 hover:bg-green-700">
-                                I've saved my passphrase — Done
+                                Done
                             </Button>
                         </div>
                     </>

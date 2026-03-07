@@ -140,51 +140,28 @@ Deno.serve(async (req) => {
             outputs[fromAddress] = change;
         }
 
-        // --- Step 9: Create raw transaction ---
+        // --- Step 6: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 10: Attempt to unlock node wallet if encrypted (best-effort, non-fatal) ---
-        // We do NOT encrypt the node wallet here — that is a destructive, irreversible operation
-        // that could lock the user out. Signing is done with our stored encrypted key instead.
-        try {
-            const walletInfo = await rpcCall(rpcUrl, rpcAuth, 'getwalletinfo', []);
-            const isEncrypted = walletInfo.unlocked_until !== undefined;
-            if (isEncrypted) {
-                const isLocked = walletInfo.unlocked_until <= Math.floor(Date.now() / 1000);
-                if (isLocked && passphrase) {
-                    await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+        // --- Step 7: Unlock node wallet using server-side WALLET_PASSPHRASE secret ---
+        const nodePassphrase = Deno.env.get('WALLET_PASSPHRASE') || '';
+        if (nodePassphrase) {
+            try {
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [nodePassphrase, 60]);
+            } catch (unlockErr) {
+                const msg = (unlockErr.message || '').toLowerCase();
+                if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
+                    return Response.json({ error: 'Failed to unlock node wallet for signing.' }, { status: 401 });
                 }
             }
-        } catch (unlockErr) {
-            console.log('Wallet unlock note (non-fatal):', unlockErr.message);
         }
 
-        // --- Step 11: Decrypt WIF using provided passphrase ---
-        if (!passphrase || typeof passphrase !== 'string' || passphrase.trim() === '') {
-            return Response.json({ error: 'Passphrase is required to sign the transaction.' }, { status: 400 });
-        }
-        const wifKey = await decryptWIF(encryptedPrivateKey, passphrase);
-
-        // --- Step 12: Sign with key — key is NOT imported into node wallet ---
-        const prevTxs = selectedUtxos.map(u => ({
-            txid: u.txid,
-            vout: u.vout,
-            scriptPubKey: u.scriptPubKey,
-            amount: u.amount
-        }));
-
-        const signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [
-            rawTx,
-            [wifKey],
-            prevTxs
-        ]);
-
-        // Clear WIF from local scope reference (best-effort in JS)
-        // wifKey = null; // (would cause const error, but GC will collect it)
+        // --- Step 8: Sign with node wallet ---
+        const signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
 
         if (!signResult.complete) {
             return Response.json({
-                error: 'Transaction signing incomplete — check that the correct private key is stored for this address',
+                error: 'Transaction signing incomplete — ensure the address belongs to the node wallet',
                 details: signResult.errors
             }, { status: 500 });
         }
