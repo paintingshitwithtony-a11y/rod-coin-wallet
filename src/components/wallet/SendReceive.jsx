@@ -236,14 +236,14 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     };
 
     const [sendPassphrase, setSendPassphrase] = useState('');
+    const [sendPrivateKey, setSendPrivateKey] = useState('');
 
     const handleMFAVerified = () => {
         setShowMFA(false);
         setMfaVerified(true);
-        if (sendPassphrase) {
-            executeSendWithPassphrase(sendPassphrase);
-            setSendPassphrase('');
-        }
+        executeSendWithPassphrase(sendPassphrase, sendPrivateKey);
+        setSendPassphrase('');
+        setSendPrivateKey('');
     };
 
     const executeSendWithPassphrase = async (passphrase) => {
