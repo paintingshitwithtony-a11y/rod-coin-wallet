@@ -95,8 +95,9 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             };
 
             toast.success(`Wallet "${wallet.name}" created successfully`);
-            onCreated(wallet); // This will trigger fetchWallets in WalletManager
-            onClose(); // Close the dialog after successful creation
+            onCreated(wallet);
+            setCreatedAddress(address);
+            setStep('success'); // Show passphrase reminder before closing
         } catch (err) {
             // Never include raw error details that could leak key info
             setPassphraseError('Failed to create wallet. Check your RPC connection.');
