@@ -215,6 +215,9 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 Unlock Your Wallet
                             </DialogTitle>
                         </DialogHeader>
+                                Unlock Your Wallet
+                            </DialogTitle>
+                        </DialogHeader>
 
                         <div className="space-y-4">
                             <div>
