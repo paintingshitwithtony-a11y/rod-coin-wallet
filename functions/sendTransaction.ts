@@ -1,22 +1,22 @@
 /**
- * sendTransaction — UTXO-based backend-signed transaction function.
+ * sendTransaction — UTXO-based node-signed transaction function.
  *
- * Architecture: Option A (Custodial/Semi-Custodial Backend Signing)
- * The backend holds encrypted private keys. Decryption happens in-memory here only.
- * No private key is ever returned to the frontend or logged.
+ * Architecture: Node-Custodial (Option 1)
+ * The node manages all private keys internally.
+ * The backend unlocks the node wallet server-side using WALLET_PASSPHRASE secret,
+ * then uses signrawtransactionwithwallet — no key export or storage needed.
  *
  * Flow:
  *  1. Authenticate user
  *  2. Verify ownership of fromAddress
- *  3. Load encrypted private key for fromAddress from DB
- *  4. listunspent filtered to fromAddress only
- *  5. Largest-first UTXO selection to cover amount + fee
- *  6. Calculate change → back to fromAddress (or absorbed if dust)
- *  7. createrawtransaction with explicit inputs and outputs
- *  8. Decrypt WIF in backend memory only
- *  9. signrawtransactionwithkey (key never imported into node wallet)
- * 10. sendrawtransaction
- * 11. Store tx record, return txid + metadata
+ *  3. listunspent filtered to fromAddress only
+ *  4. Largest-first UTXO selection to cover amount + fee
+ *  5. Calculate change → back to fromAddress (or absorbed if dust)
+ *  6. createrawtransaction with explicit inputs and outputs
+ *  7. Unlock node wallet with WALLET_PASSPHRASE (server-side secret)
+ *  8. signrawtransactionwithwallet (node signs internally)
+ *  9. sendrawtransaction
+ * 10. Store tx record, return txid + metadata
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
