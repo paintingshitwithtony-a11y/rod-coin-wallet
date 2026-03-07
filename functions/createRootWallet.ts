@@ -52,20 +52,29 @@ Deno.serve(async (req) => {
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
         // Step 1: Generate new address
-        const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', ['Root Wallet']);
+         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', ['Root Wallet']);
 
-        // Step 2: Encrypt the wallet with the provided passphrase
-        try {
-            await rpcCall(rpcUrl, rpcAuth, 'encryptwallet', [passphrase]);
-        } catch (e) {
-            const msg = (e.message || '').toLowerCase();
-            if (msg.includes('already encrypted')) {
-                // Wallet is already encrypted, which is fine for adding a new address
-                // But we still need to use the passphrase for operations
-            } else {
-                return Response.json({ error: `Failed to encrypt wallet: ${e.message}` }, { status: 500 });
-            }
-        }
+         // Step 2: Encrypt the wallet with the provided passphrase (skip if already encrypted)
+         const walletIsEncrypted = await new Promise(async (resolve) => {
+             try {
+                 await rpcCall(rpcUrl, rpcAuth, 'getinfo', []);
+                 resolve(false);
+             } catch (e) {
+                 // If getinfo fails, wallet might be encrypted
+                 resolve(true);
+             }
+         });
+
+         if (!walletIsEncrypted) {
+             try {
+                 await rpcCall(rpcUrl, rpcAuth, 'encryptwallet', [passphrase]);
+             } catch (e) {
+                 const msg = (e.message || '').toLowerCase();
+                 if (!msg.includes('already encrypted')) {
+                     return Response.json({ error: `Failed to encrypt wallet: ${e.message}` }, { status: 500 });
+                 }
+             }
+         }
 
         // Step 3: Get the private key for this address
          let privateKey = '';
