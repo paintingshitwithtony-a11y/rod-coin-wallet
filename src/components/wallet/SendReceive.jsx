@@ -214,22 +214,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
 
-        // Check if the wallet is already unlocked — skip passphrase modal if so
-        try {
-            const response = await base44.functions.invoke('executeRPCCommand', { method: 'getwalletinfo', params: [] });
-            if (response.data.success) {
-                const info = response.data.result;
-                const now = Math.floor(Date.now() / 1000);
-                const isUnlocked = info.unlocked_until === undefined || info.unlocked_until > now;
-                if (isUnlocked) {
-                    // Wallet already unlocked — proceed without passphrase
-                    executeSendWithPassphrase('');
-                    return;
-                }
-            }
-        } catch (_) { /* fall through to passphrase modal */ }
-
-        // Wallet is locked — show passphrase modal
+        // Always need passphrase — it's used to decrypt the stored private key for signing
         setShowPassphraseModal(true);
     };
 
