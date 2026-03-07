@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { fromAddress, recipient, amount, fee, memo } = body;
+        const { fromAddress, recipient, amount, fee, memo, passphrase } = body;
 
         // --- Input validation ---
         if (!fromAddress) return Response.json({ error: 'fromAddress is required' }, { status: 400 });

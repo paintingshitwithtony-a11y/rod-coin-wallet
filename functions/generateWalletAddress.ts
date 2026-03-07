@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
         const user = await base44.auth.me();
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { label, walletName, color, icon } = await req.json();
+        const { label, walletName, color, icon, passphrase } = await req.json();
 
         // --- Load account ---
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
