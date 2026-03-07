@@ -74,13 +74,13 @@ export default function PassphraseModal({ isOpen, title, description, onSubmit, 
                         </TabsContent>
 
                         <TabsContent value="privatekey" className="mt-3">
-                            <Label className="text-slate-300">Private Key (WIF format)</Label>
+                            <Label className="text-slate-300">Private Key (WIF or hex)</Label>
                             <Input
                                 type="password"
                                 value={privateKey}
                                 onChange={(e) => { setPrivateKey(e.target.value); setError(''); }}
                                 onKeyDown={(e) => { if (e.key === 'Enter' && !loading) handleSubmit(); }}
-                                placeholder="Enter WIF private key"
+                                placeholder="WIF (starts with K/L/5) or 64-char hex"
                                 className="bg-slate-800 border-slate-700 text-white mt-2 font-mono"
                                 disabled={loading}
                             />
