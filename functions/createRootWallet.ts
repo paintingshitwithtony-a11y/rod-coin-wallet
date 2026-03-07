@@ -91,7 +91,16 @@ Deno.serve(async (req) => {
          try {
              privateKey = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
          } catch (e) {
-             console.warn('Could not retrieve private key:', e.message);
+             // dumpprivkey might not be available on all node types
+             // Log but continue - user can export via other methods
+             console.warn('Could not retrieve private key via dumpprivkey:', e.message);
+             // Try alternative export methods if available
+             try {
+                 const result = await rpcCall(rpcUrl, rpcAuth, 'exportprivkey', [address, passphrase]);
+                 privateKey = result;
+             } catch (altError) {
+                 console.warn('Alternative export also failed:', altError.message);
+             }
          }
 
         // Step 4: Create wallet record in database
