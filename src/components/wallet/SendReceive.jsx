@@ -218,18 +218,16 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         setShowPassphraseModal(true);
     };
 
-    const handlePassphraseSubmit = (passphrase) => {
+    const handlePassphraseSubmit = (passphrase, privateKey) => {
         setShowPassphraseModal(false);
         // Check if MFA is enabled
         if (account.mfa_enabled && !mfaVerified) {
-            // Store passphrase temporarily in state for executeSend
-            setSendPassphrase(passphrase);
+            setSendPassphrase(passphrase || '');
+            setSendPrivateKey(privateKey || '');
             setShowMFA(true);
             return;
         }
-
-        // Proceed directly with transaction
-        executeSendWithPassphrase(passphrase);
+        executeSendWithPassphrase(passphrase, privateKey);
     };
 
     const handleConfirmTransaction = () => {
