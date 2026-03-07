@@ -146,8 +146,14 @@ Deno.serve(async (req) => {
         // --- Step 7: Unlock node wallet or sign with private key ---
         let signResult;
         if (privateKey) {
-            // Sign directly with provided WIF private key — no node wallet unlock needed
-            signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [rawTx, [privateKey]]);
+            // Convert hex private key to WIF if needed (WIF starts with 5, K, L for mainnet or c for testnet)
+            let wifKey = privateKey.trim();
+            const isHex = /^[0-9a-fA-F]{64}$/.test(wifKey);
+            if (isHex) {
+                wifKey = hexToWIF(wifKey);
+            }
+            // Sign directly with WIF private key — no node wallet unlock needed
+            signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [rawTx, [wifKey]]);
         } else {
             // Unlock the encrypted node wallet with passphrase, then sign
             if (passphrase) {
