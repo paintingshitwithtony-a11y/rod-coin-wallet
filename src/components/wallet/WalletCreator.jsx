@@ -174,8 +174,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             </div>
                         </div>
                     </>
-                ) : (
-                    step === 'success' ? (
+                ) : step === 'success' ? (
                     <>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
