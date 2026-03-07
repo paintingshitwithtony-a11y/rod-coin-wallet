@@ -45,46 +45,26 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             return;
         }
 
-        // Dialog should show passphrase step automatically
-        setStep('passphrase');
-    };
-
-    const handlePassphraseSubmit = async () => {
-        if (!passphrase.trim()) {
-            setPassphraseError('Passphrase is required');
-            return;
-        }
-        if (passphrase !== confirmPassphrase) {
-            setPassphraseError('Passphrases do not match');
-            return;
-        }
-
         setLoading(true);
-        setPassphraseError('');
+        setError('');
         try {
-            // Backend generates address, encrypts and stores WIF — raw key never returned
             const genResponse = await base44.functions.invoke('generateWalletAddress', {
                 walletName: name.trim(),
                 label: name.trim(),
-                color: selectedColor.class,
-                passphrase: passphrase // Pass user's passphrase
+                color: selectedColor.class
             });
 
             if (genResponse.data.error) {
-                setPassphraseError(genResponse.data.error);
-                setLoading(false);
+                setError(genResponse.data.error);
                 return;
             }
 
             const { address, walletId, walletName } = genResponse.data;
-
             if (!address || !walletId) {
-                setPassphraseError('Wallet creation failed: incomplete response');
-                setLoading(false);
+                setError('Wallet creation failed: incomplete response');
                 return;
             }
 
-            // Return a minimal wallet object to the parent — no key material
             const wallet = {
                 id: walletId,
                 name: walletName || name.trim(),
@@ -99,20 +79,12 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             toast.success(`Wallet "${wallet.name}" created successfully`);
             onCreated(wallet);
             setCreatedAddress(address);
-            setStep('success'); // Show passphrase reminder before closing
+            setStep('success');
         } catch (err) {
-            // Never include raw error details that could leak key info
-            setPassphraseError('Failed to create wallet. Check your RPC connection.');
+            setError('Failed to create wallet. Check your RPC connection.');
         } finally {
             setLoading(false);
         }
-    };
-
-    const handlePassphraseCancel = () => {
-        setStep('create');
-        setPassphrase('');
-        setConfirmPassphrase('');
-        setPassphraseError('');
     };
 
     return (
