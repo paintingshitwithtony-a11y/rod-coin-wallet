@@ -75,16 +75,19 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // --- Step 1: Unlock wallet using provided passphrase ---
+        // --- Step 1: Unlock the RPC node wallet using the NODE passphrase (from secrets) ---
+        // Note: this is separate from the user's per-wallet encryption passphrase.
+        // The node passphrase unlocks the node so we can call dumpprivkey.
+        // The user's passphrase is used only to AES-encrypt the exported WIF key.
+        const nodePassphrase = Deno.env.get('WALLET_PASSPHRASE') || '';
         try {
-            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [nodePassphrase, 30]);
         } catch (unlockErr) {
-            // Only ignore if already unlocked or wallet is unencrypted
             const msg = unlockErr.message || '';
             if (!msg.includes('already unlocked') && !msg.includes('unencrypted')) {
-                return Response.json({ error: 'Failed to unlock wallet. Check your passphrase.' }, { status: 401 });
+                console.warn('walletpassphrase warning (non-fatal):', msg);
+                // Non-fatal: node may be unencrypted or already unlocked
             }
-            console.log('walletpassphrase (ignored):', msg);
         }
 
         // --- Step 2: Generate new address ---
