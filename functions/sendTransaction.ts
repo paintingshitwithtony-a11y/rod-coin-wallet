@@ -163,8 +163,6 @@ Deno.serve(async (req) => {
             signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
         }
 
-        // --- Step 8: Sign with node wallet ---
-
         if (!signResult.complete) {
             return Response.json({
                 error: 'Transaction signing incomplete — ensure the address belongs to the node wallet',
