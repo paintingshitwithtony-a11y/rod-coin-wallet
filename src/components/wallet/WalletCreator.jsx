@@ -52,7 +52,8 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             const genResponse = await base44.functions.invoke('generateWalletAddress', {
                 walletName: name.trim(),
                 label: name.trim(),
-                color: selectedColor.class
+                color: selectedColor.class,
+                passphrase: passphrase || undefined
             });
 
             if (genResponse.data.error) {
