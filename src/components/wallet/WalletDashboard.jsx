@@ -158,8 +158,10 @@ export default function WalletDashboard({ account, onLogout }) {
       setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
     }
 
-      // Initial load: check RPC status only (minimal API load)
+      // Initial load: check RPC status and fetch wallets
       checkRPCStatus();
+      fetchAllWallets();
+      fetchWalletData();
 
       return () => {
         // No intervals - user will manually sync
