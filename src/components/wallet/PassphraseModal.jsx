@@ -56,7 +56,7 @@ export default function PassphraseModal({ isOpen, title, description, onSubmit, 
                                 <Lock className="w-3 h-3 mr-1" /> Passphrase
                             </TabsTrigger>
                             <TabsTrigger value="privatekey" className="flex-1 data-[state=active]:bg-amber-600">
-                                <Key className="w-3 h-3 mr-1" /> Private Key (WIF)
+                                <Key className="w-3 h-3 mr-1" /> Private Key
                             </TabsTrigger>
                         </TabsList>
 
