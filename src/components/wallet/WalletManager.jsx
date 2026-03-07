@@ -238,11 +238,18 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                             {wallet.wallet_type}
                                                         </Badge>
                                                     )}
-                                                    {wallet.encrypted_private_key && wallet.wallet_type === 'standard' && (
-                                                        <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
-                                                            <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80] inline-block" />
-                                                            Properly Encrypted
-                                                        </span>
+                                                    {wallet.id !== 'main-account' && wallet.wallet_type === 'standard' && (
+                                                        wallet.encrypted_private_key ? (
+                                                            <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
+                                                                <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80] inline-block" />
+                                                                Properly Encrypted
+                                                            </span>
+                                                        ) : (
+                                                            <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
+                                                                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                                                                Key Not Stored
+                                                            </span>
+                                                        )
                                                     )}
                                                     </div>
                                                 <p className="text-sm text-amber-400/80 font-mono truncate">
