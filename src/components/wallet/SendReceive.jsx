@@ -195,7 +195,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
     };
 
-    const handleSendClick = () => {
+    const handleSendClick = async () => {
         if (!addressValid) {
             toast.error('Please enter a valid ROD address');
             return;
@@ -214,7 +214,22 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
 
-        // Show passphrase modal before confirmation
+        // Check if the wallet is already unlocked — skip passphrase modal if so
+        try {
+            const response = await base44.functions.invoke('executeRPCCommand', { method: 'getwalletinfo', params: [] });
+            if (response.data.success) {
+                const info = response.data.result;
+                const now = Math.floor(Date.now() / 1000);
+                const isUnlocked = info.unlocked_until === undefined || info.unlocked_until > now;
+                if (isUnlocked) {
+                    // Wallet already unlocked — proceed without passphrase
+                    executeSendWithPassphrase('');
+                    return;
+                }
+            }
+        } catch (_) { /* fall through to passphrase modal */ }
+
+        // Wallet is locked — show passphrase modal
         setShowPassphraseModal(true);
     };
 
