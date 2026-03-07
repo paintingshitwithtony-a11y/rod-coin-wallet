@@ -92,6 +92,9 @@ Deno.serve(async (req) => {
 
         // --- Step 3: Export private key (WIF) — never returned to frontend, never logged ---
         const wifKey = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
+        if (!wifKey || typeof wifKey !== 'string') {
+            throw new Error('Failed to retrieve private key from node. Wallet not created.');
+        }
 
         // --- Step 4: Encrypt WIF using wallet-specific passphrase ---
         const encryptedPrivateKey = await encryptWIF(wifKey, passphrase);
