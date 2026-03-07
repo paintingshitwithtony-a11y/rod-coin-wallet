@@ -13,7 +13,6 @@ import {
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Input } from "@/components/ui/input";
 import WalletCreator from './WalletCreator';
 import WalletBackup from './WalletBackup';
 import WalletRestore from './WalletRestore';
