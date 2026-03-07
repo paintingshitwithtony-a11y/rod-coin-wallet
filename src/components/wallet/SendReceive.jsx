@@ -246,7 +246,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         setSendPrivateKey('');
     };
 
-    const executeSendWithPassphrase = async (passphrase) => {
+    const executeSendWithPassphrase = async (passphrase, privateKey) => {
         setSending(true);
         setShowConfirmation(false);
         
@@ -261,14 +261,14 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 return;
             }
 
-            // Backend handles all decryption and signing — no key material on frontend
             const response = await base44.functions.invoke('sendTransaction', {
                 fromAddress: senderAddress,
                 recipient,
                 amount: amountNum,
                 fee: feeNum,
                 memo: memo || '',
-                passphrase: passphrase
+                passphrase: passphrase || undefined,
+                privateKey: privateKey || undefined
             });
             
             console.log('Response:', response.data);
