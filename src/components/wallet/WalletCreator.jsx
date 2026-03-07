@@ -128,8 +128,10 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             </div>
 
                             <p className="text-xs text-slate-500">
-                                The private key is encrypted and stored securely on the server. Your address is generated via the RPC node.
+                                Your address is generated on the RPC node. The node manages the private key securely.
                             </p>
+
+                            {error && <p className="text-red-400 text-sm">{error}</p>}
 
                             <div className="flex gap-2">
                                 <Button variant="outline" onClick={onClose} className="flex-1 border-slate-700">

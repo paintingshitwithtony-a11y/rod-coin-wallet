@@ -75,25 +75,13 @@ Deno.serve(async (req) => {
         const account = accounts[0];
 
         // --- Verify ownership of fromAddress ---
-        // Check main account address
-        let encryptedPrivateKey = null;
-        if (account.wallet_address === fromAddress) {
-            encryptedPrivateKey = account.encrypted_private_key || null;
-        }
-
-        // Check Wallet entities belonging to this account
-        if (!encryptedPrivateKey) {
+        let ownsAddress = account.wallet_address === fromAddress;
+        if (!ownsAddress) {
             const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
-            const matchingWallet = wallets.find(w => w.wallet_address === fromAddress);
-            if (matchingWallet) {
-                encryptedPrivateKey = matchingWallet.encrypted_private_key || null;
-            }
+            ownsAddress = wallets.some(w => w.wallet_address === fromAddress);
         }
-
-        if (!encryptedPrivateKey) {
-            return Response.json({
-                error: 'fromAddress does not belong to this account, or no private key is stored for it'
-            }, { status: 403 });
+        if (!ownsAddress) {
+            return Response.json({ error: 'fromAddress does not belong to this account' }, { status: 403 });
         }
 
         // --- Load active RPC config ---
