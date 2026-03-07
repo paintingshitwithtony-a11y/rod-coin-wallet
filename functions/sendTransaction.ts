@@ -143,15 +143,14 @@ Deno.serve(async (req) => {
         // --- Step 6: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 7: Unlock node wallet using server-side WALLET_PASSPHRASE secret ---
-        const nodePassphrase = Deno.env.get('WALLET_PASSPHRASE') || '';
-        if (nodePassphrase) {
+        // --- Step 7: Unlock node wallet using user-provided passphrase ---
+        if (passphrase) {
             try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [nodePassphrase, 60]);
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
             } catch (unlockErr) {
                 const msg = (unlockErr.message || '').toLowerCase();
                 if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
-                    return Response.json({ error: 'Failed to unlock node wallet for signing.' }, { status: 401 });
+                    return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
                 }
             }
         }

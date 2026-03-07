@@ -55,14 +55,13 @@ Deno.serve(async (req) => {
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
         // --- Step 1: Unlock the node wallet if encrypted ---
-        const nodePassphrase = Deno.env.get('WALLET_PASSPHRASE') || '';
-        if (nodePassphrase) {
+        if (passphrase) {
             try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [nodePassphrase, 30]);
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
             } catch (unlockErr) {
                 const msg = (unlockErr.message || '').toLowerCase();
                 if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
-                    return Response.json({ error: 'Failed to unlock node wallet. Please check the WALLET_PASSPHRASE secret.' }, { status: 401 });
+                    return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
                 }
             }
         }
