@@ -267,7 +267,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             </div>
                         </div>
                     </>
-                )}
+                ) : null}
             </DialogContent>
         </Dialog>
     );
