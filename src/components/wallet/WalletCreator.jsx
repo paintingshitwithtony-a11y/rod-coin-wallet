@@ -207,7 +207,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             </Button>
                         </div>
                     </>
-                ) : (
+                ) : step === 'passphrase' ? (
                     <>
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
