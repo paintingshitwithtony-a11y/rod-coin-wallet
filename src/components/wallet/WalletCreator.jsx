@@ -217,37 +217,45 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                                 <Lock className="w-5 h-5 text-amber-400" />
-                                Unlock Your Wallet
+                                Set Wallet Passphrase
                             </DialogTitle>
                         </DialogHeader>
 
                         <div className="space-y-4">
+                            <p className="text-xs text-amber-400 bg-amber-950/40 border border-amber-800 rounded p-2">
+                                This passphrase encrypts <strong>this wallet's private key</strong>. You will need it every time you send funds. It cannot be recovered — store it safely.
+                            </p>
                             <div>
-                                <Label className="text-slate-300">Wallet Passphrase</Label>
+                                <Label className="text-slate-300">Passphrase</Label>
+                                <div className="relative mt-2">
+                                    <Input
+                                        type={showPassphrase ? 'text' : 'password'}
+                                        value={passphrase}
+                                        onChange={(e) => { setPassphrase(e.target.value); setPassphraseError(''); }}
+                                        placeholder="Choose a strong passphrase"
+                                        className="bg-slate-800 border-slate-700 text-white pr-10"
+                                        disabled={loading}
+                                    />
+                                    <button type="button" onClick={() => setShowPassphrase(!showPassphrase)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                                        {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <Label className="text-slate-300">Confirm Passphrase</Label>
                                 <Input
-                                    type="password"
-                                    value={passphrase}
-                                    onChange={(e) => {
-                                        setPassphrase(e.target.value);
-                                        setPassphraseError('');
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !loading) {
-                                            handlePassphraseSubmit();
-                                        }
-                                    }}
-                                    placeholder="Enter your wallet passphrase"
+                                    type={showPassphrase ? 'text' : 'password'}
+                                    value={confirmPassphrase}
+                                    onChange={(e) => { setConfirmPassphrase(e.target.value); setPassphraseError(''); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && !loading) handlePassphraseSubmit(); }}
+                                    placeholder="Re-enter your passphrase"
                                     className="bg-slate-800 border-slate-700 text-white mt-2"
                                     disabled={loading}
                                 />
                                 {passphraseError && (
-                                    <p className="text-red-400 text-sm mt-2">{passphraseError}</p>
+                                    <p className="text-red-400 text-sm mt-1">{passphraseError}</p>
                                 )}
                             </div>
-
-                            <p className="text-xs text-slate-500">
-                                Your passphrase is never stored. It's used only for this transaction and immediately discarded.
-                            </p>
 
                             <div className="flex gap-2">
                                 <Button 
