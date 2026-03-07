@@ -33,6 +33,7 @@ const WALLET_COLORS = [
 
 export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
+    const [passphrase, setPassphrase] = useState('');
     const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState('create'); // 'create' or 'success'
