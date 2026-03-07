@@ -114,6 +114,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     const handlePassphraseCancel = () => {
         setStep('create');
         setPassphrase('');
+        setConfirmPassphrase('');
         setPassphraseError('');
     };
 
