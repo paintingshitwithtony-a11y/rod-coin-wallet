@@ -90,7 +90,7 @@ export default function PassphraseModal({ isOpen, title, description, onSubmit, 
                     {error && <p className="text-red-400 text-sm">{error}</p>}
 
                     <p className="text-xs text-slate-500">
-                        Your credentials are never stored. They are used only for this operation and immediately discarded.
+                        Enter the passphrase you used when you ran <code className="text-amber-400">encryptwallet</code> on your ROD node. This is set at the node level and is not the same as your app login password.
                     </p>
 
                     <div className="flex gap-2">
