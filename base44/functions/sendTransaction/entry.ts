@@ -213,7 +213,8 @@ Deno.serve(async (req) => {
                     await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
                 } catch (unlockErr) {
                     const msg = (unlockErr.message || '').toLowerCase();
-                    if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
+                    const isUnencryptedWallet = msg.includes('unencrypted') || msg.includes('not encrypted') || msg.includes('wallet is not encrypted');
+                    if (!msg.includes('already unlocked') && !msg.includes('already been unlocked') && !isUnencryptedWallet) {
                         return Response.json({ error: 'Failed to unlock node wallet. Check the saved node wallet passphrase.' }, { status: 400 });
                     }
                 }

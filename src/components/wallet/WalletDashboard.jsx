@@ -384,7 +384,8 @@ export default function WalletDashboard({ account, onLogout }) {
       });
       
       if (response.data && response.data.result) {
-        setWalletUnlocked(!response.data.result.unlocked_until || response.data.result.unlocked_until > 0);
+        const unlockedUntil = Number(response.data.result.unlocked_until || 0);
+        setWalletUnlocked(!response.data.result.unlocked_until || unlockedUntil > Math.floor(Date.now() / 1000));
       }
     } catch (err) {
       console.error('Failed to check unlock status:', err);
@@ -413,7 +414,16 @@ export default function WalletDashboard({ account, onLogout }) {
         setShowUnlockDialog(false);
         await checkWalletUnlockStatus();
       } else {
-        toast.error(response.data?.error || 'Failed to unlock wallet');
+        const message = response.data?.error || 'Failed to unlock wallet';
+        const isUnencryptedWallet = message.toLowerCase().includes('unencrypted') || message.toLowerCase().includes('not encrypted');
+        if (isUnencryptedWallet) {
+          toast.success('Wallet is not encrypted — no unlock needed');
+          setWalletUnlocked(true);
+          setUnlockPassphrase('');
+          setShowUnlockDialog(false);
+        } else {
+          toast.error(message);
+        }
       }
     } catch (err) {
       toast.error('Failed to unlock wallet: ' + err.message);
