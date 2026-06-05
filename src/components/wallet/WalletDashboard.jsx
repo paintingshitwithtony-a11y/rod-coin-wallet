@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Key, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2 } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2 } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -18,7 +18,6 @@ import SendReceive from './SendReceive';
 import AddressBook from './AddressBook';
 import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
-import AddressSeedModal from './AddressSeedModal';
 import TransactionHistory from './TransactionHistory';
 import WalletManager from './WalletManager';
 import RODNodeSetupGuide from './RODNodeSetupGuide';
@@ -65,7 +64,6 @@ export default function WalletDashboard({ account, onLogout }) {
   const [showRPCModal, setShowRPCModal] = useState(false);
   const [showRPCManager, setShowRPCManager] = useState(false);
   const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
-  const [selectedAddressForSeed, setSelectedAddressForSeed] = useState(null);
   const [rpcError, setRpcError] = useState(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -1500,15 +1498,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                                                     <Star className={`w-4 h-4 ${addr.address === account.wallet_address ? 'fill-amber-400' : ''}`} />
                                                 </Button>
-                                                <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSelectedAddressForSeed(addr)}
-                        className="text-slate-400 hover:text-amber-400"
-                        title="Add/Edit Seed Phrase">
 
-                                                    <Key className="w-4 h-4" />
-                                                </Button>
                                                 <Button
                         variant="ghost"
                         size="icon"
@@ -1716,42 +1706,6 @@ export default function WalletDashboard({ account, onLogout }) {
                     onClose={() => setShowConfEditor(false)} 
                 />
             )}
-
-            {/* Address Seed Modal */}
-            {selectedAddressForSeed &&
-      <AddressSeedModal
-        address={selectedAddressForSeed}
-        account={account}
-        onClose={() => setSelectedAddressForSeed(null)}
-        onSaved={() => {
-          // Reload addresses to show updated data
-          const accounts = base44.entities.WalletAccount.filter({ id: account.id });
-          accounts.then((accs) => {
-            if (accs.length > 0) {
-              const mainAddress = {
-                id: 'main',
-                address: accs[0].wallet_address,
-                label: 'Primary Address',
-                createdAt: accs[0].created_date,
-                isValid: true
-              };
-
-              const additionalAddresses = (accs[0].additional_addresses || []).map((addr, i) => ({
-                id: `addr-${i}`,
-                address: addr.address,
-                label: addr.label || `Address ${i + 2}`,
-                createdAt: addr.created_at,
-                isValid: true,
-                seed_phrase: addr.seed_phrase,
-                importStatus: 'imported'
-              }));
-
-              setAddresses(uniqueByAddress([mainAddress, ...additionalAddresses]));
-            }
-          });
-        }} />
-
-      }
 
             {/* Connection Status Alert */}
             {rpcConnected === false && !isReconnecting &&

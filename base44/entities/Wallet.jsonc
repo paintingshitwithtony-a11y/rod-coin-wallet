@@ -22,10 +22,6 @@
       "type": "string",
       "description": "Encrypted private key"
     },
-    "encrypted_seed_phrase": {
-      "type": "string",
-      "description": "Encrypted BIP39 seed phrase for wallet recovery"
-    },
     "additional_addresses": {
       "type": "array",
       "description": "Additional generated addresses",
