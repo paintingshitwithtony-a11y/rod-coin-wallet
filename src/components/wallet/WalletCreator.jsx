@@ -87,7 +87,12 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             return;
         }
 
-        if (passphrase && passphrase !== confirmPassphrase) {
+        if (!passphrase.trim()) {
+            setError('Please enter your node wallet passphrase');
+            return;
+        }
+
+        if (passphrase !== confirmPassphrase) {
             setError('Passphrases do not match. Please re-enter to confirm.');
             return;
         }
@@ -194,7 +199,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             <div>
                                 <Label className="text-slate-300">
                                     Node Wallet Passphrase
-                                    <span className="text-slate-500 text-xs ml-1">(required if wallet is encrypted)</span>
+                                    <span className="text-red-400 text-xs ml-1">*</span>
                                 </Label>
                                 <Input
                                     type="password"
@@ -208,36 +213,34 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 </p>
                             </div>
 
-                            {passphrase && (
-                                <div>
-                                    <Label className="text-slate-300">
-                                        Confirm Passphrase
-                                        <span className="text-red-400 text-xs ml-1">*</span>
-                                    </Label>
-                                    <Input
-                                        type="password"
-                                        value={confirmPassphrase}
-                                        onChange={(e) => { setConfirmPassphrase(e.target.value); setError(''); }}
-                                        placeholder="Re-enter passphrase to confirm"
-                                        className={`bg-slate-800 border-slate-700 text-white mt-1 ${
-                                            confirmPassphrase && confirmPassphrase !== passphrase
-                                                ? 'border-red-500'
-                                                : confirmPassphrase && confirmPassphrase === passphrase
-                                                ? 'border-green-500'
-                                                : ''
-                                        }`}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
-                                    />
-                                    {confirmPassphrase && confirmPassphrase !== passphrase && (
-                                        <p className="text-xs text-red-400 mt-1">Passphrases do not match</p>
-                                    )}
-                                    {confirmPassphrase && confirmPassphrase === passphrase && (
-                                        <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
-                                            <CheckCircle2 className="w-3 h-3" /> Passphrases match
-                                        </p>
-                                    )}
-                                </div>
-                            )}
+                            <div>
+                                <Label className="text-slate-300">
+                                    Confirm Passphrase
+                                    <span className="text-red-400 text-xs ml-1">*</span>
+                                </Label>
+                                <Input
+                                    type="password"
+                                    value={confirmPassphrase}
+                                    onChange={(e) => { setConfirmPassphrase(e.target.value); setError(''); }}
+                                    placeholder="Re-enter passphrase to confirm"
+                                    className={`bg-slate-800 border-slate-700 text-white mt-1 ${
+                                        confirmPassphrase && confirmPassphrase !== passphrase
+                                            ? 'border-red-500'
+                                            : confirmPassphrase && confirmPassphrase === passphrase
+                                            ? 'border-green-500'
+                                            : ''
+                                    }`}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                                />
+                                {confirmPassphrase && confirmPassphrase !== passphrase && (
+                                    <p className="text-xs text-red-400 mt-1">Passphrases do not match</p>
+                                )}
+                                {confirmPassphrase && confirmPassphrase === passphrase && (
+                                    <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3" /> Passphrases match
+                                    </p>
+                                )}
+                            </div>
 
                             <div>
                                 <Label className="text-slate-300 mb-2 block">Color Theme</Label>
@@ -268,7 +271,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 </Button>
                                 <Button
                                     onClick={handleCreate}
-                                    disabled={loading || !name.trim() || (!!passphrase && passphrase !== confirmPassphrase)}
+                                    disabled={loading || !name.trim() || !passphrase.trim() || passphrase !== confirmPassphrase}
                                     className="flex-1 bg-purple-600 hover:bg-purple-700"
                                 >
                                     {loading ? (
