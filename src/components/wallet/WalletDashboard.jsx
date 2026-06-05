@@ -38,6 +38,18 @@ import {
 "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+const normalizeAddress = (address) => (address || '').trim().toLowerCase();
+
+const uniqueByAddress = (items) => {
+  const byAddress = new Map();
+  items.forEach((item) => {
+    const key = normalizeAddress(item.address || item.wallet_address);
+    if (!key || byAddress.has(key)) return;
+    byAddress.set(key, item);
+  });
+  return Array.from(byAddress.values());
+};
+
 export default function WalletDashboard({ account, onLogout }) {
   const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
   const [addresses, setAddresses] = useState([]);
@@ -142,19 +154,7 @@ export default function WalletDashboard({ account, onLogout }) {
         importStatus: 'imported'
       }));
 
-      // Deduplicate addresses by address string
-      const allAddresses = [mainAddress, ...additionalAddresses];
-      const uniqueAddresses = [];
-      const seenAddresses = new Set();
-
-      for (const addr of allAddresses) {
-        if (!seenAddresses.has(addr.address)) {
-          seenAddresses.add(addr.address);
-          uniqueAddresses.push(addr);
-        }
-      }
-
-      setAddresses(uniqueAddresses);
+      setAddresses(uniqueByAddress([mainAddress, ...additionalAddresses]));
       setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
     }
 
@@ -215,24 +215,24 @@ export default function WalletDashboard({ account, onLogout }) {
           return { ...wallet, importStatus: isImported ? 'imported' : null };
       });
 
-      const allWallets = [mainWallet, ...walletsWithImportStatus];
+      const allWallets = uniqueByAddress([mainWallet, ...walletsWithImportStatus]);
       setAllWallets(allWallets);
 
-      // Merge wallet-entity addresses into the addresses list so the "Properly Encrypted" badge works
+      // Merge wallet-entity addresses into the addresses list and keep custom wallet names as labels
       setAddresses(prev => {
-        const existingAddrs = new Map(prev.map(a => [a.address, a]));
-        // Add any wallet-entity addresses not already in the list
+        const existingAddrs = new Map(prev.map(a => [normalizeAddress(a.address), a]));
         walletsWithImportStatus.forEach(w => {
-          if (!existingAddrs.has(w.wallet_address)) {
-            existingAddrs.set(w.wallet_address, {
-              id: `wallet-${w.id}`,
-              address: w.wallet_address,
-              label: w.name,
-              createdAt: w.created_date,
-              isValid: true,
-              importStatus: w.importStatus
-            });
-          }
+          const key = normalizeAddress(w.wallet_address);
+          const existing = existingAddrs.get(key);
+          existingAddrs.set(key, {
+            ...existing,
+            id: existing?.id || `wallet-${w.id}`,
+            address: w.wallet_address,
+            label: w.name || existing?.label || 'Wallet',
+            createdAt: existing?.createdAt || w.created_date,
+            isValid: true,
+            importStatus: w.importStatus || existing?.importStatus
+          });
         });
         return Array.from(existingAddrs.values());
       });
@@ -288,12 +288,20 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleWalletCreated = async (newWallet) => {
-     // Immediately add new wallet to the list, preserving the main account wallet
+     // Immediately add new wallet to the list, preserving the main account wallet and avoiding duplicates
      setAllWallets(prev => {
        const mainWallet = prev.find(w => w.id === 'main-account');
        const others = prev.filter(w => w.id !== 'main-account');
-       return mainWallet ? [mainWallet, ...others, newWallet] : [...others, newWallet];
+       return uniqueByAddress(mainWallet ? [mainWallet, ...others, newWallet] : [...others, newWallet]);
      });
+     setAddresses(prev => uniqueByAddress([{
+       id: `wallet-${newWallet.id}`,
+       address: newWallet.wallet_address,
+       label: newWallet.name,
+       createdAt: new Date().toISOString(),
+       isValid: true,
+       importStatus: 'imported'
+     }, ...prev]));
      await fetchAllWallets();
   };
 
@@ -645,21 +653,24 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleAddressGenerated = async (newAddress) => {
-    setAddresses((prev) => [newAddress, ...prev]);
+    setAddresses((prev) => uniqueByAddress([newAddress, ...prev]));
 
     // Save to account's additional_addresses
     try {
       const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
       if (currentAccount.length > 0) {
         const existingAddresses = currentAccount[0].additional_addresses || [];
-        await base44.entities.WalletAccount.update(account.id, {
-          additional_addresses: [...existingAddresses, {
-            address: newAddress.address,
-            public_key_hash: newAddress.publicKeyHash,
-            label: newAddress.label,
-            created_at: newAddress.createdAt
-          }]
-        });
+        const alreadySaved = existingAddresses.some(addr => normalizeAddress(addr.address) === normalizeAddress(newAddress.address));
+        if (!alreadySaved) {
+          await base44.entities.WalletAccount.update(account.id, {
+            additional_addresses: [...existingAddresses, {
+              address: newAddress.address,
+              public_key_hash: newAddress.publicKeyHash,
+              label: newAddress.label,
+              created_at: newAddress.createdAt
+            }]
+          });
+        }
       }
     } catch (err) {
         console.error('Failed to save address:', err);
@@ -683,20 +694,23 @@ export default function WalletDashboard({ account, onLogout }) {
       isValid: true,
       imported: true
     };
-    setAddresses((prev) => [newAddress, ...prev]);
+    setAddresses((prev) => uniqueByAddress([newAddress, ...prev]));
 
     // Save to account's additional_addresses
     try {
       const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
       if (currentAccount.length > 0) {
         const existingAddresses = currentAccount[0].additional_addresses || [];
-        await base44.entities.WalletAccount.update(account.id, {
-          additional_addresses: [...existingAddresses, {
-            address: importedWallet.address,
-            label: importedWallet.label,
-            created_at: importedWallet.created_at
-          }]
-        });
+        const alreadySaved = existingAddresses.some(addr => normalizeAddress(addr.address) === normalizeAddress(importedWallet.address));
+        if (!alreadySaved) {
+          await base44.entities.WalletAccount.update(account.id, {
+            additional_addresses: [...existingAddresses, {
+              address: importedWallet.address,
+              label: importedWallet.label,
+              created_at: importedWallet.created_at
+            }]
+          });
+        }
       }
     } catch (err) {
         console.error('Failed to save imported address:', err);
@@ -1732,7 +1746,7 @@ export default function WalletDashboard({ account, onLogout }) {
                 importStatus: 'imported'
               }));
 
-              setAddresses([mainAddress, ...additionalAddresses]);
+              setAddresses(uniqueByAddress([mainAddress, ...additionalAddresses]));
             }
           });
         }} />

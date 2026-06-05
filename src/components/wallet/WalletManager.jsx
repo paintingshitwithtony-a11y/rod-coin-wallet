@@ -25,6 +25,18 @@ const WALLET_COLORS = [
     { name: 'Cyan', class: 'from-cyan-500 to-cyan-700' }
 ];
 
+const normalizeAddress = (address) => (address || '').trim().toLowerCase();
+
+const uniqueWalletsByAddress = (wallets) => {
+    const byAddress = new Map();
+    wallets.forEach((wallet) => {
+        const key = normalizeAddress(wallet.wallet_address);
+        if (!key || byAddress.has(key)) return;
+        byAddress.set(key, wallet);
+    });
+    return Array.from(byAddress.values());
+};
+
 export default function WalletManager({ account, currentWallet, onWalletSwitch, onWalletCreated, onClose }) {
      const [wallets, setWallets] = useState([]);
      const [loading, setLoading] = useState(true);
@@ -64,7 +76,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 color: 'from-purple-500 to-purple-700'
             };
             
-            const allWallets = [mainWallet, ...walletList];
+            const allWallets = uniqueWalletsByAddress([mainWallet, ...walletList]);
             setWallets(allWallets);
             
             const total = allWallets.reduce((sum, w) => sum + (w.balance || 0), 0);
