@@ -300,8 +300,10 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 onTransactionComplete();
             }
         } catch (error) {
+            const message = error.response?.data?.error || error.message || 'Failed to broadcast transaction';
+            const details = error.response?.data?.details;
             toast.error('Transaction failed', {
-                description: error.message || 'Failed to broadcast transaction'
+                description: details ? `${message}: ${details}` : message
             });
         } finally {
             setSending(false);
