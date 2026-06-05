@@ -133,6 +133,9 @@ Deno.serve(async (req) => {
             const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
             ownsAddress = wallets.some(w => w.wallet_address === fromAddress);
         }
+        if (!ownsAddress) {
+            ownsAddress = (account.additional_addresses || []).some(addr => addr.address === fromAddress);
+        }
         if (!ownsAddress) return Response.json({ error: 'fromAddress does not belong to this account' }, { status: 403 });
 
         const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });

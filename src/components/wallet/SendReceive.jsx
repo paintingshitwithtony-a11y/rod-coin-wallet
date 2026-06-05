@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import TransactionConfirmation from './TransactionConfirmation';
 import MFAVerification from './MFAVerification';
-import PassphraseModal from './PassphraseModal';
+
 
 export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete, fromAddress }) {
     const [recipient, setRecipient] = useState('');
@@ -56,7 +56,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         return () => {
             if (switchTimeoutRef.current) clearTimeout(switchTimeoutRef.current);
         };
-    }, [mode, account]);
+    }, [mode, account, fromAddress]);
 
     // Update main wallet balance when parent updates
     useEffect(() => {
@@ -79,9 +79,9 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             // Include main wallet with balance from database
             const mainWallet = {
                 id: 'main-account',
-                name: 'Main Wallet',
+                name: 'Primary Wallet',
                 wallet_address: freshAccount.wallet_address,
-                balance: freshAccount.balance || 0
+                balance: freshAccount.balance || balance || 0
             };
 
             // Include additional addresses as selectable wallets
@@ -115,7 +115,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             
             // Set default selected wallet
             if (fromAddress) {
-                const wallet = allWallets.find(w => w.wallet_address === fromAddress);
+                const wallet = uniqueWallets.find(w => w.wallet_address === fromAddress);
                 setSelectedFromWallet(wallet || mainWallet);
             } else {
                 setSelectedFromWallet(mainWallet);
@@ -214,8 +214,12 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             return;
         }
 
-        // Always need passphrase — it's used to decrypt the stored private key for signing
-        setShowPassphraseModal(true);
+        if (account.mfa_enabled && !mfaVerified) {
+            setShowMFA(true);
+            return;
+        }
+
+        setShowConfirmation(true);
     };
 
     const handlePassphraseSubmit = (passphrase, privateKey) => {
@@ -231,8 +235,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     };
 
     const handleConfirmTransaction = () => {
-        // Just show confirmation — passphrase was already entered
-        setShowConfirmation(true);
+        executeSendWithPassphrase('', '');
     };
 
     const [sendPassphrase, setSendPassphrase] = useState('');
@@ -646,14 +649,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                     />
                 )}
 
-                <PassphraseModal
-                    isOpen={showPassphraseModal}
-                    title="Unlock Your Wallet"
-                    description="Enter your wallet passphrase to authorize this transaction."
-                    onSubmit={handlePassphraseSubmit}
-                    onCancel={() => setShowPassphraseModal(false)}
-                    loading={sending}
-                />
+        
             </motion.div>
         );
     }
