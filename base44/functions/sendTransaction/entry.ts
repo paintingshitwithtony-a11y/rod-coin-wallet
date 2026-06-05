@@ -201,25 +201,35 @@ Deno.serve(async (req) => {
 
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // Sign: use private key directly if provided, otherwise unlock node wallet
+        // Sign: use private key directly if provided. Otherwise try node-wallet signing first.
         let signResult;
         if (privateKey) {
             let wifKey = privateKey.trim();
             if (/^[0-9a-fA-F]{64}$/.test(wifKey)) wifKey = hexToWIF(wifKey);
             signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [rawTx, [wifKey]]);
         } else {
-            if (passphrase) {
+            try {
+                signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
+            } catch (signErr) {
+                const signMsg = (signErr.message || '').toLowerCase();
+                const needsUnlock = signMsg.includes('walletpassphrase') || signMsg.includes('passphrase') || signMsg.includes('locked');
+                if (!needsUnlock) throw signErr;
+                if (!passphrase) {
+                    return Response.json({ error: 'Node wallet is locked. Add the correct node wallet passphrase before sending.' }, { status: 400 });
+                }
                 try {
                     await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+                    signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
                 } catch (unlockErr) {
                     const msg = (unlockErr.message || '').toLowerCase();
                     const isUnencryptedWallet = msg.includes('unencrypted') || msg.includes('not encrypted') || msg.includes('wallet is not encrypted');
-                    if (!msg.includes('already unlocked') && !msg.includes('already been unlocked') && !isUnencryptedWallet) {
-                        return Response.json({ error: 'Failed to unlock node wallet. Check the saved node wallet passphrase.' }, { status: 400 });
+                    if (isUnencryptedWallet) {
+                        signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
+                    } else {
+                        return Response.json({ error: 'Node wallet is locked or the saved node passphrase is incorrect.' }, { status: 400 });
                     }
                 }
             }
-            signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithwallet', [rawTx]);
         }
 
         if (!signResult.complete) {
