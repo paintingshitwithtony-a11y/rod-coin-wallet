@@ -1,15 +1,15 @@
 /**
- * createRootWallet — Creates a new address on the ROD node.
+ * createRootWallet — Creates a new address on the ROD node with passphrase validation.
  *
- * Flow:
- *  1. Unlock node wallet with user-supplied passphrase (or WALLET_PASSPHRASE secret)
- *  2. Generate address via getnewaddress
- *  3. Store wallet record in DB (no private key stored)
- *  4. Return address + walletId
+ * Modes:
+ *   validateOnly=true  → Only validates the passphrase unlocks the wallet. No address created.
+ *   validateOnly=false → Full creation: unlock, getnewaddress, dumpprivkey, store in DB.
+ *
+ * Returns recovery details (address + WIF private key) to the frontend for the
+ * confirmation screen. The user must acknowledge saving these before closing.
  *
  * NOTE: encryptwallet is NOT called here — wallet encryption is a one-time node setup
- * done manually via the RPC console. Calling encryptwallet forces the node to shut down,
- * making any follow-up RPC calls fail.
+ * done manually via the RPC console.
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { passphrase: userPassphrase, walletName, label, color, icon } = body;
+        const { passphrase: userPassphrase, walletName, label, color, icon, validateOnly } = body;
 
         // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
         const passphrase = (userPassphrase && userPassphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
@@ -62,23 +62,56 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Step 1: Unlock the node wallet if a passphrase is available
+        // Step 1: Validate/unlock the node wallet
+        let walletEncrypted = false;
         if (passphrase) {
             try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 120]);
+                walletEncrypted = true;
             } catch (unlockErr) {
                 const msg = (unlockErr.message || '').toLowerCase();
-                if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
-                    return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
+                if (msg.includes('already unlocked') || msg.includes('already been unlocked')) {
+                    walletEncrypted = true;
+                } else if (msg.includes('unencrypted')) {
+                    walletEncrypted = false;
+                } else {
+                    // Real passphrase failure — return clear error
+                    return Response.json({
+                        error: 'Passphrase is incorrect. Please check your node wallet passphrase and try again.',
+                        code: 'WRONG_PASSPHRASE'
+                    }, { status: 401 });
                 }
             }
+        }
+
+        // If validateOnly, stop here — passphrase is confirmed valid
+        if (validateOnly) {
+            return Response.json({ success: true, passphraseValid: true });
         }
 
         // Step 2: Generate new address (node manages the private key)
         const name = walletName || label || 'Root Wallet';
         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [name]);
 
-        // Step 3: Store wallet record — private key stays on the node, never exported here
+        // Step 3: Export the private key (WIF) for the recovery screen
+        // This is returned to the frontend ONCE for the user to save, never stored in DB
+        let wif = '';
+        try {
+            wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
+        } catch (e) {
+            console.warn('dumpprivkey failed (wallet may be locked again):', e.message);
+            // Try unlocking again and retry
+            if (passphrase) {
+                try {
+                    await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+                    wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
+                } catch (retryErr) {
+                    console.warn('Retry dumpprivkey also failed:', retryErr.message);
+                }
+            }
+        }
+
+        // Step 4: Store wallet record — private key is NOT stored in DB
         const wallet = await base44.entities.Wallet.create({
             account_id: account.id,
             name,
@@ -97,8 +130,10 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             address,
+            wif,            // WIF private key — returned once for user to save
             walletId: wallet.id,
-            walletName: wallet.name
+            walletName: wallet.name,
+            walletEncrypted
         });
 
     } catch (error) {
