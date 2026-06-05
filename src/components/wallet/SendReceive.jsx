@@ -18,6 +18,8 @@ import TransactionConfirmation from './TransactionConfirmation';
 import MFAVerification from './MFAVerification';
 
 
+const normalizeAddress = (address) => (address || '').trim().toLowerCase();
+
 export default function SendReceive({ mode, balance = 0, addresses = [], onGenerateNew, account, onTransactionComplete, fromAddress }) {
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
@@ -85,24 +87,32 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             };
 
             // Include additional addresses as selectable wallets
-            const additionalAddressWallets = (freshAccount.additional_addresses || []).map((addr, i) => ({
+            const savedAddressWallets = (freshAccount.additional_addresses || []).map((addr, i) => ({
                 id: `address-${addr.address}`,
                 name: addr.label || `Address ${i + 1}`,
                 wallet_address: addr.address,
-                balance: 0 // Balance will be fetched from transactions if needed
+                balance: 0
             }));
 
-            const allWallets = [mainWallet, ...wallets, ...additionalAddressWallets];
+            const visibleAddressWallets = (addresses || []).map((addr, i) => ({
+                id: `visible-address-${addr.address}`,
+                name: addr.label || `Address ${i + 1}`,
+                wallet_address: addr.address,
+                balance: 0
+            }));
+
+            const allWallets = [mainWallet, ...wallets, ...savedAddressWallets, ...visibleAddressWallets];
             
             // Check for duplicates and remove them
             const addressMap = {};
             const foundDuplicates = [];
             const uniqueWallets = [];
             allWallets.forEach(w => {
-                if (addressMap[w.wallet_address]) {
+                const key = normalizeAddress(w.wallet_address);
+                if (addressMap[key]) {
                     foundDuplicates.push(w.wallet_address);
                 } else {
-                    addressMap[w.wallet_address] = w;
+                    addressMap[key] = w;
                     uniqueWallets.push(w);
                 }
             });
@@ -115,7 +125,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             
             // Set default selected wallet
             if (fromAddress) {
-                const wallet = uniqueWallets.find(w => w.wallet_address === fromAddress);
+                const wallet = uniqueWallets.find(w => normalizeAddress(w.wallet_address) === normalizeAddress(fromAddress));
                 setSelectedFromWallet(wallet || mainWallet);
             } else {
                 setSelectedFromWallet(mainWallet);
@@ -125,28 +135,31 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
     };
 
-    // Correct UTXO-based balance: sum of listunspent outputs for this address only
+    // Correct UTXO-based balance: sum spendable listunspent outputs for each address
     const fetchRPCBalances = async (wallets) => {
         setLoadingRPC(true);
         const balances = {};
-        
-        for (const wallet of wallets) {
-            try {
-                const response = await base44.functions.invoke('executeRPCCommand', {
-                    method: 'listunspent',
-                    params: [0, 9999999, [wallet.wallet_address]]
+        wallets.forEach(wallet => {
+            balances[wallet.wallet_address] = 0;
+        });
+
+        try {
+            const response = await base44.functions.invoke('executeRPCCommand', {
+                method: 'listunspent',
+                params: [0, 9999999]
+            });
+            if (response.data.success) {
+                const balanceKeys = new Map(wallets.map(wallet => [normalizeAddress(wallet.wallet_address), wallet.wallet_address]));
+                (response.data.result || []).forEach(utxo => {
+                    if (utxo.spendable === false) return;
+                    const walletAddress = balanceKeys.get(normalizeAddress(utxo.address));
+                    if (walletAddress) {
+                        balances[walletAddress] = parseFloat(((balances[walletAddress] || 0) + utxo.amount).toFixed(8));
+                    }
                 });
-                if (response.data.success) {
-                    const utxos = (response.data.result || []).filter(u => u.address === wallet.wallet_address && u.spendable !== false);
-                    const utxoBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
-                    balances[wallet.wallet_address] = utxoBalance;
-                } else {
-                    balances[wallet.wallet_address] = null;
-                }
-            } catch (err) {
-                console.error(`Failed to fetch UTXO balance for ${wallet.wallet_address}:`, err);
-                balances[wallet.wallet_address] = null;
             }
+        } catch (err) {
+            console.error('Failed to fetch UTXO balances:', err);
         }
         
         setRpcBalances(balances);
@@ -407,7 +420,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                 <SelectContent className="bg-slate-800 border-slate-700">
                                     {myWallets.map((wallet) => {
                                              const rpcBal = rpcBalances[wallet.wallet_address];
-                                             const isDuplicate = duplicates.includes(wallet.wallet_address);
+                                             const isDuplicate = duplicates.some(addr => normalizeAddress(addr) === normalizeAddress(wallet.wallet_address));
                                              return (
                                                  <SelectItem key={wallet.id} value={wallet.id} className={isDuplicate ? 'bg-red-500/10' : ''}>
                                                      <div className="flex items-center gap-3">

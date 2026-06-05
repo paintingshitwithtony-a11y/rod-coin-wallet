@@ -240,20 +240,25 @@ export default function WalletDashboard({ account, onLogout }) {
       });
 
       const liveBalances = {};
-      await Promise.all(allWallets.map(async (wallet) => {
-        try {
-          const response = await base44.functions.invoke('executeRPCCommand', {
-            method: 'listunspent',
-            params: [0, 9999999, [wallet.wallet_address]]
+      try {
+        const response = await base44.functions.invoke('executeRPCCommand', {
+          method: 'listunspent',
+          params: [0, 9999999]
+        });
+        if (response.data.success) {
+          allWallets.forEach(wallet => {
+            liveBalances[normalizeAddress(wallet.wallet_address)] = 0;
           });
-          if (response.data.success) {
-            const utxos = (response.data.result || []).filter(u => normalizeAddress(u.address) === normalizeAddress(wallet.wallet_address));
-            liveBalances[normalizeAddress(wallet.wallet_address)] = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
-          }
-        } catch (err) {
-          console.warn('Failed to fetch address balance:', wallet.wallet_address, err.message);
+          (response.data.result || []).forEach(utxo => {
+            const key = normalizeAddress(utxo.address);
+            if (key in liveBalances) {
+              liveBalances[key] = parseFloat(((liveBalances[key] || 0) + utxo.amount).toFixed(8));
+            }
+          });
         }
-      }));
+      } catch (err) {
+        console.warn('Failed to fetch live address balances:', err.message);
+      }
       setAddressBalances(liveBalances);
 
       // Set current wallet to active one or keep existing if still valid
@@ -1695,6 +1700,7 @@ export default function WalletDashboard({ account, onLogout }) {
                 mode="send"
                 balance={balance.confirmed}
                 account={account}
+                addresses={addresses}
                 onTransactionComplete={fetchWalletData}
                 fromAddress={currentWallet?.wallet_address || account.wallet_address} />
 
