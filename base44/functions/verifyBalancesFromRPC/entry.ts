@@ -11,7 +11,9 @@ const makeRPCCall = async (method, params) => {
     }
 
     const auth = btoa(`${rpcUsername}:${rpcPassword}`);
-    const url = `http://${rpcHost}:${rpcPort}/`;
+    const normalizedHost = rpcHost.trim().replace(/^https?:\/\//, '').replace(/^https?\/?\/?/, '').replace(/\/$/, '');
+    const protocol = String(rpcPort) === '9443' || String(rpcPort) === '8443' || String(rpcPort) === '443' ? 'https' : 'http';
+    const url = `${protocol}://${normalizedHost}:${rpcPort}/`;
 
     const response = await fetch(url, {
         method: 'POST',

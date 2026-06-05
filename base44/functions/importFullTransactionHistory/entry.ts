@@ -49,10 +49,13 @@ Deno.serve(async (req) => {
         });
 
         // Build RPC URL
-        const protocol = config.use_ssl ? 'https' : 'http';
+        const SSL_PORTS = new Set(['443', '9443', '8443']);
+        const rawHost = (config.host || '').trim();
+        const normalizedHost = rawHost.replace(/^https?:\/\//, '').replace(/^https?\/?\/?/, '').replace(/\/$/, '');
+        const protocol = (config.use_ssl || rawHost.startsWith('https') || SSL_PORTS.has(String(config.port))) ? 'https' : 'http';
         const rpcUrl = !config.port || config.port === ''
-            ? `${protocol}://${config.host}`
-            : `${protocol}://${config.host}:${config.port}`;
+            ? `${protocol}://${normalizedHost}`
+            : `${protocol}://${normalizedHost}:${config.port}`;
         
         const headers = {
             'Content-Type': 'application/json'
