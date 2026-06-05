@@ -53,25 +53,22 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
+        const passphrase = (body.passphrase && body.passphrase.trim()) || '';
+        const walletInfo = await rpcCall(rpcUrl, rpcAuth, 'getwalletinfo', []);
+        if (walletInfo && walletInfo.unlocked_until === 0 && !passphrase) {
+            return Response.json({ error: 'ROD Core wallet is locked. Enter the node wallet passphrase to export the WIF private key.' }, { status: 400 });
+        }
+        if (walletInfo && walletInfo.unlocked_until === 0 && passphrase) {
+            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+        }
+
         // Step 1: Generate new address (node manages the private key)
         const name = walletName || label || 'Root Wallet';
         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [name]);
 
         // Step 2: Export and validate the node-generated private key (WIF)
         // This is returned to the frontend ONCE for the user to save, never stored in DB
-        let wif = '';
-        try {
-            wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
-        } catch (e) {
-            const needsUnlock = (e.message || '').toLowerCase().includes('passphrase');
-            const passphrase = (body.passphrase && body.passphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
-            if (!needsUnlock || !passphrase) {
-                console.warn('dumpprivkey failed:', e.message);
-                return Response.json({ error: `Private key export failed: ${e.message}` }, { status: 500 });
-            }
-            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
-            wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
-        }
+        const wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
 
         if (!wif || typeof wif !== 'string' || wif.trim().length < 50) {
             return Response.json({ error: 'ROD node returned an invalid private key for the new wallet.' }, { status: 500 });

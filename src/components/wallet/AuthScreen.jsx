@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Wallet, Mail, Lock, Loader2, CheckCircle2, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { generateNewRODAddress } from './Base58';
+
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -56,6 +56,7 @@ export default function AuthScreen({ onAuth }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [nodePassphrase, setNodePassphrase] = useState('');
     const [generatedAddress, setGeneratedAddress] = useState(null);
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
@@ -159,23 +160,27 @@ export default function AuthScreen({ onAuth }) {
                 return;
             }
 
-            // Generate a receive/monitor address. Spendable wallets must use node-exported WIF keys.
-            const { address, publicKeyHash } = await generateNewRODAddress();
+            const walletResponse = await base44.functions.invoke('createSpendableSignupWallet', {
+                label: `Primary Wallet - ${email.toLowerCase()}`,
+                passphrase: nodePassphrase.trim() || undefined
+            });
+            const { address, wif } = walletResponse.data;
             const passwordHash = await hashPassword(password);
+            const encryptedPrivateKey = await encryptPrivateKey(wif, password);
 
-            // Create account
+            // Create account with a node-generated spendable wallet
             const account = await base44.entities.WalletAccount.create({
                 email: email.toLowerCase(),
                 password_hash: passwordHash,
                 wallet_address: address,
-                public_key_hash: publicKeyHash,
-                encrypted_private_key: '',
+                public_key_hash: address,
+                encrypted_private_key: encryptedPrivateKey,
                 additional_addresses: [],
                 balance: 0,
                 last_login: new Date().toISOString()
             });
 
-            setGeneratedAddress({ address });
+            setGeneratedAddress({ address, wif, account });
 
             // Create session record
             const sessionToken = crypto.randomUUID();
@@ -210,24 +215,9 @@ export default function AuthScreen({ onAuth }) {
             
             localStorage.setItem('rod_wallet_session', JSON.stringify(session));
             
-            // Import primary address into node (will work once RPC is configured)
-            try {
-                await base44.functions.invoke('importAddress', {
-                    address: address,
-                    label: 'Primary Address'
-                });
-            } catch (importError) {
-                // Silently fail - will import when RPC is configured
-            }
-            
-            toast.success('Wallet created successfully!');
-            
-            // Short delay to show the address, then proceed
-            setTimeout(() => {
-                onAuth(account);
-            }, 3000);
+            toast.success('Spendable wallet created successfully!');
         } catch (err) {
-            setError('Failed to create wallet. Please try again.');
+            setError(err?.response?.data?.error || err?.message || 'Failed to create wallet. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -305,17 +295,26 @@ export default function AuthScreen({ onAuth }) {
                                 </code>
                             </div>
 
+                            <div className="p-4 rounded-lg bg-slate-800/50 border border-amber-500/30">
+                                <p className="text-xs text-slate-400 mb-2">Your WIF Private Key — save this now</p>
+                                <code className="text-xs text-red-300 font-mono break-all">
+                                    {generatedAddress.wif}
+                                </code>
+                            </div>
+
                             <Alert className="bg-amber-500/10 border-amber-500/30">
                                 <AlertCircle className="h-4 w-4 text-amber-400" />
                                 <AlertDescription className="text-amber-300/80 text-xs">
-                                    Wallet created. To spend funds, import or create a spendable wallet with a valid WIF private key.
+                                    This is a spendable ROD Core wallet. Save the WIF private key before continuing.
                                 </AlertDescription>
                             </Alert>
 
-                            <div className="flex items-center justify-center gap-2 text-slate-400 text-sm">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Opening your wallet...
-                            </div>
+                            <Button
+                                onClick={() => onAuth(generatedAddress.account)}
+                                className="w-full bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600"
+                            >
+                                I Saved My Key — Open Wallet
+                            </Button>
                         </motion.div>
                     ) : (
                         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -455,6 +454,16 @@ export default function AuthScreen({ onAuth }) {
                                                 required
                                             />
                                         </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300">ROD Core Node Passphrase</Label>
+                                        <Input
+                                            type="password"
+                                            value={nodePassphrase}
+                                            onChange={(e) => setNodePassphrase(e.target.value)}
+                                            placeholder="Required if your node wallet is locked"
+                                            className="bg-slate-800/50 border-slate-700 text-white"
+                                        />
                                     </div>
                                     <Button
                                         type="submit"

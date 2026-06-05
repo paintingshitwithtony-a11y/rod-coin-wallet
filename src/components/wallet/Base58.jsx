@@ -149,21 +149,14 @@ export async function generateRODAddress(publicKeyHash) {
     return base58Encode(addressBytes);
 }
 
-// Generate random 20-byte public key hash (simulating RIPEMD160(SHA256(pubkey)))
+// Local random-hash generation is intentionally disabled.
+// Spendable ROD wallets must be created by ROD Core so a matching private key exists.
 export function generateRandomPublicKeyHash() {
-    const hash = new Uint8Array(20);
-    crypto.getRandomValues(hash);
-    return hash;
+    throw new Error('Disabled: use ROD Core wallet generation for spendable addresses.');
 }
 
-// Generate a complete new ROD address
 export async function generateNewRODAddress() {
-    const publicKeyHash = generateRandomPublicKeyHash();
-    const address = await generateRODAddress(publicKeyHash);
-    return {
-        address,
-        publicKeyHash: bytesToHex(publicKeyHash)
-    };
+    throw new Error('Disabled: use ROD Core wallet generation for spendable addresses.');
 }
 
 // Validate a ROD address

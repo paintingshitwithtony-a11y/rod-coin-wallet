@@ -8,7 +8,7 @@ import {
     Shield, Key, Sparkles, Download, Clock, AlertCircle, Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateNewRODAddress, validateRODAddress, generatePrivateKey } from './Base58';
+import { validateRODAddress } from './Base58';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import SaveAddressAsWallet from './SaveAddressAsWallet';
@@ -16,6 +16,7 @@ import SaveAddressAsWallet from './SaveAddressAsWallet';
 export default function AddressGenerator({ onAddressGenerated, account }) {
     const [addresses, setAddresses] = useState([]);
     const [generating, setGenerating] = useState(false);
+    const [nodePassphrase, setNodePassphrase] = useState('');
     const [copiedId, setCopiedId] = useState(null);
     const [showPrivateKeys, setShowPrivateKeys] = useState(false);
     const [selectedAddressToSave, setSelectedAddressToSave] = useState(null);
@@ -23,60 +24,34 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
     const generateAddress = async () => {
         setGenerating(true);
         try {
-            const { address, publicKeyHash } = await generateNewRODAddress();
-            const privateKey = generatePrivateKey();
-            
-            // Validate the generated address
+            const label = `Address ${addresses.length + 1}`;
+            const response = await base44.functions.invoke('createSpendableSignupWallet', {
+                label,
+                passphrase: nodePassphrase.trim() || undefined
+            });
+            const { address, wif } = response.data;
             const validation = await validateRODAddress(address);
             
             const newAddress = {
                 id: Date.now(),
                 address,
-                publicKeyHash,
-                privateKey,
+                publicKeyHash: address,
+                privateKey: wif,
                 isValid: validation.valid,
                 createdAt: new Date().toISOString(),
-                label: `Address ${addresses.length + 1}`,
-                importStatus: 'pending'
+                label,
+                importStatus: 'imported'
             };
 
             setAddresses(prev => [newAddress, ...prev]);
 
-            // Save to account (will persist and auto-import on next check)
             if (onAddressGenerated) {
                 onAddressGenerated(newAddress);
             }
 
-            // Import address into ROD Core node so it can track transactions
-            try {
-                const result = await base44.functions.invoke('importAddress', {
-                    address,
-                    label: newAddress.label
-                });
-
-                if (result.data.success) {
-                    newAddress.importStatus = 'imported';
-                    setAddresses(prev => prev.map(a => 
-                        a.address === address ? { ...a, importStatus: 'imported' } : a
-                    ));
-                    toast.success('Address generated and imported to blockchain');
-                } else {
-                    newAddress.importStatus = 'failed';
-                    setAddresses(prev => prev.map(a => 
-                        a.address === address ? { ...a, importStatus: 'failed' } : a
-                    ));
-                    toast.warning('Address generated but import failed', {
-                        description: result.data.message || 'Check RPC connection'
-                    });
-                }
-            } catch (importError) {
-                newAddress.importStatus = 'pending';
-                toast.warning('Address saved - RPC import pending', {
-                    description: 'Will auto-import when connected'
-                });
-            }
+            toast.success('Spendable ROD wallet generated');
         } catch (error) {
-            toast.error('Failed to generate address');
+            toast.error(error?.response?.data?.error || error?.message || 'Failed to generate spendable wallet');
         } finally {
             setGenerating(false);
         }
@@ -113,13 +88,20 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                     <div>
                         <CardTitle className="text-white flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-amber-400" />
-                            Address Generator
+                            Spendable Wallet Generator
                         </CardTitle>
                         <p className="text-sm text-slate-400 mt-1">
-                            Generate valid ROD Core wallet addresses (Base58Check encoded)
+                            Generate spendable ROD Core wallets with node-exported WIF private keys
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <Input
+                            type="password"
+                            value={nodePassphrase}
+                            onChange={(e) => setNodePassphrase(e.target.value)}
+                            placeholder="Node passphrase if locked"
+                            className="w-56 bg-slate-800/50 border-slate-700 text-white"
+                        />
                         {addresses.length > 0 && (
                             <Button
                                 variant="outline"
@@ -141,7 +123,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                             ) : (
                                 <Plus className="w-4 h-4 mr-2" />
                             )}
-                            Generate Address
+                            Generate Spendable Wallet
                         </Button>
                     </div>
                 </CardHeader>
@@ -156,8 +138,8 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
                                     <Key className="w-10 h-10 text-slate-600" />
                                 </div>
-                                <p className="text-slate-500">No addresses generated yet</p>
-                                <p className="text-sm text-slate-600 mt-1">Click "Generate Address" to create your first ROD address</p>
+                                <p className="text-slate-500">No spendable wallets generated yet</p>
+                                <p className="text-sm text-slate-600 mt-1">Click "Generate Spendable Wallet" to create your first ROD Core wallet</p>
                             </motion.div>
                         ) : (
                             <div className="space-y-3">
@@ -318,8 +300,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                         <div>
                             <h4 className="text-sm font-medium text-slate-300 mb-1">Address Format</h4>
                             <p className="text-xs text-slate-500">
-                                ROD addresses use Base58Check encoding with version byte 0x3C (60). 
-                                Valid addresses are 26-35 characters, start with 'R', and include a 4-byte checksum.
+                                New wallets are generated by ROD Core via RPC, so every address has a matching spendable WIF private key.
                             </p>
                         </div>
                     </div>
