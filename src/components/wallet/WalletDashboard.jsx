@@ -83,6 +83,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [lastImportTime, setLastImportTime] = useState(0);
       const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
       const [walletUnlocked, setWalletUnlocked] = useState(false);
+      const [addressBalances, setAddressBalances] = useState({});
       const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
       const [showUnlockDialog, setShowUnlockDialog] = useState(false);
       const [unlockPassphrase, setUnlockPassphrase] = useState('');
@@ -237,6 +238,23 @@ export default function WalletDashboard({ account, onLogout }) {
         });
         return Array.from(existingAddrs.values());
       });
+
+      const liveBalances = {};
+      await Promise.all(allWallets.map(async (wallet) => {
+        try {
+          const response = await base44.functions.invoke('executeRPCCommand', {
+            method: 'listunspent',
+            params: [0, 9999999, [wallet.wallet_address]]
+          });
+          if (response.data.success) {
+            const utxos = (response.data.result || []).filter(u => normalizeAddress(u.address) === normalizeAddress(wallet.wallet_address));
+            liveBalances[normalizeAddress(wallet.wallet_address)] = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
+          }
+        } catch (err) {
+          console.warn('Failed to fetch address balance:', wallet.wallet_address, err.message);
+        }
+      }));
+      setAddressBalances(liveBalances);
 
       // Set current wallet to active one or keep existing if still valid
       const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
@@ -1461,9 +1479,11 @@ export default function WalletDashboard({ account, onLogout }) {
                                     </div> :
 
                                 addresses.map((addr, index) => {
-                                const addrBalance = allAccountTransactions
+                                const txBalance = allAccountTransactions
                                 .filter(tx => tx.wallet_address === addr.address)
                                 .reduce((sum, tx) => tx.type === 'receive' ? sum + tx.amount : tx.type === 'send' ? sum - Math.abs(tx.amount) : sum, 0);
+                                const liveBalance = addressBalances[normalizeAddress(addr.address)];
+                                const addrBalance = liveBalance !== undefined ? liveBalance : txBalance;
                                 const hasBalance = addrBalance > 0;
                                 return (
                                 <motion.div

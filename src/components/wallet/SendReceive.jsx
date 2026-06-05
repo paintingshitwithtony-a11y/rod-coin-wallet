@@ -137,7 +137,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                     params: [0, 9999999, [wallet.wallet_address]]
                 });
                 if (response.data.success) {
-                    const utxos = (response.data.result || []).filter(u => u.address === wallet.wallet_address);
+                    const utxos = (response.data.result || []).filter(u => u.address === wallet.wallet_address && u.spendable !== false);
                     const utxoBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
                     balances[wallet.wallet_address] = utxoBalance;
                 } else {

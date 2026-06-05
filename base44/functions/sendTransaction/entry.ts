@@ -169,9 +169,15 @@ Deno.serve(async (req) => {
 
         // Load UTXOs for this address
         const allUtxos = await rpcCall(rpcUrl, rpcAuth, 'listunspent', [0, 9999999, [senderAddress]]);
-        const utxos = allUtxos.filter(u => normalizeAddress(u.address) === senderAddressKey);
-        if (!utxos || utxos.length === 0)
-            return Response.json({ error: `No spendable UTXOs found for address ${senderAddress}` }, { status: 400 });
+        const addressUtxos = allUtxos.filter(u => normalizeAddress(u.address) === senderAddressKey);
+        const utxos = addressUtxos.filter(u => u.spendable !== false && u.solvable !== false);
+        if (!utxos || utxos.length === 0) {
+            const totalVisibleBalance = parseFloat(addressUtxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
+            const error = totalVisibleBalance > 0
+                ? `Address ${senderAddress} has ${totalVisibleBalance} ROD visible on the node, but it is not spendable because the node does not have the private key for this address.`
+                : `No spendable UTXOs found for address ${senderAddress}`;
+            return Response.json({ error, spendableBalance: 0, visibleBalance: totalVisibleBalance }, { status: 400 });
+        }
 
         const spendableBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
         if (spendableBalance < totalNeeded)
