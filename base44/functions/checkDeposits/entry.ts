@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
                         jsonrpc: '1.0',
                         id: 'checkDeposits',
                         method: 'listtransactions',
-                        params: ['*', 100, 0, true]
+                        params: ['*', 1000, 0, true]
                     })
                 });
 

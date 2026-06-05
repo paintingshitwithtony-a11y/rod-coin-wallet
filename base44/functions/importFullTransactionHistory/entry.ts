@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
                 jsonrpc: '1.0',
                 id: 'importFullHistory',
                 method: 'listtransactions',
-                params: ['*', 1000, 0, true]
+                params: ['*', 5000, 0, true]
             }),
             signal: AbortSignal.timeout(30000) // 30 second timeout
         });
