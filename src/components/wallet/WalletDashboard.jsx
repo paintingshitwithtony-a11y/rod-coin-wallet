@@ -549,11 +549,11 @@ export default function WalletDashboard({ account, onLogout }) {
   const fetchWalletData = async () => {
      setLoading(true);
      try {
-       // Fetch ALL account transactions for summary stats
+       // Fetch ALL account transactions for summary stats (no limit — accurate count)
        const allTxs = await base44.entities.Transaction.filter(
          { account_id: account.id },
          '-created_date',
-         1000
+         9999
        );
        setAllAccountTransactions(allTxs);
 
@@ -1339,7 +1339,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                             <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                                 <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Sent' : 'Total Sent'}</p>
                                                 <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-red-400`}>
-                                                    {transactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                                    {allAccountTransactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
                                                     {!isMobile && ' ROD'}
                                                 </p>
                                             </CardContent>
@@ -1396,14 +1396,19 @@ export default function WalletDashboard({ account, onLogout }) {
                                         </Button>
                                     </div> :
 
-                                addresses.map((addr, index) =>
-                  <motion.div
-                    key={addr.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    onClick={() => handleAddressClick(addr)}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer">
+                                addresses.map((addr, index) => {
+                                const addrBalance = allAccountTransactions
+                                .filter(tx => tx.wallet_address === addr.address)
+                                .reduce((sum, tx) => tx.type === 'receive' ? sum + tx.amount : tx.type === 'send' ? sum - Math.abs(tx.amount) : sum, 0);
+                                const hasBalance = addrBalance > 0;
+                                return (
+                                <motion.div
+                                key={addr.id}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                onClick={() => handleAddressClick(addr)}
+                                className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer">
 
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
@@ -1455,9 +1460,21 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         );
                                                     })()}
                                                 </div>
-                                                <p className="text-xs text-amber-400/80 font-mono truncate">
-                                                    {addr.address}
-                                                </p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <p className="text-xs text-amber-400/80 font-mono truncate">
+                                                        {addr.address}
+                                                    </p>
+                                                    <span
+                                                        title={hasBalance ? `Balance: ${addrBalance.toFixed(4)} ROD — safe to keep` : 'Zero balance — safe to delete'}
+                                                        className={`flex-shrink-0 w-2 h-2 rounded-full ${hasBalance ? 'bg-green-400 shadow-[0_0_5px_#4ade80]' : 'bg-red-500'}`}
+                                                    />
+                                                    {!hasBalance && (
+                                                        <span className="text-xs text-red-400/70 flex-shrink-0">0 ROD</span>
+                                                    )}
+                                                    {hasBalance && (
+                                                        <span className="text-xs text-green-400/70 flex-shrink-0">{addrBalance.toFixed(2)} ROD</span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="flex gap-1 shrink-0">
                                                 <Button
@@ -1502,9 +1519,9 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 )}
                                             </div>
                                         </motion.div>
-                  )
-                  }
-                            </CardContent>
+                                        );
+                                        })}
+                                        </CardContent>
                         </Card>
 
                         {/* Recent Transactions */}
