@@ -1348,7 +1348,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                             <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                                 <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'TXs' : 'Transactions'}</p>
                                                 <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-white`}>
-                                                    {transactions.length}
+                                                    {allAccountTransactions.length}
                                                 </p>
                                             </CardContent>
                                         </Card>
