@@ -45,6 +45,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [isSendingToOwnWallet, setIsSendingToOwnWallet] = useState(false);
     const [duplicates, setDuplicates] = useState([]);
     const [rpcBalances, setRpcBalances] = useState({});
+    const [visibleBalances, setVisibleBalances] = useState({});
     const [loadingRPC, setLoadingRPC] = useState(false);
     const [canSwitch, setCanSwitch] = useState(true);
     const switchTimeoutRef = useRef(null);
@@ -139,8 +140,10 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const fetchRPCBalances = async (wallets) => {
         setLoadingRPC(true);
         const balances = {};
+        const visible = {};
         wallets.forEach(wallet => {
             balances[wallet.wallet_address] = 0;
+            visible[wallet.wallet_address] = 0;
         });
 
         try {
@@ -151,10 +154,12 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             if (response.data.success) {
                 const balanceKeys = new Map(wallets.map(wallet => [normalizeAddress(wallet.wallet_address), wallet.wallet_address]));
                 (response.data.result || []).forEach(utxo => {
-                    if (utxo.spendable === false) return;
                     const walletAddress = balanceKeys.get(normalizeAddress(utxo.address));
                     if (walletAddress) {
-                        balances[walletAddress] = parseFloat(((balances[walletAddress] || 0) + utxo.amount).toFixed(8));
+                        visible[walletAddress] = parseFloat(((visible[walletAddress] || 0) + utxo.amount).toFixed(8));
+                        if (utxo.spendable !== false && utxo.solvable !== false) {
+                            balances[walletAddress] = parseFloat(((balances[walletAddress] || 0) + utxo.amount).toFixed(8));
+                        }
                     }
                 });
             }
@@ -163,6 +168,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
         
         setRpcBalances(balances);
+        setVisibleBalances(visible);
         setLoadingRPC(false);
     };
 
@@ -223,7 +229,14 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         const rpcBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? 0;
         const feeNum = parseFloat(fee) || 0;
         if (amountNum + feeNum > rpcBalance) {
-            toast.error(`Insufficient balance — need ${(amountNum + feeNum).toFixed(8)} ROD (amount + fee), have ${rpcBalance.toFixed(8)} ROD`);
+            const visibleBalance = visibleBalances[selectedFromWallet?.wallet_address] ?? rpcBalance;
+            if (visibleBalance > 0 && rpcBalance === 0) {
+                toast.error('This wallet has visible funds but they are not spendable on this node', {
+                    description: 'Import the private key for this address before sending.'
+                });
+            } else {
+                toast.error(`Insufficient spendable balance — need ${(amountNum + feeNum).toFixed(8)} ROD (amount + fee), have ${rpcBalance.toFixed(8)} ROD`);
+            }
             return;
         }
 
@@ -382,7 +395,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                             <div>
                                 <CardTitle className="text-white">Send ROD</CardTitle>
                                 <CardDescription className="text-slate-400">
-                                    {selectedFromWallet ? `${selectedFromWallet.name}: ${(rpcBalances[selectedFromWallet.wallet_address] ?? balance)?.toLocaleString() || '0'} ROD` : `Available: ${balance.toLocaleString()} ROD`}
+                                    {selectedFromWallet ? `${selectedFromWallet.name}: ${(visibleBalances[selectedFromWallet.wallet_address] ?? rpcBalances[selectedFromWallet.wallet_address] ?? balance)?.toLocaleString() || '0'} ROD visible • ${(rpcBalances[selectedFromWallet.wallet_address] ?? 0).toLocaleString()} spendable` : `Available: ${balance.toLocaleString()} ROD`}
                                 </CardDescription>
                             </div>
                         </div>
@@ -420,6 +433,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                 <SelectContent className="bg-slate-800 border-slate-700">
                                     {myWallets.map((wallet) => {
                                              const rpcBal = rpcBalances[wallet.wallet_address];
+                                             const visibleBal = visibleBalances[wallet.wallet_address];
                                              const isDuplicate = duplicates.some(addr => normalizeAddress(addr) === normalizeAddress(wallet.wallet_address));
                                              return (
                                                  <SelectItem key={wallet.id} value={wallet.id} className={isDuplicate ? 'bg-red-500/10' : ''}>
@@ -432,9 +446,14 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                                          </div>
                                                          <div className="flex flex-col items-end gap-1">
                                                              {rpcBal !== null && rpcBal !== undefined ? (
-                                                                 <span className="text-xs text-purple-400 font-semibold">
-                                                                     {rpcBal.toFixed(4)} ROD
-                                                                 </span>
+                                                                 <>
+                                                                     <span className="text-xs text-purple-400 font-semibold">
+                                                                         {(visibleBal ?? rpcBal).toFixed(4)} ROD
+                                                                     </span>
+                                                                     {(visibleBal ?? 0) > 0 && rpcBal === 0 && (
+                                                                         <span className="text-[10px] text-amber-400">not spendable</span>
+                                                                     )}
+                                                                 </>
                                                              ) : (
                                                                  <span className="text-xs text-slate-500">
                                                                      {loadingRPC ? 'loading...' : 'error'}
