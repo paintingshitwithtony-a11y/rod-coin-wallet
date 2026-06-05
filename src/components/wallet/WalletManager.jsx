@@ -7,8 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { 
     Wallet, Plus, Download, Upload, CheckCircle2, 
-    Trash2, Edit2, Eye, EyeOff, Copy, Settings, Pencil, ShieldCheck,
-    AlertTriangle, Loader2
+    Trash2, Pencil, AlertTriangle, Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -16,7 +15,6 @@ import { toast } from 'sonner';
 import WalletCreator from './WalletCreator';
 import WalletBackup from './WalletBackup';
 import WalletRestore from './WalletRestore';
-import WalletRecoveryInfo from './WalletRecoveryInfo';
 
 const WALLET_COLORS = [
     { name: 'Purple', class: 'from-purple-500 to-purple-700' },
@@ -36,10 +34,6 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
      const [totalBalance, setTotalBalance] = useState(0);
      const [editingWallet, setEditingWallet] = useState(null);
      const [editName, setEditName] = useState('');
-     const [showRootWalletSetup, setShowRootWalletSetup] = useState(false);
-     const [rootWalletPassphrase, setRootWalletPassphrase] = useState('');
-     const [rootWalletLoading, setRootWalletLoading] = useState(false);
-     const [recoveryInfo, setRecoveryInfo] = useState(null);
 
     useEffect(() => {
         fetchWallets();
@@ -148,35 +142,6 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
         }
     };
 
-    const handleCreateRootWallet = async () => {
-        if (!rootWalletPassphrase.trim()) {
-            toast.error('Please enter a passphrase');
-            return;
-        }
-
-        setRootWalletLoading(true);
-        try {
-            const response = await base44.functions.invoke('createRootWallet', {
-                passphrase: rootWalletPassphrase
-            });
-
-            if (response.data.error) {
-                toast.error(response.data.error);
-                return;
-            }
-
-            setRecoveryInfo(response.data);
-            setShowRootWalletSetup(false);
-            setRootWalletPassphrase('');
-            fetchWallets();
-            toast.success('Root wallet created successfully');
-        } catch (err) {
-            toast.error('Failed to create root wallet');
-        } finally {
-            setRootWalletLoading(false);
-        }
-    };
-
     return (
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -209,13 +174,6 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Create New Wallet
-                    </Button>
-                    <Button
-                        onClick={() => setShowRootWalletSetup(true)}
-                        className="bg-red-600 hover:bg-red-700"
-                    >
-                        <ShieldCheck className="w-4 h-4 mr-2" />
-                        Create Root Wallet
                     </Button>
                     <Button
                         onClick={() => setShowRestore(true)}
@@ -376,65 +334,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                     />
                 )}
 
-                {/* Root Wallet Setup Modal */}
-                {showRootWalletSetup && (
-                    <Dialog open={true} onOpenChange={() => !rootWalletLoading && setShowRootWalletSetup(false)}>
-                        <DialogContent className="bg-slate-900 border-slate-700 text-white">
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2 text-red-400">
-                                    <ShieldCheck className="w-5 h-5" />
-                                    Create Root Wallet
-                                </DialogTitle>
-                            </DialogHeader>
-                            <Alert className="bg-amber-900/20 border-amber-700">
-                                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                <AlertDescription className="text-amber-200">
-                                    This creates a new encrypted wallet at the node level. You must save the passphrase and private key.
-                                </AlertDescription>
-                            </Alert>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-slate-300 text-sm font-semibold block mb-2">Encryption Passphrase</label>
-                                    <Input
-                                        type="password"
-                                        value={rootWalletPassphrase}
-                                        onChange={(e) => setRootWalletPassphrase(e.target.value)}
-                                        placeholder="Enter a strong passphrase"
-                                        className="bg-slate-800 border-slate-700 text-white"
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setShowRootWalletSetup(false)}
-                                        disabled={rootWalletLoading}
-                                        className="flex-1 border-slate-700"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={handleCreateRootWallet}
-                                        disabled={rootWalletLoading}
-                                        className="flex-1 bg-red-600 hover:bg-red-700"
-                                    >
-                                        {rootWalletLoading ? (
-                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
-                                        ) : (
-                                            'Create Wallet'
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
 
-                {/* Recovery Info Modal */}
-                <WalletRecoveryInfo
-                    isOpen={!!recoveryInfo}
-                    onClose={() => setRecoveryInfo(null)}
-                    walletData={recoveryInfo}
-                />
             </DialogContent>
         </Dialog>
     );

@@ -120,6 +120,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 return;
             }
 
+            // Store recovery data and move to confirmation screen — do NOT call onCreated yet
             setRecoveryData({ address, wif, walletId, walletName: walletName || name.trim() });
             setStep('recovery');
 
@@ -142,8 +143,9 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             color: selectedColor.class,
             account_id: account.id
         };
-        toast.success(`Wallet "${wallet.name}" is ready`);
+        // Notify parent only after user confirms they saved recovery details
         onCreated(wallet);
+        toast.success(`Wallet "${wallet.name}" is ready`);
         setStep('done');
     };
 

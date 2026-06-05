@@ -160,6 +160,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
       // Initial load: check RPC status and fetch wallets sequentially
       checkRPCStatus();
+      fetchOnlineUsers();
       fetchAllWallets().then(() => fetchWalletData());
 
       return () => {
@@ -304,7 +305,6 @@ export default function WalletDashboard({ account, onLogout }) {
     try {
       const response = await base44.functions.invoke('getRPCBalance', {});
       if (response.data.success) {
-        console.log('Updated Main Wallet from RPC:', response.data.balance);
         // Only update if viewing main wallet
         if (!currentWallet || currentWallet.id === 'main-account') {
           setBalance({
@@ -525,7 +525,6 @@ export default function WalletDashboard({ account, onLogout }) {
       // Get fresh balance directly from RPC
       const balResponse = await base44.functions.invoke('getRPCBalance', {});
       if (balResponse.data.success) {
-        console.log('RPC Balance:', balResponse.data.balance);
         setBalance({
           confirmed: balResponse.data.balance,
           unconfirmed: 0
@@ -550,10 +549,6 @@ export default function WalletDashboard({ account, onLogout }) {
   const fetchWalletData = async () => {
      setLoading(true);
      try {
-       console.log('=== FETCHING WALLET DATA ===');
-       console.log('Account ID:', account.id);
-       console.log('Current Wallet:', currentWallet?.name, currentWallet?.id);
-
        // Fetch ALL account transactions for summary stats
        const allTxs = await base44.entities.Transaction.filter(
          { account_id: account.id },
@@ -605,8 +600,6 @@ export default function WalletDashboard({ account, onLogout }) {
          );
        }
       
-      console.log('Transactions fetched for wallet:', txs.length);
-
       // Format transactions for display
       const formattedTxs = txs.map((tx) => ({
         id: tx.id,
@@ -624,12 +617,9 @@ export default function WalletDashboard({ account, onLogout }) {
 
       // Update balance from active wallet
       if (currentWallet) {
-        console.log('Active wallet:', currentWallet.name);
-        // Fetch fresh wallet data
         if (currentWallet.id === 'main-account') {
           const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
           if (accounts.length > 0) {
-            console.log('Fresh main wallet balance:', accounts[0].balance);
             setBalance({
               confirmed: accounts[0].balance || 0,
               unconfirmed: 0
@@ -639,7 +629,6 @@ export default function WalletDashboard({ account, onLogout }) {
           // Only fetch from database if it's not a virtual address wallet
           const wallets = await base44.entities.Wallet.filter({ id: currentWallet.id });
           if (wallets.length > 0) {
-            console.log('Fresh wallet balance:', wallets[0].balance);
             setBalance({
               confirmed: wallets[0].balance || 0,
               unconfirmed: 0
@@ -1424,7 +1413,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                                             value={editAddressLabel}
                                                             onChange={(e) => setEditAddressLabel(e.target.value)}
                                                             onBlur={() => handleSaveLabel(addr)}
-                                                            onKeyPress={(e) => e.key === 'Enter' && handleSaveLabel(addr)}
+                                                            onKeyDown={(e) => e.key === 'Enter' && handleSaveLabel(addr)}
                                                             className="bg-slate-900 text-white px-2 py-1 h-7 text-sm font-medium"
                                                             autoFocus
                                                         />
