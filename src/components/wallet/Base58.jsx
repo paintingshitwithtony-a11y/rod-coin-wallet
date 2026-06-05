@@ -204,11 +204,4 @@ export async function validateRODAddress(address) {
     }
 }
 
-// Generate private key (32 bytes)
-export function generatePrivateKey() {
-    const privateKey = new Uint8Array(32);
-    crypto.getRandomValues(privateKey);
-    return bytesToHex(privateKey);
-}
-
 export { hexToBytes, bytesToHex, base58Encode, base58Decode };

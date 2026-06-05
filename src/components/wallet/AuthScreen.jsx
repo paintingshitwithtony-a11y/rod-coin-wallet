@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Wallet, Mail, Lock, Loader2, CheckCircle2, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { generateNewRODAddress, generatePrivateKey } from './Base58';
+import { generateNewRODAddress } from './Base58';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -159,11 +159,9 @@ export default function AuthScreen({ onAuth }) {
                 return;
             }
 
-            // Generate new wallet address
+            // Generate a receive/monitor address. Spendable wallets must use node-exported WIF keys.
             const { address, publicKeyHash } = await generateNewRODAddress();
-            const privateKey = generatePrivateKey();
             const passwordHash = await hashPassword(password);
-            const encryptedPrivateKey = await encryptPrivateKey(privateKey, password);
 
             // Create account
             const account = await base44.entities.WalletAccount.create({
@@ -171,13 +169,13 @@ export default function AuthScreen({ onAuth }) {
                 password_hash: passwordHash,
                 wallet_address: address,
                 public_key_hash: publicKeyHash,
-                encrypted_private_key: encryptedPrivateKey,
+                encrypted_private_key: '',
                 additional_addresses: [],
                 balance: 0,
                 last_login: new Date().toISOString()
             });
 
-            setGeneratedAddress({ address, privateKey });
+            setGeneratedAddress({ address });
 
             // Create session record
             const sessionToken = crypto.randomUUID();
@@ -310,7 +308,7 @@ export default function AuthScreen({ onAuth }) {
                             <Alert className="bg-amber-500/10 border-amber-500/30">
                                 <AlertCircle className="h-4 w-4 text-amber-400" />
                                 <AlertDescription className="text-amber-300/80 text-xs">
-                                    Your private key is encrypted and stored securely. Never share your password!
+                                    Wallet created. To spend funds, import or create a spendable wallet with a valid WIF private key.
                                 </AlertDescription>
                             </Alert>
 

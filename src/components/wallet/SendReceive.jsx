@@ -476,7 +476,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                         type="password"
                                         value={privateKeyInput}
                                         onChange={(e) => setPrivateKeyInput(e.target.value)}
-                                        placeholder="Paste the private key for this address"
+                                        placeholder="Paste the WIF private key exported by ROD Core"
                                         className="bg-slate-900/70 border-amber-500/40 text-white font-mono"
                                     />
                                     <p className="text-xs text-amber-300/80">

@@ -213,8 +213,10 @@ Deno.serve(async (req) => {
         // Sign: use private key directly if provided. Otherwise try node-wallet signing first.
         let signResult;
         if (privateKey) {
-            let wifKey = privateKey.trim();
-            if (/^[0-9a-fA-F]{64}$/.test(wifKey)) wifKey = hexToWIF(wifKey);
+            const wifKey = privateKey.trim();
+            if (/^[0-9a-fA-F]{64}$/.test(wifKey)) {
+                return Response.json({ error: 'Please enter the WIF private key exported by ROD Core, not a raw hex key.' }, { status: 400 });
+            }
             signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [rawTx, [wifKey]]);
         } else {
             try {

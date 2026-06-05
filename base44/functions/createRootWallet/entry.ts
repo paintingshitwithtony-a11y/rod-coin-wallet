@@ -57,13 +57,24 @@ Deno.serve(async (req) => {
         const name = walletName || label || 'Root Wallet';
         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [name]);
 
-        // Step 2: Export the private key (WIF) for the recovery screen
+        // Step 2: Export and validate the node-generated private key (WIF)
         // This is returned to the frontend ONCE for the user to save, never stored in DB
         let wif = '';
         try {
             wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
         } catch (e) {
-            console.warn('dumpprivkey failed:', e.message);
+            const needsUnlock = (e.message || '').toLowerCase().includes('passphrase');
+            const passphrase = (body.passphrase && body.passphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
+            if (!needsUnlock || !passphrase) {
+                console.warn('dumpprivkey failed:', e.message);
+                return Response.json({ error: `Private key export failed: ${e.message}` }, { status: 500 });
+            }
+            await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+            wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
+        }
+
+        if (!wif || typeof wif !== 'string' || wif.trim().length < 50) {
+            return Response.json({ error: 'ROD node returned an invalid private key for the new wallet.' }, { status: 500 });
         }
 
         // Step 3: Store wallet record — private key is NOT stored in DB

@@ -65,6 +65,7 @@ function CopyField({ label, value, mono = false, alwaysVisible = false }) {
 
 export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
+    const [nodePassphrase, setNodePassphrase] = useState('');
     const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
     const [loading, setLoading] = useState(false);
     const [loadingMsg, setLoadingMsg] = useState('');
@@ -92,7 +93,8 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             const createRes = await base44.functions.invoke('createRootWallet', {
                 walletName: name.trim(),
                 label: name.trim(),
-                color: selectedColor.class
+                color: selectedColor.class,
+                passphrase: nodePassphrase.trim() || undefined
             });
 
             if (createRes.data?.error) {
@@ -170,9 +172,21 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 <Alert className="border-green-500/40 bg-green-500/10">
                                     <CheckCircle2 className="w-4 h-4 text-green-400" />
                                     <AlertDescription className="text-green-300 text-sm">
-                                        This will create an unencrypted wallet. Encryption can be added later.
+                                        This will create a wallet on your ROD node and export its valid WIF private key.
                                     </AlertDescription>
                                 </Alert>
+                            </div>
+
+                            <div>
+                                <Label className="text-slate-300">Node Wallet Passphrase (if locked)</Label>
+                                <Input
+                                    type="password"
+                                    value={nodePassphrase}
+                                    onChange={(e) => { setNodePassphrase(e.target.value); setError(''); }}
+                                    placeholder="Enter your ROD Core wallet passphrase"
+                                    className="bg-slate-800 border-slate-700 text-white mt-1"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Required only if your ROD node wallet is encrypted/locked.</p>
                             </div>
 
                             <div>
