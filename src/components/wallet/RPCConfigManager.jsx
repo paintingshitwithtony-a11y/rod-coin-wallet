@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    RefreshCw, Activity, Server, Terminal, Copy, Upload, Download, Link, Settings, Shield, RotateCcw
+    RefreshCw, Activity, Server, Terminal, Copy, Upload, Download, Link, Settings, Shield, RotateCcw, Eye, EyeOff
 } from 'lucide-react';
 import RPCConfigList from './RPCConfigList';
 import { base44 } from '@/api/base44Client';
@@ -67,6 +67,7 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         passwords: ', rodpassword, rod'
     });
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [advancedSettings, setAdvancedSettings] = useState({
         enable_listtransactions: true,
         enable_listreceivedbyaddress: true,
@@ -1940,14 +1941,19 @@ console.log(data.result);`}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-slate-300">Password</Label>
-                                        <Input
-                                            type="password"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                            placeholder=".cookie content or password"
-                                            className="bg-slate-900 border-slate-600"
-                                            autoComplete="new-password"
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                type={showPassword ? "text" : "password"}
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                placeholder=".cookie content or password"
+                                                className="bg-slate-900 border-slate-600 pr-10"
+                                                autoComplete="new-password"
+                                            />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
                                         <p className="text-xs text-slate-500">Paste .cookie file content if using cookie auth</p>
                                     </div>
                                 </div>
