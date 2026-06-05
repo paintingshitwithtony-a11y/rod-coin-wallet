@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
             address,
             wif,            // WIF private key — returned once for user to save
             walletId: wallet.id,
-            walletName: wallet.name,
+            walletName: name,  // Use the local `name` variable — guaranteed to have the correct value
             walletEncrypted
         });
 
