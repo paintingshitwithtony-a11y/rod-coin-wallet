@@ -15,11 +15,11 @@ import { toast } from 'sonner';
  * WalletCreator — 4-step wallet creation:
  *
  *  Step 1: "create"   — Enter name, passphrase (+ confirm), color
- *  Step 2: "recovery" — SUCCESS SCREEN: Show address, passphrase, seed phrase, WIF — user must save all
+ *  Step 2: "recovery" — SUCCESS SCREEN: Show address, passphrase, WIF — user must save all
  *  Step 3: "done"     — Final confirmation, wallet is live
  *
  * Passphrase is validated FIRST (validateOnly call) before any address is generated.
- * Seed phrase is generated client-side and shown ONCE — never stored unencrypted.
+ * ROD node-created wallets do not expose a BIP39 seed phrase; the WIF private key is the recovery key for this address.
  */
 
 // Minimal BIP39-compatible wordlist (first 2048 words subset for client-side generation)
@@ -369,15 +369,11 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 return;
             }
 
-            // Generate seed phrase client-side BEFORE any encryption
-            const seedPhrase = generateSeedPhrase(12);
-
             setRecoveryData({
                 address,
                 wif,
                 walletId,
                 walletName: walletName || name.trim(),
-                seedPhrase,
                 passphrase: passphrase || null
             });
             setStep('recovery');
@@ -544,7 +540,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                         "{recoveryData.walletName}" has been created on your ROD node.
                                     </p>
                                     <p className="text-green-400/70 text-xs mt-0.5">
-                                        Save everything below right now — this is the only time it will be shown.
+                                        Save the WIF private key below right now — this is the only time it will be shown.
                                     </p>
                                 </div>
                             </div>
@@ -553,7 +549,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             <Alert className="border-amber-500/50 bg-amber-500/10">
                                 <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                                 <AlertDescription className="text-amber-300 text-xs">
-                                    <strong>Write these down or store in a password manager.</strong> If you lose your private key and seed phrase, and your node is reset, you will permanently lose access to this wallet.
+                                    <strong>Write these down or store in a password manager.</strong> The private key is not the same as a seed phrase. ROD node wallets do not provide a BIP39 seed phrase, so the WIF private key is the recovery key for this address.
                                 </AlertDescription>
                             </Alert>
 
@@ -577,8 +573,14 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 </Alert>
                             )}
 
-                            {/* Seed Phrase */}
-                            <SeedPhraseGrid seedPhrase={recoveryData.seedPhrase} />
+                            {/* Seed Phrase Notice */}
+                            <Alert className="border-blue-500/50 bg-blue-500/10">
+                                <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                <AlertDescription className="text-blue-300 text-xs space-y-1">
+                                    <p><strong>Seed Phrase:</strong> Not available for this node-created wallet.</p>
+                                    <p>Private key (WIF) and seed phrase are different. For ROD Core/node-generated wallets, save the WIF private key shown above.</p>
+                                </AlertDescription>
+                            </Alert>
 
                             {/* Divider */}
                             <div className="border-t border-slate-700 pt-3">
@@ -634,7 +636,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                             className="mt-0.5 accent-green-500 w-4 h-4 flex-shrink-0"
                                         />
                                         <span className="text-sm text-slate-300 group-hover:text-white">
-                                            I have saved all <strong className="text-white">12 seed phrase words</strong> in order
+                                            I understand there is <strong className="text-white">no seed phrase</strong> for this node-created wallet, and I saved the WIF private key
                                         </span>
                                     </label>
                                 </div>
