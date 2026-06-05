@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
         const body = await req.json();
         const { passphrase: userPassphrase, walletName, label, color, icon, validateOnly } = body;
 
-        // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
-        const passphrase = (userPassphrase && userPassphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
+        // Only unlock when a passphrase is explicitly provided; no default encryption/passphrase fallback.
+        const passphrase = userPassphrase && userPassphrase.trim() ? userPassphrase.trim() : '';
 
         // Load account
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
