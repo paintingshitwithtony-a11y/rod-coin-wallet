@@ -264,7 +264,10 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                 return;
             }
 
+            const session = JSON.parse(localStorage.getItem('rod_wallet_session') || '{}');
             const response = await base44.functions.invoke('sendTransaction', {
+                accountId: account.id,
+                sessionToken: session.sessionToken,
                 fromAddress: senderAddress,
                 recipient,
                 amount: amountNum,

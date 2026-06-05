@@ -104,11 +104,8 @@ function buildRpcUrl(rpcConfig) {
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
         const body = await req.json();
-        const { fromAddress, recipient, amount, fee, memo, privateKey } = body;
+        const { accountId, sessionToken, fromAddress, recipient, amount, fee, memo, privateKey } = body;
         // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
         const passphrase = (body.passphrase && body.passphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
 
@@ -123,9 +120,30 @@ Deno.serve(async (req) => {
         const feeAmount = parseFloat((+fee).toFixed(8));
         const totalNeeded = parseFloat((sendAmount + feeAmount).toFixed(8));
 
-        const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
-        if (accounts.length === 0) return Response.json({ error: 'Wallet account not found' }, { status: 404 });
-        const account = accounts[0];
+        let account = null;
+        try {
+            const user = await base44.auth.me();
+            if (user?.email) {
+                const accountsByEmail = await base44.entities.WalletAccount.filter({ email: user.email });
+                account = accountsByEmail[0] || null;
+            }
+        } catch (_) {
+            // Custom wallet sessions do not always have Base44 auth.
+        }
+
+        if (!account && accountId && sessionToken) {
+            const sessions = await base44.entities.UserSession.filter({
+                account_id: accountId,
+                session_token: sessionToken,
+                is_current: true
+            });
+            if (sessions.length > 0) {
+                const accountsById = await base44.entities.WalletAccount.filter({ id: accountId });
+                account = accountsById[0] || null;
+            }
+        }
+
+        if (!account) return Response.json({ error: 'Unauthorized wallet session' }, { status: 401 });
 
         // Verify ownership of fromAddress
         let ownsAddress = account.wallet_address === fromAddress;
