@@ -101,15 +101,20 @@ function buildRpcUrl(rpcConfig) {
     return `${protocol}://${host}:${rpcConfig.port}`;
 }
 
+function normalizeAddress(address) {
+    return (address || '').trim().toLowerCase();
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const body = await req.json();
         const { accountId, sessionToken, fromAddress, recipient, amount, fee, memo, privateKey } = body;
+        const senderAddress = (fromAddress || '').trim();
         // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
         const passphrase = (body.passphrase && body.passphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
 
-        if (!fromAddress) return Response.json({ error: 'fromAddress is required' }, { status: 400 });
+        if (!senderAddress) return Response.json({ error: 'fromAddress is required' }, { status: 400 });
         if (!recipient) return Response.json({ error: 'recipient is required' }, { status: 400 });
         if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
             return Response.json({ error: 'amount must be a positive number' }, { status: 400 });
@@ -134,8 +139,7 @@ Deno.serve(async (req) => {
         if (!account && accountId && sessionToken) {
             const sessions = await base44.asServiceRole.entities.UserSession.filter({
                 account_id: accountId,
-                session_token: sessionToken,
-                is_current: true
+                session_token: sessionToken
             });
             if (sessions.length > 0) {
                 const accountsById = await base44.asServiceRole.entities.WalletAccount.filter({ id: accountId });
@@ -145,16 +149,17 @@ Deno.serve(async (req) => {
 
         if (!account) return Response.json({ error: 'Wallet session expired. Please log out and back in.' }, { status: 400 });
 
-        // Verify ownership of fromAddress
-        let ownsAddress = account.wallet_address === fromAddress;
+        // Verify ownership of senderAddress, including the primary wallet
+        const senderAddressKey = normalizeAddress(senderAddress);
+        let ownsAddress = normalizeAddress(account.wallet_address) === senderAddressKey;
         if (!ownsAddress) {
             const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
-            ownsAddress = wallets.some(w => w.wallet_address === fromAddress);
+            ownsAddress = wallets.some(w => normalizeAddress(w.wallet_address) === senderAddressKey);
         }
         if (!ownsAddress) {
-            ownsAddress = (account.additional_addresses || []).some(addr => addr.address === fromAddress);
+            ownsAddress = (account.additional_addresses || []).some(addr => normalizeAddress(addr.address) === senderAddressKey);
         }
-        if (!ownsAddress) return Response.json({ error: 'fromAddress does not belong to this account' }, { status: 403 });
+        if (!ownsAddress) return Response.json({ error: 'Selected sender address does not belong to this wallet account' }, { status: 403 });
 
         const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
         if (rpcConfigs.length === 0) return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
@@ -163,10 +168,10 @@ Deno.serve(async (req) => {
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
         // Load UTXOs for this address
-        const allUtxos = await rpcCall(rpcUrl, rpcAuth, 'listunspent', [0, 9999999, [fromAddress]]);
-        const utxos = allUtxos.filter(u => u.address === fromAddress);
+        const allUtxos = await rpcCall(rpcUrl, rpcAuth, 'listunspent', [0, 9999999, [senderAddress]]);
+        const utxos = allUtxos.filter(u => normalizeAddress(u.address) === senderAddressKey);
         if (!utxos || utxos.length === 0)
-            return Response.json({ error: `No spendable UTXOs found for address ${fromAddress}` }, { status: 400 });
+            return Response.json({ error: `No spendable UTXOs found for address ${senderAddress}` }, { status: 400 });
 
         const spendableBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
         if (spendableBalance < totalNeeded)
@@ -192,7 +197,7 @@ Deno.serve(async (req) => {
 
         const inputs = selectedUtxos.map(u => ({ txid: u.txid, vout: u.vout }));
         const outputs = { [recipient]: sendAmount };
-        if (change > DUST_THRESHOLD) outputs[fromAddress] = change;
+        if (change > DUST_THRESHOLD) outputs[senderAddress] = change;
 
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
@@ -226,13 +231,13 @@ Deno.serve(async (req) => {
         const txid = await rpcCall(rpcUrl, rpcAuth, 'sendrawtransaction', [signResult.hex]);
 
         const allWallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
-        const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
+        const senderWallet = allWallets.find(w => normalizeAddress(w.wallet_address) === senderAddressKey);
         const memoText = memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
 
         await base44.asServiceRole.entities.Transaction.create({
             account_id: account.id,
             wallet_id: senderWallet?.id || null,
-            wallet_address: fromAddress,
+            wallet_address: senderAddress,
             type: 'send',
             amount: -sendAmount,
             fee: effectiveFee,
@@ -245,7 +250,7 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             txid,
-            fromAddress,
+            fromAddress: senderAddress,
             recipient,
             amount: sendAmount,
             fee: effectiveFee,
