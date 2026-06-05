@@ -1,15 +1,9 @@
 /**
- * createRootWallet — Creates a new address on the ROD node with passphrase validation.
+ * createRootWallet — Creates a new unencrypted wallet address on the ROD node.
  *
- * Modes:
- *   validateOnly=true  → Only validates the passphrase unlocks the wallet. No address created.
- *   validateOnly=false → Full creation: unlock, getnewaddress, dumpprivkey, store in DB.
- *
- * Returns recovery details (address + WIF private key) to the frontend for the
- * confirmation screen. The user must acknowledge saving these before closing.
- *
- * NOTE: encryptwallet is NOT called here — wallet encryption is a one-time node setup
- * done manually via the RPC console.
+ * Wallet creation does not ask for, store, validate, or fall back to any passphrase.
+ * It generates a new address and returns recovery details (address + WIF private key)
+ * to the frontend for the confirmation screen.
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
@@ -43,10 +37,7 @@ Deno.serve(async (req) => {
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { passphrase: userPassphrase, walletName, label, color, icon, validateOnly } = body;
-
-        // Only unlock when a passphrase is explicitly provided; no default encryption/passphrase fallback.
-        const passphrase = userPassphrase && userPassphrase.trim() ? userPassphrase.trim() : '';
+        const { walletName, label, color, icon } = body;
 
         // Load account
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
@@ -62,56 +53,20 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Step 1: Validate/unlock the node wallet
-        let walletEncrypted = false;
-        if (passphrase) {
-            try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 120]);
-                walletEncrypted = true;
-            } catch (unlockErr) {
-                const msg = (unlockErr.message || '').toLowerCase();
-                if (msg.includes('already unlocked') || msg.includes('already been unlocked')) {
-                    walletEncrypted = true;
-                } else if (msg.includes('unencrypted')) {
-                    walletEncrypted = false;
-                } else {
-                    // Real passphrase failure — return clear error
-                    return Response.json({
-                        error: 'Passphrase is incorrect. Please check your node wallet passphrase and try again.',
-                        code: 'WRONG_PASSPHRASE'
-                    }, { status: 401 });
-                }
-            }
-        }
-
-        // If validateOnly, stop here — passphrase is confirmed valid
-        if (validateOnly) {
-            return Response.json({ success: true, passphraseValid: true });
-        }
-
-        // Step 2: Generate new address (node manages the private key)
+        // Step 1: Generate new address (node manages the private key)
         const name = walletName || label || 'Root Wallet';
         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [name]);
 
-        // Step 3: Export the private key (WIF) for the recovery screen
+        // Step 2: Export the private key (WIF) for the recovery screen
         // This is returned to the frontend ONCE for the user to save, never stored in DB
         let wif = '';
         try {
             wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
         } catch (e) {
-            console.warn('dumpprivkey failed (wallet may be locked again):', e.message);
-            // Try unlocking again and retry
-            if (passphrase) {
-                try {
-                    await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
-                    wif = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
-                } catch (retryErr) {
-                    console.warn('Retry dumpprivkey also failed:', retryErr.message);
-                }
-            }
+            console.warn('dumpprivkey failed:', e.message);
         }
 
-        // Step 4: Store wallet record — private key is NOT stored in DB
+        // Step 3: Store wallet record — private key is NOT stored in DB
         const wallet = await base44.entities.Wallet.create({
             account_id: account.id,
             name,
@@ -132,8 +87,7 @@ Deno.serve(async (req) => {
             address,
             wif,            // WIF private key — returned once for user to save
             walletId: wallet.id,
-            walletName: name,  // Use the local `name` variable — guaranteed to have the correct value
-            walletEncrypted
+            walletName: name  // Use the local `name` variable — guaranteed to have the correct value
         });
 
     } catch (error) {

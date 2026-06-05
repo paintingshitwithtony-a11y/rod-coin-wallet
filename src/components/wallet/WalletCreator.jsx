@@ -14,11 +14,11 @@ import { toast } from 'sonner';
 /**
  * WalletCreator — 4-step wallet creation:
  *
- *  Step 1: "create"   — Enter name, passphrase (+ confirm), color
- *  Step 2: "recovery" — SUCCESS SCREEN: Show address, passphrase, WIF — user must save all
+ *  Step 1: "create"   — Enter wallet name and color
+ *  Step 2: "recovery" — SUCCESS SCREEN: Show address and WIF — user must save both
  *  Step 3: "done"     — Final confirmation, wallet is live
  *
- * Passphrase is validated FIRST (validateOnly call) before any address is generated.
+ * New wallets are created unencrypted by default.
  * The WIF private key is the recovery key for this node-created address.
  */
 
@@ -65,8 +65,6 @@ function CopyField({ label, value, mono = false, alwaysVisible = false }) {
 
 export default function WalletCreator({ account, onClose, onCreated }) {
     const [name, setName] = useState('');
-    const [passphrase, setPassphrase] = useState('');
-    const [confirmPassphrase, setConfirmPassphrase] = useState('');
     const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
     const [loading, setLoading] = useState(false);
     const [loadingMsg, setLoadingMsg] = useState('');
@@ -79,7 +77,6 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     // Confirmation checkboxes on recovery screen
     const [savedAddress, setSavedAddress] = useState(false);
     const [savedKey, setSavedKey] = useState(false);
-    const [savedPassphrase, setSavedPassphrase] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -95,8 +92,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             const createRes = await base44.functions.invoke('createRootWallet', {
                 walletName: name.trim(),
                 label: name.trim(),
-                color: selectedColor.class,
-                validateOnly: false
+                color: selectedColor.class
             });
 
             if (createRes.data?.error) {
@@ -114,8 +110,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 address,
                 wif,
                 walletId,
-                walletName: walletName || name.trim(),
-                passphrase: null
+                walletName: walletName || name.trim()
             });
             setStep('recovery');
 
@@ -143,7 +138,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
         setStep('done');
     };
 
-    const allConfirmed = savedAddress && savedKey && (!recoveryData?.passphrase || savedPassphrase);
+    const allConfirmed = savedAddress && savedKey;
 
     return (
         <Dialog open={true} onOpenChange={onClose}>
@@ -258,11 +253,6 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             {/* Wallet Address */}
                             <CopyField label="Wallet Address" value={recoveryData.address} mono alwaysVisible />
 
-                            {/* Passphrase */}
-                            {recoveryData.passphrase && (
-                                <CopyField label="Node Wallet Passphrase" value={recoveryData.passphrase} mono={false} />
-                            )}
-
                             {/* WIF Private Key */}
                             {recoveryData.wif ? (
                                 <CopyField label="Private Key (WIF)" value={recoveryData.wif} mono />
@@ -302,20 +292,6 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                             I have saved the <strong className="text-white">wallet address</strong>
                                         </span>
                                     </label>
-
-                                    {recoveryData.passphrase && (
-                                        <label className="flex items-start gap-3 cursor-pointer group">
-                                            <input
-                                                type="checkbox"
-                                                checked={savedPassphrase}
-                                                onChange={(e) => setSavedPassphrase(e.target.checked)}
-                                                className="mt-0.5 accent-green-500 w-4 h-4 flex-shrink-0"
-                                            />
-                                            <span className="text-sm text-slate-300 group-hover:text-white">
-                                                I have saved my <strong className="text-white">passphrase</strong> securely
-                                            </span>
-                                        </label>
-                                    )}
 
                                     <label className="flex items-start gap-3 cursor-pointer group">
                                         <input
