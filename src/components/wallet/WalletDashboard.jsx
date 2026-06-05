@@ -84,6 +84,9 @@ export default function WalletDashboard({ account, onLogout }) {
       const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
       const [walletUnlocked, setWalletUnlocked] = useState(false);
       const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
+      const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+      const [unlockPassphrase, setUnlockPassphrase] = useState('');
+      const [unlockingWallet, setUnlockingWallet] = useState(false);
       const [electronProxyConnected, setElectronProxyConnected] = useState(false);
 
   useEffect(() => {
@@ -387,6 +390,35 @@ export default function WalletDashboard({ account, onLogout }) {
       console.error('Failed to check unlock status:', err);
     } finally {
       setCheckingUnlockStatus(false);
+    }
+  };
+
+  const handleUnlockWallet = async () => {
+    if (!unlockPassphrase) {
+      toast.error('Enter your wallet passphrase');
+      return;
+    }
+
+    setUnlockingWallet(true);
+    try {
+      const response = await base44.functions.invoke('executeRPCCommand', {
+        method: 'walletpassphrase',
+        params: [unlockPassphrase, 300]
+      });
+
+      if (response.data?.success) {
+        toast.success('Wallet unlocked for 5 minutes');
+        setWalletUnlocked(true);
+        setUnlockPassphrase('');
+        setShowUnlockDialog(false);
+        await checkWalletUnlockStatus();
+      } else {
+        toast.error(response.data?.error || 'Failed to unlock wallet');
+      }
+    } catch (err) {
+      toast.error('Failed to unlock wallet: ' + err.message);
+    } finally {
+      setUnlockingWallet(false);
     }
   };
 
@@ -1371,7 +1403,17 @@ export default function WalletDashboard({ account, onLogout }) {
     <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-white text-lg">My Addresses</CardTitle>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap justify-end">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={walletUnlocked ? 'text-green-400 hover:text-green-300' : 'text-red-400 hover:text-red-300'}
+                                      onClick={() => setShowUnlockDialog(true)}
+                                      disabled={!rpcConnected || unlockingWallet}
+                                      title="Unlock wallet with passphrase">
+                                        {unlockingWallet ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Unlock className="w-4 h-4 mr-1" />}
+                                        {walletUnlocked ? 'Unlocked' : 'Unlock'}
+                                    </Button>
                                     <Button
                       variant="ghost"
                       size="sm"
@@ -1660,6 +1702,59 @@ export default function WalletDashboard({ account, onLogout }) {
                     <RPCConsole account={account} />
                 </TabsContent>
                 </Tabs>
+
+            {/* Unlock Wallet Modal */}
+            {showUnlockDialog && (
+                <Dialog open={showUnlockDialog} onOpenChange={(open) => {
+                    setShowUnlockDialog(open);
+                    if (!open) setUnlockPassphrase('');
+                }}>
+                    <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Unlock className="w-5 h-5 text-purple-400" />
+                                Unlock Wallet
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400">
+                                Enter your ROD node wallet passphrase to unlock sending and private-key actions for 5 minutes.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-slate-300">Wallet Passphrase</Label>
+                                <Input
+                                    type="password"
+                                    value={unlockPassphrase}
+                                    onChange={(e) => setUnlockPassphrase(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleUnlockWallet(); }}
+                                    placeholder="Enter wallet passphrase"
+                                    className="bg-slate-800 border-slate-700 text-white mt-1"
+                                    autoFocus
+                                />
+                                <p className="text-xs text-slate-500 mt-1">This passphrase is only sent to your node to unlock the wallet and is cleared after use.</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setUnlockPassphrase('');
+                                        setShowUnlockDialog(false);
+                                    }}
+                                    className="flex-1 border-slate-700 text-slate-300">
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleUnlockWallet}
+                                    disabled={unlockingWallet || !unlockPassphrase}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700">
+                                    {unlockingWallet ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Unlock className="w-4 h-4 mr-2" />}
+                                    Unlock
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
 
             {/* RPC Manager Modal */}
             {showRPCManager &&
