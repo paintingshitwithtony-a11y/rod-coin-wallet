@@ -14,10 +14,10 @@ let proxyServer;
 
 // RPC Configuration (embedded at build time)
 const RPC_CONFIG = {
-    host: '${process.env.ROD_RPC_HOST || 'localhost'}',
-    port: '${process.env.ROD_RPC_PORT || '9766'}',
-    username: '${process.env.ROD_RPC_USERNAME || ''}',
-    password: '${process.env.ROD_RPC_PASSWORD || ''}'
+    host: 'localhost',
+    port: '9766',
+    username: '',
+    password: ''
 };
 
 // Local RPC Proxy Server

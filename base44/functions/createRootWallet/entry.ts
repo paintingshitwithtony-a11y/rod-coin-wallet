@@ -1,8 +1,18 @@
 /**
- * createRootWallet — Creates and encrypts a new root wallet at the node level.
- * Returns the address, passphrase, and private key for user backup.
+ * createRootWallet — Creates a new address on the ROD node.
+ *
+ * Flow:
+ *  1. Unlock node wallet with user-supplied passphrase (or WALLET_PASSPHRASE secret)
+ *  2. Generate address via getnewaddress
+ *  3. Store wallet record in DB (no private key stored)
+ *  4. Return address + walletId
+ *
+ * NOTE: encryptwallet is NOT called here — wallet encryption is a one-time node setup
+ * done manually via the RPC console. Calling encryptwallet forces the node to shut down,
+ * making any follow-up RPC calls fail.
  */
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 async function rpcCall(rpcUrl, rpcAuth, method, params) {
     const response = await fetch(rpcUrl, {
@@ -32,10 +42,11 @@ Deno.serve(async (req) => {
         const user = await base44.auth.me();
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { passphrase } = await req.json();
-        if (!passphrase || passphrase.trim().length === 0) {
-            return Response.json({ error: 'Passphrase is required' }, { status: 400 });
-        }
+        const body = await req.json();
+        const { passphrase: userPassphrase, walletName, label, color, icon } = body;
+
+        // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
+        const passphrase = (userPassphrase && userPassphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
 
         // Load account
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
@@ -51,79 +62,41 @@ Deno.serve(async (req) => {
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // Step 1: Generate new address
-         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', ['Root Wallet']);
+        // Step 1: Unlock the node wallet if a passphrase is available
+        if (passphrase) {
+            try {
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
+            } catch (unlockErr) {
+                const msg = (unlockErr.message || '').toLowerCase();
+                if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
+                    return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
+                }
+            }
+        }
 
-         // Step 2: Encrypt the wallet with the provided passphrase (skip if already encrypted)
-         const walletIsEncrypted = await new Promise(async (resolve) => {
-             try {
-                 await rpcCall(rpcUrl, rpcAuth, 'getinfo', []);
-                 resolve(false);
-             } catch (e) {
-                 // If getinfo fails, wallet might be encrypted
-                 resolve(true);
-             }
-         });
+        // Step 2: Generate new address (node manages the private key)
+        const name = walletName || label || 'Root Wallet';
+        const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [name]);
 
-         if (!walletIsEncrypted) {
-             try {
-                 await rpcCall(rpcUrl, rpcAuth, 'encryptwallet', [passphrase]);
-             } catch (e) {
-                 const msg = (e.message || '').toLowerCase();
-                 if (!msg.includes('already encrypted')) {
-                     return Response.json({ error: `Failed to encrypt wallet: ${e.message}` }, { status: 500 });
-                 }
-             }
-         }
-
-        // Step 3: Get the private key for this address
-         let privateKey = '';
-
-         // If wallet is encrypted, unlock it temporarily
-         if (walletIsEncrypted) {
-             try {
-                 await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
-             } catch (unlockError) {
-                 console.warn('Could not unlock wallet:', unlockError.message);
-             }
-         }
-
-         try {
-             privateKey = await rpcCall(rpcUrl, rpcAuth, 'dumpprivkey', [address]);
-         } catch (e) {
-             // dumpprivkey might not be available on all node types
-             // Log but continue - user can export via other methods
-             console.warn('Could not retrieve private key via dumpprivkey:', e.message);
-             // Try alternative export methods if available
-             try {
-                 const result = await rpcCall(rpcUrl, rpcAuth, 'exportprivkey', [address, passphrase]);
-                 privateKey = result;
-             } catch (altError) {
-                 console.warn('Alternative export also failed:', altError.message);
-             }
-         }
-
-        // Step 4: Create wallet record in database
+        // Step 3: Store wallet record — private key stays on the node, never exported here
         const wallet = await base44.entities.Wallet.create({
             account_id: account.id,
-            name: 'Root Wallet',
+            name,
             wallet_address: address,
             public_key_hash: address,
-            encrypted_private_key: privateKey,
+            encrypted_private_key: '',
             encrypted_seed_phrase: '',
             balance: 0,
             is_active: false,
             wallet_type: 'standard',
-            color: 'from-red-500 to-red-700',
-            icon: null,
+            color: color || 'from-red-500 to-red-700',
+            icon: icon || null,
             additional_addresses: []
         });
 
         return Response.json({
             success: true,
             address,
-            privateKey,
-            passphrase,
             walletId: wallet.id,
             walletName: wallet.name
         });

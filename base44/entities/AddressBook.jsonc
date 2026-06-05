@@ -1,0 +1,27 @@
+{
+  "name": "AddressBook",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "description": "Reference to WalletAccount"
+    },
+    "label": {
+      "type": "string",
+      "description": "Custom label for the contact"
+    },
+    "address": {
+      "type": "string",
+      "description": "ROD wallet address"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the contact"
+    }
+  },
+  "required": [
+    "account_id",
+    "label",
+    "address"
+  ]
+}

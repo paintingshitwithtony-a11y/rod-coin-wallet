@@ -1,14 +1,13 @@
 /**
- * generateWalletAddress — Node-managed wallet creation (Option 1).
+ * generateWalletAddress — Node-managed wallet creation.
  *
  * Architecture: Node-Custodial
+ * - Unlocks the node wallet using user-supplied passphrase or WALLET_PASSPHRASE secret
  * - Generates a new address via getnewaddress RPC
- * - The node manages the private key internally
- * - No private key is ever exported, encrypted, or stored in the app DB
- * - Transactions are signed by the node via signrawtransactionwithwallet
+ * - The node manages the private key internally — never exported or stored
  */
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 async function rpcCall(rpcUrl, rpcAuth, method, params) {
     const response = await fetch(rpcUrl, {
@@ -38,26 +37,25 @@ Deno.serve(async (req) => {
         const user = await base44.auth.me();
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { label, walletName, color, icon, passphrase } = await req.json();
+        const body = await req.json();
+        const { label, walletName, color, icon } = body;
+        // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
+        const passphrase = (body.passphrase && body.passphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
 
-        // --- Load account ---
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) return Response.json({ error: 'Wallet account not found' }, { status: 404 });
         const account = accounts[0];
 
-        // --- Load active RPC config ---
         const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
-        if (rpcConfigs.length === 0) {
-            return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
-        }
+        if (rpcConfigs.length === 0) return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
         const rpcConfig = rpcConfigs[0];
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // --- Step 1: Unlock the node wallet if encrypted ---
+        // Unlock the node wallet if a passphrase is available
         if (passphrase) {
             try {
-                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 30]);
+                await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
             } catch (unlockErr) {
                 const msg = (unlockErr.message || '').toLowerCase();
                 if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
@@ -66,10 +64,9 @@ Deno.serve(async (req) => {
             }
         }
 
-        // --- Step 2: Generate new address (node manages the key) ---
+        // Generate new address — node manages the private key
         const address = await rpcCall(rpcUrl, rpcAuth, 'getnewaddress', [label || '']);
 
-        // --- Step 3: Store wallet record (no private key stored) ---
         const wallet = await base44.entities.Wallet.create({
             account_id: account.id,
             name: walletName || label || 'New Wallet',

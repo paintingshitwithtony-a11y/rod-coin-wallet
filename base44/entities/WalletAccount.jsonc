@@ -1,0 +1,102 @@
+{
+  "name": "WalletAccount",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "User email address"
+    },
+    "password_hash": {
+      "type": "string",
+      "description": "Hashed password"
+    },
+    "wallet_address": {
+      "type": "string",
+      "description": "Primary ROD wallet address"
+    },
+    "public_key_hash": {
+      "type": "string",
+      "description": "Public key hash for the wallet"
+    },
+    "encrypted_private_key": {
+      "type": "string",
+      "description": "Encrypted private key"
+    },
+    "additional_addresses": {
+      "type": "array",
+      "description": "Additional generated addresses",
+      "items": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "public_key_hash": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Current balance"
+    },
+    "last_login": {
+      "type": "string",
+      "description": "Last login timestamp"
+    },
+    "wallet_passphrase": {
+      "type": "string",
+      "description": "User's own ROD node wallet passphrase (used to unlock their node for transactions, never shared)"
+    },
+    "mfa_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether MFA is enabled for transactions"
+    },
+    "mfa_method": {
+      "type": "string",
+      "enum": [
+        "email",
+        "authenticator"
+      ],
+      "description": "MFA method preference"
+    },
+    "mfa_secret": {
+      "type": "string",
+      "description": "Secret for authenticator app (encrypted)"
+    },
+    "rpc_host": {
+      "type": "string",
+      "description": "ROD Core RPC host"
+    },
+    "rpc_port": {
+      "type": "string",
+      "description": "ROD Core RPC port"
+    },
+    "rpc_username": {
+      "type": "string",
+      "description": "ROD Core RPC username"
+    },
+    "rpc_password": {
+      "type": "string",
+      "description": "ROD Core RPC password (encrypted)"
+    },
+    "rod_conf_path": {
+      "type": "string",
+      "description": "Saved path to rod.conf file for quick access"
+    }
+  },
+  "required": [
+    "email",
+    "password_hash",
+    "wallet_address"
+  ]
+}

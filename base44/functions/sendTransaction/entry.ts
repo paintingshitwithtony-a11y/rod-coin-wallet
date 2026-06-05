@@ -1,27 +1,15 @@
 /**
  * sendTransaction — UTXO-based node-signed transaction function.
  *
- * Architecture: Node-Custodial (Option 1)
+ * Architecture: Node-Custodial
  * The node manages all private keys internally.
- * The backend unlocks the node wallet server-side using WALLET_PASSPHRASE secret,
- * then uses signrawtransactionwithwallet — no key export or storage needed.
- *
- * Flow:
- *  1. Authenticate user
- *  2. Verify ownership of fromAddress
- *  3. listunspent filtered to fromAddress only
- *  4. Largest-first UTXO selection to cover amount + fee
- *  5. Calculate change → back to fromAddress (or absorbed if dust)
- *  6. createrawtransaction with explicit inputs and outputs
- *  7. Unlock node wallet with WALLET_PASSPHRASE (server-side secret)
- *  8. signrawtransactionwithwallet (node signs internally)
- *  9. sendrawtransaction
- * 10. Store tx record, return txid + metadata
+ * Uses WALLET_PASSPHRASE secret (or user-supplied passphrase) to unlock the node wallet,
+ * then signrawtransactionwithwallet — no key export or storage needed.
  */
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const DUST_THRESHOLD = 0.00000546; // outputs below this are absorbed into fee
+const DUST_THRESHOLD = 0.00000546;
 
 async function rpcCall(rpcUrl, rpcAuth, method, params) {
     const response = await fetch(rpcUrl, {
@@ -38,38 +26,22 @@ async function rpcCall(rpcUrl, rpcAuth, method, params) {
     return data.result;
 }
 
-// Convert a raw 32-byte hex private key to WIF (Wallet Import Format)
-// Uses version byte 0x80 (mainnet). ROD is Bitcoin-derived so this applies.
 function hexToWIF(hexKey) {
     const versionByte = 0x80;
-    const compressionFlag = 0x01; // compressed public key
-
-    // Decode hex to bytes
     const keyBytes = new Uint8Array(hexKey.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-
-    // Payload: version + key + compression flag
     const payload = new Uint8Array(1 + 32 + 1);
     payload[0] = versionByte;
     payload.set(keyBytes, 1);
-    payload[33] = compressionFlag;
-
-    // Double SHA-256 checksum
+    payload[33] = 0x01;
     const checksum = doubleSha256(payload).slice(0, 4);
-
-    // Final: payload + checksum
     const wifBytes = new Uint8Array(payload.length + 4);
     wifBytes.set(payload);
     wifBytes.set(checksum, payload.length);
-
     return base58Encode(wifBytes);
 }
 
-function doubleSha256(data) {
-    // Synchronous SHA-256 using a simple JS implementation
-    return sha256(sha256(data));
-}
+function doubleSha256(data) { return sha256(sha256(data)); }
 
-// Minimal SHA-256 implementation (no external deps)
 function sha256(data) {
     const K = [
         0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
@@ -117,14 +89,8 @@ function base58Encode(bytes) {
     let num = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join(''));
     let result = '';
     const base = BigInt(58);
-    while (num > 0n) {
-        result = ALPHABET[Number(num % base)] + result;
-        num = num / base;
-    }
-    for (const byte of bytes) {
-        if (byte === 0) result = '1' + result;
-        else break;
-    }
+    while (num > 0n) { result = ALPHABET[Number(num % base)] + result; num = num / base; }
+    for (const byte of bytes) { if (byte === 0) result = '1' + result; else break; }
     return result;
 }
 
@@ -142,68 +108,50 @@ Deno.serve(async (req) => {
         if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { fromAddress, recipient, amount, fee, memo, passphrase, privateKey } = body;
+        const { fromAddress, recipient, amount, fee, memo, privateKey } = body;
+        // Use user-supplied passphrase, or fall back to the WALLET_PASSPHRASE secret
+        const passphrase = (body.passphrase && body.passphrase.trim()) || Deno.env.get('WALLET_PASSPHRASE') || '';
 
-        // --- Input validation ---
         if (!fromAddress) return Response.json({ error: 'fromAddress is required' }, { status: 400 });
         if (!recipient) return Response.json({ error: 'recipient is required' }, { status: 400 });
-        if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
             return Response.json({ error: 'amount must be a positive number' }, { status: 400 });
-        }
-        if (fee === undefined || fee === null || isNaN(parseFloat(fee)) || parseFloat(fee) < 0) {
+        if (fee === undefined || fee === null || isNaN(parseFloat(fee)) || parseFloat(fee) < 0)
             return Response.json({ error: 'fee must be a non-negative number' }, { status: 400 });
-        }
-
 
         const sendAmount = parseFloat((+amount).toFixed(8));
         const feeAmount = parseFloat((+fee).toFixed(8));
         const totalNeeded = parseFloat((sendAmount + feeAmount).toFixed(8));
 
-        // --- Load account ---
         const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) return Response.json({ error: 'Wallet account not found' }, { status: 404 });
         const account = accounts[0];
 
-        // --- Verify ownership of fromAddress ---
+        // Verify ownership of fromAddress
         let ownsAddress = account.wallet_address === fromAddress;
         if (!ownsAddress) {
             const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
             ownsAddress = wallets.some(w => w.wallet_address === fromAddress);
         }
-        if (!ownsAddress) {
-            return Response.json({ error: 'fromAddress does not belong to this account' }, { status: 403 });
-        }
+        if (!ownsAddress) return Response.json({ error: 'fromAddress does not belong to this account' }, { status: 403 });
 
-        // --- Load active RPC config ---
         const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
-        if (rpcConfigs.length === 0) {
-            return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
-        }
+        if (rpcConfigs.length === 0) return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
         const rpcConfig = rpcConfigs[0];
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
-        // --- Step 4: Load UTXOs, filter to fromAddress only ---
+        // Load UTXOs for this address
         const allUtxos = await rpcCall(rpcUrl, rpcAuth, 'listunspent', [0, 9999999, [fromAddress]]);
         const utxos = allUtxos.filter(u => u.address === fromAddress);
+        if (!utxos || utxos.length === 0)
+            return Response.json({ error: `No spendable UTXOs found for address ${fromAddress}` }, { status: 400 });
 
-        if (!utxos || utxos.length === 0) {
-            return Response.json({
-                error: `No spendable UTXOs found for address ${fromAddress}`
-            }, { status: 400 });
-        }
-
-        // --- Step 5: Spendable balance from UTXOs ---
         const spendableBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
-        if (spendableBalance < totalNeeded) {
-            return Response.json({
-                error: 'Insufficient funds',
-                spendableBalance,
-                required: totalNeeded
-            }, { status: 400 });
-        }
+        if (spendableBalance < totalNeeded)
+            return Response.json({ error: 'Insufficient funds', spendableBalance, required: totalNeeded }, { status: 400 });
 
-        // --- Step 6: Largest-first coin selection ---
+        // Largest-first coin selection
         const sortedUtxos = [...utxos].sort((a, b) => b.amount - a.amount);
         const selectedUtxos = [];
         let selectedTotal = 0;
@@ -214,38 +162,26 @@ Deno.serve(async (req) => {
         }
         selectedTotal = parseFloat(selectedTotal.toFixed(8));
 
-        // --- Step 7: Calculate change ---
         let change = parseFloat((selectedTotal - totalNeeded).toFixed(8));
         let effectiveFee = feeAmount;
         if (change > 0 && change <= DUST_THRESHOLD) {
-            // Absorb dust change into fee
             effectiveFee = parseFloat((feeAmount + change).toFixed(8));
             change = 0;
         }
 
-        // --- Step 8: Build inputs and outputs ---
         const inputs = selectedUtxos.map(u => ({ txid: u.txid, vout: u.vout }));
         const outputs = { [recipient]: sendAmount };
-        if (change > DUST_THRESHOLD) {
-            outputs[fromAddress] = change;
-        }
+        if (change > DUST_THRESHOLD) outputs[fromAddress] = change;
 
-        // --- Step 6: Create raw transaction ---
         const rawTx = await rpcCall(rpcUrl, rpcAuth, 'createrawtransaction', [inputs, outputs]);
 
-        // --- Step 7: Unlock node wallet or sign with private key ---
+        // Sign: use private key directly if provided, otherwise unlock node wallet
         let signResult;
         if (privateKey) {
-            // Convert hex private key to WIF if needed (WIF starts with 5, K, L for mainnet or c for testnet)
             let wifKey = privateKey.trim();
-            const isHex = /^[0-9a-fA-F]{64}$/.test(wifKey);
-            if (isHex) {
-                wifKey = hexToWIF(wifKey);
-            }
-            // Sign directly with WIF private key — no node wallet unlock needed
+            if (/^[0-9a-fA-F]{64}$/.test(wifKey)) wifKey = hexToWIF(wifKey);
             signResult = await rpcCall(rpcUrl, rpcAuth, 'signrawtransactionwithkey', [rawTx, [wifKey]]);
         } else {
-            // Unlock the encrypted node wallet with passphrase, then sign
             if (passphrase) {
                 try {
                     await rpcCall(rpcUrl, rpcAuth, 'walletpassphrase', [passphrase, 60]);
@@ -266,16 +202,11 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // --- Step 13: Broadcast ---
         const txid = await rpcCall(rpcUrl, rpcAuth, 'sendrawtransaction', [signResult.hex]);
 
-        // --- Step 14: Record in database ---
-        const selectedInputs = selectedUtxos.map(u => ({ txid: u.txid, vout: u.vout, amount: u.amount }));
-        const memoText = memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
-
-        // Find wallet entity for this address (for wallet_id reference)
         const allWallets = await base44.entities.Wallet.filter({ account_id: account.id });
         const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
+        const memoText = memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
 
         await base44.entities.Transaction.create({
             account_id: account.id,
@@ -298,12 +229,10 @@ Deno.serve(async (req) => {
             amount: sendAmount,
             fee: effectiveFee,
             change,
-            selectedInputs,
             spendableBalance
         });
 
     } catch (error) {
-        // Never log sensitive data — only log the error message
         console.error('sendTransaction error:', error.message);
         return Response.json({ error: error.message }, { status: 500 });
     }

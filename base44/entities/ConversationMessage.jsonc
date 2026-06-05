@@ -1,0 +1,47 @@
+{
+  "name": "ConversationMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Unique conversation session ID"
+    },
+    "conversation_title": {
+      "type": "string",
+      "description": "User-friendly title for the conversation (auto-generated or user-set)"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "Message sender - user or AI assistant"
+    },
+    "content": {
+      "type": "string",
+      "description": "The actual message content"
+    },
+    "message_index": {
+      "type": "number",
+      "description": "Order of message in conversation"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was sent"
+    },
+    "tool_calls": {
+      "type": "array",
+      "description": "Any tool calls made by the assistant",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "conversation_id",
+    "role",
+    "content"
+  ]
+}

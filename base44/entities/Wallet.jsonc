@@ -1,0 +1,84 @@
+{
+  "name": "Wallet",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "description": "Reference to WalletAccount owner"
+    },
+    "name": {
+      "type": "string",
+      "description": "User-defined wallet name"
+    },
+    "wallet_address": {
+      "type": "string",
+      "description": "Primary ROD wallet address"
+    },
+    "public_key_hash": {
+      "type": "string",
+      "description": "Public key hash for the wallet"
+    },
+    "encrypted_private_key": {
+      "type": "string",
+      "description": "Encrypted private key"
+    },
+    "encrypted_seed_phrase": {
+      "type": "string",
+      "description": "Encrypted BIP39 seed phrase for wallet recovery"
+    },
+    "additional_addresses": {
+      "type": "array",
+      "description": "Additional generated addresses",
+      "items": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "public_key_hash": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Current wallet balance"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the currently active wallet"
+    },
+    "wallet_type": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "imported",
+        "hardware"
+      ],
+      "default": "standard",
+      "description": "Type of wallet"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color theme for wallet identification"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon identifier for wallet"
+    }
+  },
+  "required": [
+    "account_id",
+    "name",
+    "wallet_address"
+  ]
+}

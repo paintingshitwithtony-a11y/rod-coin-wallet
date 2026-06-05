@@ -1,0 +1,95 @@
+{
+  "name": "RPCConfiguration",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "description": "Reference to WalletAccount"
+    },
+    "name": {
+      "type": "string",
+      "description": "Configuration name (e.g., Local Node, Mining Pool)"
+    },
+    "connection_type": {
+      "type": "string",
+      "enum": [
+        "rpc",
+        "electrum",
+        "api",
+        "curl"
+      ],
+      "default": "rpc",
+      "description": "Type of connection (Full Node RPC, Electrum Server, API Key, or cURL)"
+    },
+    "host": {
+      "type": "string",
+      "description": "RPC/Electrum/API host"
+    },
+    "port": {
+      "type": "string",
+      "description": "RPC/Electrum/API port"
+    },
+    "username": {
+      "type": "string",
+      "description": "RPC username (not used for Electrum or API)"
+    },
+    "password": {
+      "type": "string",
+      "description": "RPC password (not used for Electrum or API)"
+    },
+    "api_key": {
+      "type": "string",
+      "description": "API key for mainnet connection"
+    },
+    "curl_command": {
+      "type": "string",
+      "description": "Full cURL command for RPC connection"
+    },
+    "use_ssl": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use SSL/TLS for connection"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the currently active configuration"
+    },
+    "last_connected": {
+      "type": "string",
+      "description": "Last successful connection timestamp"
+    },
+    "connection_status": {
+      "type": "string",
+      "enum": [
+        "connected",
+        "disconnected",
+        "error",
+        "untested"
+      ],
+      "default": "untested",
+      "description": "Current connection status"
+    },
+    "node_info": {
+      "type": "object",
+      "description": "Cached node information (blocks, chain, etc.)",
+      "properties": {
+        "blocks": {
+          "type": "number"
+        },
+        "chain": {
+          "type": "string"
+        },
+        "version": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": [
+    "account_id",
+    "name",
+    "host",
+    "port"
+  ]
+}

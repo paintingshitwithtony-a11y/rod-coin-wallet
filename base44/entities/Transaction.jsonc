@@ -1,0 +1,63 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "description": "Reference to WalletAccount"
+    },
+    "wallet_id": {
+      "type": "string",
+      "description": "Reference to specific Wallet (null for main account wallet)"
+    },
+    "wallet_address": {
+      "type": "string",
+      "description": "The wallet address that sent/received this transaction"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "send",
+        "receive"
+      ],
+      "description": "Transaction type"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount in ROD"
+    },
+    "fee": {
+      "type": "number",
+      "description": "Transaction fee"
+    },
+    "address": {
+      "type": "string",
+      "description": "For receive: sender address. For send: recipient address"
+    },
+    "memo": {
+      "type": "string",
+      "description": "Optional transaction note"
+    },
+    "confirmations": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of confirmations"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed"
+      ],
+      "default": "pending",
+      "description": "Transaction status"
+    }
+  },
+  "required": [
+    "account_id",
+    "type",
+    "amount",
+    "address",
+    "wallet_address"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "UserSession",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "description": "Reference to WalletAccount"
+    },
+    "session_token": {
+      "type": "string",
+      "description": "Unique session identifier"
+    },
+    "device_info": {
+      "type": "string",
+      "description": "Browser and device information"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP address of the session"
+    },
+    "last_active": {
+      "type": "string",
+      "description": "Last activity timestamp"
+    },
+    "is_current": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the current session"
+    }
+  },
+  "required": [
+    "account_id",
+    "session_token"
+  ]
+}
