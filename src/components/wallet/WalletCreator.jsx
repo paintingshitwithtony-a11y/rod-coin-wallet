@@ -573,14 +573,16 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                 </Alert>
                             )}
 
-                            {/* Seed Phrase Notice */}
-                            <Alert className="border-blue-500/50 bg-blue-500/10">
-                                <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                                <AlertDescription className="text-blue-300 text-xs space-y-1">
-                                    <p><strong>Seed Phrase:</strong> Not available for this node-created wallet.</p>
-                                    <p>Private key (WIF) and seed phrase are different. For ROD Core/node-generated wallets, save the WIF private key shown above.</p>
-                                </AlertDescription>
-                            </Alert>
+                            {/* Seed Phrase Field */}
+                            <div className="space-y-1">
+                                <Label className="text-slate-400 text-xs uppercase tracking-wide">Seed Phrase</Label>
+                                <div className="bg-slate-800 border border-blue-500/40 rounded p-3 space-y-1">
+                                    <p className="text-blue-300 text-sm font-semibold">Not available for this ROD node-created wallet</p>
+                                    <p className="text-blue-300/80 text-xs">
+                                        The private key above is not a seed phrase. ROD Core/node-generated wallets recover this address with the WIF private key shown above.
+                                    </p>
+                                </div>
+                            </div>
 
                             {/* Divider */}
                             <div className="border-t border-slate-700 pt-3">
