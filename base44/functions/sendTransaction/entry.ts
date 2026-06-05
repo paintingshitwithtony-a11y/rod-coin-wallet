@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
         try {
             const user = await base44.auth.me();
             if (user?.email) {
-                const accountsByEmail = await base44.entities.WalletAccount.filter({ email: user.email });
+                const accountsByEmail = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
                 account = accountsByEmail[0] || null;
             }
         } catch (_) {
@@ -132,23 +132,23 @@ Deno.serve(async (req) => {
         }
 
         if (!account && accountId && sessionToken) {
-            const sessions = await base44.entities.UserSession.filter({
+            const sessions = await base44.asServiceRole.entities.UserSession.filter({
                 account_id: accountId,
                 session_token: sessionToken,
                 is_current: true
             });
             if (sessions.length > 0) {
-                const accountsById = await base44.entities.WalletAccount.filter({ id: accountId });
+                const accountsById = await base44.asServiceRole.entities.WalletAccount.filter({ id: accountId });
                 account = accountsById[0] || null;
             }
         }
 
-        if (!account) return Response.json({ error: 'Unauthorized wallet session' }, { status: 401 });
+        if (!account) return Response.json({ error: 'Wallet session expired. Please log out and back in.' }, { status: 400 });
 
         // Verify ownership of fromAddress
         let ownsAddress = account.wallet_address === fromAddress;
         if (!ownsAddress) {
-            const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
+            const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
             ownsAddress = wallets.some(w => w.wallet_address === fromAddress);
         }
         if (!ownsAddress) {
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
         }
         if (!ownsAddress) return Response.json({ error: 'fromAddress does not belong to this account' }, { status: 403 });
 
-        const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
+        const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
         if (rpcConfigs.length === 0) return Response.json({ error: 'No active RPC configuration found' }, { status: 500 });
         const rpcConfig = rpcConfigs[0];
         const rpcUrl = buildRpcUrl(rpcConfig);
@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
                 } catch (unlockErr) {
                     const msg = (unlockErr.message || '').toLowerCase();
                     if (!msg.includes('already unlocked') && !msg.includes('unencrypted') && !msg.includes('already been unlocked')) {
-                        return Response.json({ error: 'Failed to unlock node wallet. Please check your passphrase.' }, { status: 401 });
+                        return Response.json({ error: 'Failed to unlock node wallet. Check the saved node wallet passphrase.' }, { status: 400 });
                     }
                 }
             }
@@ -225,11 +225,11 @@ Deno.serve(async (req) => {
 
         const txid = await rpcCall(rpcUrl, rpcAuth, 'sendrawtransaction', [signResult.hex]);
 
-        const allWallets = await base44.entities.Wallet.filter({ account_id: account.id });
+        const allWallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
         const senderWallet = allWallets.find(w => w.wallet_address === fromAddress);
         const memoText = memo ? `${memo} | TxID: ${txid}` : `TxID: ${txid}`;
 
-        await base44.entities.Transaction.create({
+        await base44.asServiceRole.entities.Transaction.create({
             account_id: account.id,
             wallet_id: senderWallet?.id || null,
             wallet_address: fromAddress,
