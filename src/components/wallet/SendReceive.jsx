@@ -50,6 +50,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     const [canSwitch, setCanSwitch] = useState(true);
     const switchTimeoutRef = useRef(null);
     const [showPassphraseModal, setShowPassphraseModal] = useState(false);
+    const [privateKeyInput, setPrivateKeyInput] = useState('');
 
     useEffect(() => {
         if (mode === 'send' && account) {
@@ -227,15 +228,16 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
         }
         
         const rpcBalance = rpcBalances[selectedFromWallet?.wallet_address] ?? 0;
+        const visibleBalance = visibleBalances[selectedFromWallet?.wallet_address] ?? rpcBalance;
+        const availableBalance = privateKeyInput.trim() ? visibleBalance : rpcBalance;
         const feeNum = parseFloat(fee) || 0;
-        if (amountNum + feeNum > rpcBalance) {
-            const visibleBalance = visibleBalances[selectedFromWallet?.wallet_address] ?? rpcBalance;
-            if (visibleBalance > 0 && rpcBalance === 0) {
-                toast.error('This wallet has visible funds but they are not spendable on this node', {
-                    description: 'Import the private key for this address before sending.'
+        if (amountNum + feeNum > availableBalance) {
+            if (visibleBalance > 0 && rpcBalance === 0 && !privateKeyInput.trim()) {
+                toast.error('This wallet has visible funds but needs its private key to spend', {
+                    description: 'Paste the private key in the field below before sending.'
                 });
             } else {
-                toast.error(`Insufficient spendable balance — need ${(amountNum + feeNum).toFixed(8)} ROD (amount + fee), have ${rpcBalance.toFixed(8)} ROD`);
+                toast.error(`Insufficient spendable balance — need ${(amountNum + feeNum).toFixed(8)} ROD (amount + fee), have ${availableBalance.toFixed(8)} ROD`);
             }
             return;
         }
@@ -261,7 +263,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
     };
 
     const handleConfirmTransaction = () => {
-        executeSendWithPassphrase('', '');
+        executeSendWithPassphrase('', privateKeyInput.trim());
     };
 
     const [sendPassphrase, setSendPassphrase] = useState('');
@@ -319,6 +321,7 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
             setRecipient('');
             setAmount('');
             setMemo('');
+            setPrivateKeyInput('');
             setMfaVerified(false);
             setAddressValid(null);
             
@@ -466,6 +469,21 @@ export default function SendReceive({ mode, balance = 0, addresses = [], onGener
                                          })}
                                 </SelectContent>
                             </Select>
+                            {(visibleBalances[selectedFromWallet?.wallet_address] || 0) > (rpcBalances[selectedFromWallet?.wallet_address] || 0) && (
+                                <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                                    <Label className="text-amber-200">Private Key for Spending</Label>
+                                    <Input
+                                        type="password"
+                                        value={privateKeyInput}
+                                        onChange={(e) => setPrivateKeyInput(e.target.value)}
+                                        placeholder="Paste the private key for this address"
+                                        className="bg-slate-900/70 border-amber-500/40 text-white font-mono"
+                                    />
+                                    <p className="text-xs text-amber-300/80">
+                                        This key is only sent with this transaction and is cleared after sending.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
