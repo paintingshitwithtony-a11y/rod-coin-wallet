@@ -11,14 +11,7 @@ import { toast } from 'sonner';
 /**
  * WalletRestore — restore a wallet from a JSON backup file only.
  *
- * Seed-phrase restoration has been intentionally removed because:
- *  - ROD/SpaceXpanse uses a Bitcoin Core-derived wallet model with its own internal
- *    key derivation.  It does NOT use a standard BIP39/BIP44 mnemonic scheme.
- *  - Any "seed phrase" support in this app would be app-specific and not
- *    compatible with keys the node generated.
- *  - The previous deriveFromSeed backend was using a simple SHA-256 hash of the
- *    phrase — not a valid derivation scheme — and must not be used.
- *
+ * ROD/SpaceXpanse uses node-generated WIF private keys for spendable wallet recovery.
  * If the user has a WIF private key they want to import for spending, use
  * WalletImport → Spendable (Private Key) tab instead.
  */
@@ -96,8 +89,7 @@ export default function WalletRestore({ account, onClose, onRestored }) {
                     <Alert className="bg-amber-500/10 border-amber-500/30">
                         <AlertCircle className="h-4 w-4 text-amber-400" />
                         <AlertDescription className="text-amber-300/80 text-sm">
-                            <strong>No seed-phrase restore.</strong> ROD Core wallets use their own internal 
-                            key derivation, not BIP39 mnemonics. To restore a wallet using only a private key, 
+                            <strong>Private-key restore:</strong> To restore a wallet using a WIF private key, 
                             use <strong>Import Wallet → Spendable (Private Key)</strong> instead.
                         </AlertDescription>
                     </Alert>
