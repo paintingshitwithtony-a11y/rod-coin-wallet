@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
     try {
@@ -12,8 +12,11 @@ Deno.serve(async (req) => {
         // Get the RPC request payload
         const rpcRequest = await req.json();
 
-        // Get user's wallet account to find active RPC config
-        const accounts = await base44.entities.WalletAccount.filter({ id: user.id });
+        // Get this user's wallet account to find their own active RPC config
+        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+        if (accounts.length === 0) {
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+        }
         if (accounts.length === 0) {
             return Response.json({ 
                 error: 'Wallet account not found' 
@@ -23,7 +26,7 @@ Deno.serve(async (req) => {
         const account = accounts[0];
 
         // Get active RPC configuration
-        const configs = await base44.entities.RPCConfiguration.filter({
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
             account_id: account.id,
             is_active: true
         });

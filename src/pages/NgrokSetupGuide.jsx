@@ -217,7 +217,7 @@ sudo systemctl status ngrok.service`} />
                                     <li>Reboot your computer</li>
                                     <li>Go to <a href="https://dashboard.ngrok.com/status" target="_blank" className="text-purple-400 hover:underline">ngrok dashboard</a> → Sessions</li>
                                     <li>You should see an active TCP session for <code className="text-xs">localhost:9766</code></li>
-                                    <li>Copy the ngrok URL and add it to Admin → RPC Configuration</li>
+                                    <li>Copy the ngrok host and port into your own wallet's RPC Node Management settings</li>
                                 </ol>
                             </CardContent>
                         </Card>
@@ -225,7 +225,7 @@ sudo systemctl status ngrok.service`} />
                         <Alert className="bg-amber-500/10 border-amber-500/30">
                             <AlertTriangle className="w-4 h-4 text-amber-400" />
                             <AlertDescription className="text-amber-300 text-sm">
-                                <strong>Important:</strong> Keep your auth token private. Anyone with it can use your ngrok account.
+                                <strong>Important:</strong> Keep your auth token private. Add ngrok details only inside your own wallet account so other accounts never use your tunnel.
                             </AlertDescription>
                         </Alert>
                     </CardContent>

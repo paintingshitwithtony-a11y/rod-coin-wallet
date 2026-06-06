@@ -18,18 +18,9 @@ export default function UseDefaultRPCButton({ account, onSuccess }) {
             // Look for a "(Default)" config first
             let defaultConfig = userConfigs.find(c => c.name && c.name.includes('(Default)'));
 
-            if (!defaultConfig) {
-                // Fallback: use any existing config that matches admin secrets via backend
-                const response = await base44.functions.invoke('setupRODNodeFromSecrets', {});
-                if (response.data?.success) {
-                    toast.success('Default RPC configuration applied!');
-                    if (onSuccess) onSuccess();
-                    return;
-                }
-                // Last resort: just activate the first available config
-                if (userConfigs.length > 0) {
-                    defaultConfig = userConfigs[0];
-                }
+            if (!defaultConfig && userConfigs.length > 0) {
+                // Use only this account's saved configurations; never fall back to shared admin secrets.
+                defaultConfig = userConfigs[0];
             }
 
             if (defaultConfig) {

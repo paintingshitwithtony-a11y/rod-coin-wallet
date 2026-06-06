@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
     try {
@@ -9,8 +9,12 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get user's wallet account
-        const accounts = await base44.entities.WalletAccount.filter({ 
+        if (user.role !== 'admin') {
+            return Response.json({ error: 'Forbidden: Admin access required', success: false }, { status: 403 });
+        }
+
+        // Get admin's wallet account only; shared secrets are never applied to regular users.
+        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
             email: user.email 
         });
 
@@ -34,7 +38,7 @@ Deno.serve(async (req) => {
         }
 
         // Check if this configuration already exists
-        const existing = await base44.entities.RPCConfiguration.filter({
+        const existing = await base44.asServiceRole.entities.RPCConfiguration.filter({
             account_id: account.id,
             host: host,
             port: port
@@ -43,7 +47,7 @@ Deno.serve(async (req) => {
         if (existing.length > 0) {
             // Update existing config
             const useSSL = port === '9443' || port === '443' || port === '8443';
-            await base44.entities.RPCConfiguration.update(existing[0].id, {
+            await base44.asServiceRole.entities.RPCConfiguration.update(existing[0].id, {
                 username,
                 password,
                 use_ssl: useSSL,
@@ -51,20 +55,20 @@ Deno.serve(async (req) => {
             });
 
             // Deactivate all other configs
-            const allConfigs = await base44.entities.RPCConfiguration.filter({
+            const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({
                 account_id: account.id
             });
             
             for (const cfg of allConfigs) {
                 if (cfg.id !== existing[0].id && cfg.is_active) {
-                    await base44.entities.RPCConfiguration.update(cfg.id, {
+                    await base44.asServiceRole.entities.RPCConfiguration.update(cfg.id, {
                         is_active: false
                     });
                 }
             }
 
             // Update account
-            await base44.entities.WalletAccount.update(account.id, {
+            await base44.asServiceRole.entities.WalletAccount.update(account.id, {
                 rpc_host: host,
                 rpc_port: port,
                 rpc_username: username,
@@ -79,7 +83,7 @@ Deno.serve(async (req) => {
 
         // Create new configuration
         const useSSL = port === '9443' || port === '443' || port === '8443';
-        const newConfig = await base44.entities.RPCConfiguration.create({
+        const newConfig = await base44.asServiceRole.entities.RPCConfiguration.create({
             account_id: account.id,
             name: 'ROD Core (from secrets)',
             connection_type: 'rpc',
@@ -95,20 +99,20 @@ Deno.serve(async (req) => {
         });
 
         // Deactivate all other configs
-        const allConfigs = await base44.entities.RPCConfiguration.filter({
+        const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({
             account_id: account.id
         });
         
         for (const cfg of allConfigs) {
             if (cfg.id !== newConfig.id && cfg.is_active) {
-                await base44.entities.RPCConfiguration.update(cfg.id, {
+                await base44.asServiceRole.entities.RPCConfiguration.update(cfg.id, {
                     is_active: false
                 });
             }
         }
 
         // Update account
-        await base44.entities.WalletAccount.update(account.id, {
+        await base44.asServiceRole.entities.WalletAccount.update(account.id, {
             rpc_host: host,
             rpc_port: port,
             rpc_username: username,

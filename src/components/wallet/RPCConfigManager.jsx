@@ -485,32 +485,17 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
 
     const handleEditConfig = (config) => {
         setEditingConfig(config);
-        // Non-admins can only edit the host URL
-        if (currentUser?.role !== 'admin') {
-            setFormData({
-                name: config.name,
-                connection_type: config.connection_type || 'rpc',
-                host: config.host,
-                port: config.port,
-                username: '',
-                password: '',
-                api_key: '',
-                curl_command: '',
-                use_ssl: config.use_ssl || false
-            });
-        } else {
-            setFormData({
-                name: config.name,
-                connection_type: config.connection_type || 'rpc',
-                host: config.host,
-                port: config.port,
-                username: config.username || '',
-                password: config.password || '',
-                api_key: config.api_key || '',
-                curl_command: config.curl_command || '',
-                use_ssl: config.use_ssl || false
-            });
-        }
+        setFormData({
+            name: config.name,
+            connection_type: config.connection_type || 'rpc',
+            host: config.host,
+            port: config.port,
+            username: config.username || '',
+            password: config.password || '',
+            api_key: config.api_key || '',
+            curl_command: config.curl_command || '',
+            use_ssl: config.use_ssl || false
+        });
         setShowAddForm(true);
     };
 
@@ -572,22 +557,19 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                       connection_status: 'untested'
                   };
 
-                  // Only admins can update credentials and other fields
-                  if (currentUser?.role === 'admin') {
-                      updateData.name = formData.name;
-                      updateData.connection_type = formData.connection_type;
-                      updateData.port = formData.port;
-                      updateData.username = formData.username || '';
-                      updateData.password = formData.password || '';
-                      updateData.api_key = formData.api_key || '';
-                      updateData.curl_command = formData.curl_command || '';
-                      updateData.use_ssl = formData.use_ssl;
-                  }
+                  updateData.name = formData.name;
+                  updateData.connection_type = formData.connection_type;
+                  updateData.port = formData.port;
+                  updateData.username = formData.username || '';
+                  updateData.password = formData.password || '';
+                  updateData.api_key = formData.api_key || '';
+                  updateData.curl_command = formData.curl_command || '';
+                  updateData.use_ssl = formData.use_ssl;
 
                   await base44.entities.RPCConfiguration.update(editingConfig.id, updateData);
 
-                 // If this was the active config and user is admin, update account too
-                 if (editingConfig.is_active && currentUser?.role === 'admin') {
+                 // If this was the active config, update this account's saved RPC details too
+                 if (editingConfig.is_active) {
                      await base44.entities.WalletAccount.update(account.id, {
                          rpc_host: cleanedHost,
                          rpc_port: formData.port,
@@ -686,44 +668,46 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                 <div className="space-y-4">
                     {/* Auto-detect button */}
                     <div className="flex gap-1 md:gap-2 flex-wrap overflow-x-hidden">
-                        <Button
-                            className="text-xs md:text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
-                            onClick={async () => {
-                                setSaving(true);
-                                try {
-                                    const response = await base44.functions.invoke('setupRODNodeFromSecrets', {});
-                                    
-                                    if (response.data.success) {
-                                        toast.success('ROD Core node configured from secrets');
-                                        await loadConfigurations();
+                        {currentUser?.role === 'admin' && (
+                            <Button
+                                className="text-xs md:text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                                onClick={async () => {
+                                    setSaving(true);
+                                    try {
+                                        const response = await base44.functions.invoke('setupRODNodeFromSecrets', {});
                                         
-                                        // Auto-test the new connection
-                                        const newConfigs = await base44.entities.RPCConfiguration.filter({
-                                            account_id: account.id,
-                                            name: 'ROD Core (from secrets)'
-                                        });
-                                        if (newConfigs.length > 0) {
-                                            setTimeout(() => testConnection(newConfigs[0]), 500);
+                                        if (response.data.success) {
+                                            toast.success('ROD Core node configured from secrets');
+                                            await loadConfigurations();
+                                            
+                                            // Auto-test the new connection
+                                            const newConfigs = await base44.entities.RPCConfiguration.filter({
+                                                account_id: account.id,
+                                                name: 'ROD Core (from secrets)'
+                                            });
+                                            if (newConfigs.length > 0) {
+                                                setTimeout(() => testConnection(newConfigs[0]), 500);
+                                            }
+                                        } else {
+                                            toast.error(response.data.message || 'Failed to configure from secrets');
                                         }
-                                    } else {
-                                        toast.error(response.data.message || 'Failed to configure from secrets');
+                                    } catch (err) {
+                                        toast.error(err.message || 'Failed to configure from secrets');
+                                        console.error('Setup error:', err);
+                                    } finally {
+                                        setSaving(false);
                                     }
-                                } catch (err) {
-                                    toast.error(err.message || 'Failed to configure from secrets');
-                                    console.error('Setup error:', err);
-                                } finally {
-                                    setSaving(false);
-                                }
-                            }}
-                            disabled={saving}
-                        >
-                            {saving ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                                <Server className="w-4 h-4 mr-2" />
-                            )}
-                            Use ROD Secrets
-                        </Button>
+                                }}
+                                disabled={saving}
+                            >
+                                {saving ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Server className="w-4 h-4 mr-2" />
+                                )}
+                                Use ROD Secrets
+                            </Button>
+                        )}
                         <Button
                             onClick={() => setShowScanConfig(!showScanConfig)}
                             disabled={saving}
@@ -1722,12 +1706,12 @@ console.log(data.result);`}
                                 {editingConfig ? 'Edit Configuration' : 'Add New Configuration'}
                             </h4>
                             
-                            <Tabs value={formData.connection_type} onValueChange={(val) => currentUser?.role === 'admin' && setFormData({ ...formData, connection_type: val })}>
+                            <Tabs value={formData.connection_type} onValueChange={(val) => setFormData({ ...formData, connection_type: val })}>
                                  <TabsList className="grid w-full grid-cols-4 bg-slate-800">
-                                     <TabsTrigger value="rpc" disabled={currentUser?.role !== 'admin'}>RPC</TabsTrigger>
-                                     <TabsTrigger value="electrum" disabled={currentUser?.role !== 'admin'}>Electrum</TabsTrigger>
-                                     <TabsTrigger value="api" disabled={currentUser?.role !== 'admin'}>API Key</TabsTrigger>
-                                     <TabsTrigger value="curl" disabled={currentUser?.role !== 'admin'}>cURL</TabsTrigger>
+                                     <TabsTrigger value="rpc">RPC</TabsTrigger>
+                                     <TabsTrigger value="electrum">Electrum</TabsTrigger>
+                                     <TabsTrigger value="api">API Key</TabsTrigger>
+                                     <TabsTrigger value="curl">cURL</TabsTrigger>
                                  </TabsList>
 
                                 <TabsContent value="rpc" className="space-y-3 mt-3">
@@ -1838,22 +1822,20 @@ console.log(data.result);`}
                                  <p className="text-xs text-slate-500">Paste endpoint URL - credentials extracted automatically if present</p>
                              </div>
 
-                            {currentUser?.role === 'admin' && (
-                                <div className="space-y-2">
-                                    <Label className="text-slate-300">Configuration Name</Label>
-                                    <Input
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder={
-                                            formData.connection_type === 'curl' ? 'e.g., Custom cURL Connection' :
-                                            formData.connection_type === 'api' ? 'e.g., ROD Mainnet API' :
-                                            formData.connection_type === 'electrum' ? 'e.g., Public Electrum Server' : 
-                                            'e.g., Local Node, Mining Pool'
-                                        }
-                                        className="bg-slate-900 border-slate-600"
-                                    />
-                                </div>
-                            )}
+                            <div className="space-y-2">
+                                <Label className="text-slate-300">Configuration Name</Label>
+                                <Input
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder={
+                                        formData.connection_type === 'curl' ? 'e.g., My ngrok Connection' :
+                                        formData.connection_type === 'api' ? 'e.g., My ROD Mainnet API' :
+                                        formData.connection_type === 'electrum' ? 'e.g., My Electrum Server' : 
+                                        'e.g., My ngrok ROD Node'
+                                    }
+                                    className="bg-slate-900 border-slate-600"
+                                />
+                            </div>
                             <div className="space-y-2">
                                  <Label className="text-slate-300">Host URL</Label>
                                  <Input
@@ -1868,23 +1850,21 @@ console.log(data.result);`}
                                  />
                                  <p className="text-xs text-slate-500">Edit the host URL (remove http:// or https:// if present)</p>
                              </div>
-                             {currentUser?.role === 'admin' && (
-                                 <div className="space-y-2">
-                                     <Label className="text-slate-300">Port</Label>
-                                     <Input
-                                         value={formData.port}
-                                         onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                                         placeholder={
-                                             formData.connection_type === 'api' ? '443' :
-                                             formData.connection_type === 'electrum' ? '50002' : 
-                                             '9766'
-                                         }
-                                         className="bg-slate-900 border-slate-600"
-                                     />
-                                 </div>
-                             )}
+                             <div className="space-y-2">
+                                 <Label className="text-slate-300">Port</Label>
+                                 <Input
+                                     value={formData.port}
+                                     onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                                     placeholder={
+                                         formData.connection_type === 'api' ? '443' :
+                                         formData.connection_type === 'electrum' ? '50002' : 
+                                         '9766'
+                                     }
+                                     className="bg-slate-900 border-slate-600"
+                                 />
+                             </div>
                             
-                            {currentUser?.role === 'admin' && (formData.connection_type === 'electrum' || formData.connection_type === 'api') && (
+                            {(formData.connection_type === 'electrum' || formData.connection_type === 'api') && (
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-700">
                                     <Label className="text-slate-300">Use SSL/TLS</Label>
                                     <Switch
@@ -1893,7 +1873,7 @@ console.log(data.result);`}
                                     />
                                 </div>
                             )}
-                            {currentUser?.role === 'admin' && formData.connection_type === 'curl' && (
+                            {formData.connection_type === 'curl' && (
                                 <div className="space-y-2">
                                     <Label className="text-slate-300">cURL Command</Label>
                                     <Textarea
@@ -1905,7 +1885,7 @@ console.log(data.result);`}
                                     <p className="text-xs text-slate-500">Paste your full cURL command including headers and authentication</p>
                                 </div>
                             )}
-                            {currentUser?.role === 'admin' && formData.connection_type === 'api' && (
+                            {formData.connection_type === 'api' && (
                                 <>
                                     <div className="space-y-2">
                                         <Label className="text-slate-300">API Key</Label>
@@ -1926,7 +1906,7 @@ console.log(data.result);`}
                                     </Alert>
                                 </>
                             )}
-                            {formData.connection_type === 'rpc' && currentUser?.role === 'admin' && (
+                            {formData.connection_type === 'rpc' && (
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300">Username</Label>
@@ -1988,7 +1968,7 @@ console.log(data.result);`}
                     <Alert className="bg-blue-500/10 border-blue-500/30">
                         <AlertCircle className="h-4 w-4 text-blue-400" />
                         <AlertDescription className="text-blue-300/80 text-sm">
-                            Active configuration is used for all transactions. Use Save/Load buttons to backup and restore configurations (.json or .conf files).
+                            Active configuration is used only for this wallet account. Use Save/Load buttons to backup and restore configurations (.json or .conf files).
                         </AlertDescription>
                     </Alert>
                     </div>

@@ -10,7 +10,7 @@
  * RPC credentials are stored in the RPCConfiguration entity (server-side only).
  * They are never returned to the browser.
  */
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Strict allowlist — only safe read-only methods
 const ALLOWED_METHODS = new Set([
@@ -55,11 +55,14 @@ Deno.serve(async (req) => {
         }
 
         // Load user's account and active RPC config
-        const accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+        if (accounts.length === 0) {
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+        }
         if (accounts.length === 0) return Response.json({ success: false, error: 'Account not found' }, { status: 404 });
         const account = accounts[0];
 
-        const rpcConfigs = await base44.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
+        const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
         if (rpcConfigs.length === 0) {
             return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
         }
@@ -68,7 +71,9 @@ Deno.serve(async (req) => {
         const cleanHost = rpcConfig.host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
         const SSL_PORTS = new Set(['443', '9443', '8443']);
         const protocol = (rpcConfig.use_ssl || rpcConfig.host.startsWith('https') || SSL_PORTS.has(String(rpcConfig.port))) ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${cleanHost}:${rpcConfig.port}`;
+        const rpcUrl = !rpcConfig.port || rpcConfig.port === ''
+            ? `${protocol}://${cleanHost}`
+            : `${protocol}://${cleanHost}:${rpcConfig.port}`;
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);
 
         let rpcResponse;
