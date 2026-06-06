@@ -92,30 +92,28 @@ export default function Wallet() {
 
             {/* Main Content */}
             <div className="relative z-10 container mx-auto px-2 md:px-4 py-8 overflow-x-hidden max-w-full">
-                {/* Header */}
+                {/* Header - Login/Welcome Message Only */}
+                {!account &&
                 <motion.header
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }} className="text-center">
-
-
-                    <div className="inline-flex items-center gap-3 mb-4">
-                        <div className="relative">
-                            <div className="bg-gradient-to-br my-16 rounded-2xl w-14 h-14 from-purple-500 via-purple-600 to-amber-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                                <span className="text-2xl font-black text-white">R</span>
-                            </div>
-
-                        </div>
-                        <div className="text-left">
-                            <h1 className="text-3xl font-bold text-white tracking-tight">ROD Wallet</h1>
-                            <p className="text-sm text-purple-400">SpaceXpanse ROD Coin</p>
-                        </div>
-                    </div>
-                    {!account &&
-          <p className="text-slate-400 max-w-md mx-auto">
-                            Create a new wallet or login to manage your ROD coins, generate addresses, and send/receive transactions.
-                        </p>
-          }
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }} 
+                className="text-center">
+                <div className="inline-flex items-center gap-3 mb-4">
+                <div className="relative">
+                 <div className="bg-gradient-to-br my-16 rounded-2xl w-14 h-14 from-purple-500 via-purple-600 to-amber-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                   <span className="text-2xl font-black text-white">R</span>
+                 </div>
+                </div>
+                <div className="text-left">
+                 <h1 className="text-3xl font-bold text-white tracking-tight">ROD Wallet</h1>
+                 <p className="text-sm text-purple-400">SpaceXpanse ROD Coin</p>
+                </div>
+                </div>
+                <p className="text-slate-400 max-w-md mx-auto">
+                Create a new wallet or login to manage your ROD coins, generate addresses, and send/receive transactions.
+                </p>
                 </motion.header>
+                }
 
                 {/* Content */}
                 {account ?
