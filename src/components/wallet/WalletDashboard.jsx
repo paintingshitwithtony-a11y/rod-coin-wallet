@@ -1012,7 +1012,7 @@ export default function WalletDashboard({ account, onLogout }) {
   return (
     <div className="space-y-4 md:space-y-6 overflow-x-hidden">
             {/* Header Bar - Full Width */}
-            <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10 overflow-x-hidden">
+            <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10 overflow-x-hidden pt-[env(safe-area-inset-top)]">
                 <div className="max-w-7xl mx-auto px-2 md:px-4 py-3">
                     <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap overflow-x-hidden">
                         {/* Logo & Title */}
@@ -1221,7 +1221,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <div className="flex justify-center mb-6">
+                <div className="hidden md:flex justify-center mb-6">
                     <TabsList className={`bg-slate-800/50 border border-slate-700 ${isMobile ? 'w-full grid grid-cols-4 h-auto' : ''}`}>
                     <TabsTrigger value="overview" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         {isMobile ? 'Home' : 'Overview'}
@@ -1802,6 +1802,8 @@ export default function WalletDashboard({ account, onLogout }) {
                     <RPCConsole account={account} />
                 </TabsContent>
                 </Tabs>
+
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/30 bg-slate-950/95 backdrop-blur-xl px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"><div className="grid grid-cols-4 gap-1"><button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'overview' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><Wallet className="w-5 h-5" />Home</button><button onClick={() => setActiveTab('send')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'send' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><ArrowUpRight className="w-5 h-5" />Send</button><button onClick={() => setActiveTab('receive')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'receive' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><ArrowDownLeft className="w-5 h-5" />Receive</button><button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'history' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><Clock className="w-5 h-5" />History</button></div></div>
 
             {/* Unlock Wallet Modal */}
             {showUnlockDialog && (

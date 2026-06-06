@@ -10,6 +10,7 @@ import PasswordChange from '@/components/security/PasswordChange';
 import SessionManagement from '@/components/security/SessionManagement';
 import TwoFactorAuth from '@/components/security/TwoFactorAuth';
 import WalletPassphraseSettings from '@/components/security/WalletPassphraseSettings';
+import AccountDeletion from '@/components/security/AccountDeletion';
 
 export default function SecuritySettings() {
     const [account, setAccount] = useState(null);
@@ -62,7 +63,7 @@ export default function SecuritySettings() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 relative overflow-hidden safe-mobile-shell">
             {/* Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
@@ -70,7 +71,7 @@ export default function SecuritySettings() {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
+            <div className="relative z-10 container mx-auto px-4 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(7rem+env(safe-area-inset-bottom))] md:py-8 max-w-4xl">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -159,6 +160,14 @@ export default function SecuritySettings() {
                         transition={{ delay: 0.4 }}
                     >
                         <TwoFactorAuth account={account} />
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.45 }}
+                    >
+                        <AccountDeletion account={account} />
                     </motion.div>
                 </div>
 

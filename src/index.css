@@ -82,7 +82,16 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    background: #020617;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
+  }
+
+  .safe-mobile-shell {
+    min-height: 100dvh;
   }
 }
