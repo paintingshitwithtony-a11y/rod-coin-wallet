@@ -66,6 +66,12 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 '-created_date',
                 100
             );
+            const deletedWalletAddressKeys = new Set((freshAccount.deleted_wallet_addresses || []).map(normalizeAddress));
+            const staleDeletedWallets = walletList.filter((wallet) => deletedWalletAddressKeys.has(normalizeAddress(wallet.wallet_address)));
+            if (staleDeletedWallets.length > 0) {
+                await Promise.all(staleDeletedWallets.map((wallet) => base44.entities.Wallet.delete(wallet.id)));
+            }
+            const visibleWalletList = walletList.filter((wallet) => !deletedWalletAddressKeys.has(normalizeAddress(wallet.wallet_address)));
             
             // Always include main account wallet with fresh balance
             const mainWallet = {
@@ -74,12 +80,12 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 name: 'Main Wallet',
                 wallet_address: freshAccount.wallet_address,
                 balance: freshAccount.balance || 0,
-                is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
+                is_active: visibleWalletList.length === 0 || !visibleWalletList.some(w => w.is_active),
                 wallet_type: 'standard',
                 color: 'from-purple-500 to-purple-700'
             };
             
-            const allWallets = uniqueWalletsByAddress([mainWallet, ...walletList]);
+            const allWallets = uniqueWalletsByAddress([mainWallet, ...visibleWalletList]);
             let walletsWithUtxos = allWallets.map((wallet) => ({
                 ...wallet,
                 spendableBalance: wallet.balance || 0,

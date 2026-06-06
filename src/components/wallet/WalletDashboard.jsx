@@ -154,14 +154,17 @@ export default function WalletDashboard({ account, onLogout }) {
         isValid: true
       };
 
-      const additionalAddresses = (account.additional_addresses || []).map((addr, i) => ({
-        id: `addr-${i}`,
-        address: addr.address,
-        label: addr.label || `Address ${i + 2}`,
-        createdAt: addr.created_at,
-        isValid: true,
-        importStatus: 'imported'
-      }));
+      const deletedWalletAddressKeys = new Set((account.deleted_wallet_addresses || []).map(normalizeAddress));
+      const additionalAddresses = (account.additional_addresses || [])
+        .filter((addr) => !deletedWalletAddressKeys.has(normalizeAddress(addr.address)))
+        .map((addr, i) => ({
+          id: `addr-${i}`,
+          address: addr.address,
+          label: addr.label || `Address ${i + 2}`,
+          createdAt: addr.created_at,
+          isValid: true,
+          importStatus: 'imported'
+        }));
 
       setAddresses(uniqueByAddress([mainAddress, ...additionalAddresses]));
       setBalance({ confirmed: account.balance || 0, unconfirmed: 0 });
@@ -189,6 +192,12 @@ export default function WalletDashboard({ account, onLogout }) {
        '-created_date',
        100
      );
+     const deletedWalletAddressKeys = new Set((freshAccount.deleted_wallet_addresses || []).map(normalizeAddress));
+     const staleDeletedWallets = walletList.filter((wallet) => deletedWalletAddressKeys.has(normalizeAddress(wallet.wallet_address)));
+     if (staleDeletedWallets.length > 0) {
+       await Promise.all(staleDeletedWallets.map((wallet) => base44.entities.Wallet.delete(wallet.id)));
+     }
+     const visibleWalletList = walletList.filter((wallet) => !deletedWalletAddressKeys.has(normalizeAddress(wallet.wallet_address)));
 
       // Fetch RPC balance for main wallet
       let mainBalance = 0;
@@ -208,7 +217,7 @@ export default function WalletDashboard({ account, onLogout }) {
         name: 'Main Wallet',
         wallet_address: freshAccount.wallet_address,
         balance: mainBalance,
-        is_active: walletList.length === 0 || !walletList.some(w => w.is_active),
+        is_active: visibleWalletList.length === 0 || !visibleWalletList.some(w => w.is_active),
         wallet_type: 'standard',
         color: 'from-purple-500 to-purple-700',
         importStatus: addresses.some(addr => 
@@ -217,7 +226,7 @@ export default function WalletDashboard({ account, onLogout }) {
       };
 
       // Check which wallets are imported to RPC
-      const walletsWithImportStatus = walletList.map((wallet) => {
+      const walletsWithImportStatus = visibleWalletList.map((wallet) => {
           const isImported = addresses.some(addr => 
             addr.address === wallet.wallet_address && addr.importStatus === 'imported'
           );
@@ -227,7 +236,6 @@ export default function WalletDashboard({ account, onLogout }) {
       const allWallets = uniqueByAddress([mainWallet, ...walletsWithImportStatus]);
       setAllWallets(allWallets);
 
-      const deletedWalletAddressKeys = new Set((freshAccount.deleted_wallet_addresses || []).map(normalizeAddress));
       const savedAdditionalAddresses = (freshAccount.additional_addresses || []).filter(
         (addr) => !deletedWalletAddressKeys.has(normalizeAddress(addr.address))
       );
@@ -889,15 +897,28 @@ export default function WalletDashboard({ account, onLogout }) {
     try {
       const currentAccount = await base44.entities.WalletAccount.filter({ id: account.id });
       if (currentAccount.length > 0) {
+        const deletedAddressKey = normalizeAddress(address.address);
         const additionalAddresses = currentAccount[0].additional_addresses || [];
-        const updatedAddresses = additionalAddresses.filter(addr => addr.address !== address.address);
+        const updatedAddresses = additionalAddresses.filter(addr => normalizeAddress(addr.address) !== deletedAddressKey);
+        const walletRecords = await base44.entities.Wallet.filter({ account_id: account.id });
+        const matchingWallets = walletRecords.filter((wallet) => normalizeAddress(wallet.wallet_address) === deletedAddressKey);
+        if (matchingWallets.length > 0) {
+          await Promise.all(matchingWallets.map((wallet) => base44.entities.Wallet.delete(wallet.id)));
+        }
+        const deletedWalletAddresses = Array.from(new Set([
+          ...(currentAccount[0].deleted_wallet_addresses || []),
+          address.address
+        ]));
 
         await base44.entities.WalletAccount.update(account.id, {
-          additional_addresses: updatedAddresses
+          additional_addresses: updatedAddresses,
+          deleted_wallet_addresses: deletedWalletAddresses
         });
 
-        // Update local state
-        setAddresses(prev => prev.filter(addr => addr.id !== address.id));
+        account.additional_addresses = updatedAddresses;
+        account.deleted_wallet_addresses = deletedWalletAddresses;
+        setAllWallets(prev => prev.filter(wallet => normalizeAddress(wallet.wallet_address) !== deletedAddressKey));
+        setAddresses(prev => prev.filter(addr => normalizeAddress(addr.address) !== deletedAddressKey));
         toast.success(`Address "${address.label}" removed`);
       }
     } catch (err) {
@@ -936,9 +957,21 @@ export default function WalletDashboard({ account, onLogout }) {
       await Promise.all(zeroWallets.map(wallet => base44.entities.Wallet.delete(wallet.id)));
 
       const removableAddressKeys = new Set(removableAddresses.map(addr => normalizeAddress(addr.address)));
-      const updatedAdditionalAddresses = (account.additional_addresses || []).filter(addr => !removableAddressKeys.has(normalizeAddress(addr.address)));
-      await base44.entities.WalletAccount.update(account.id, { additional_addresses: updatedAdditionalAddresses });
+      const zeroWalletAddressKeys = new Set(zeroWallets.map(wallet => normalizeAddress(wallet.wallet_address)));
+      const updatedAdditionalAddresses = (account.additional_addresses || []).filter(addr => {
+        const key = normalizeAddress(addr.address);
+        return !removableAddressKeys.has(key) && !zeroWalletAddressKeys.has(key);
+      });
+      const deletedWalletAddresses = Array.from(new Set([
+        ...(account.deleted_wallet_addresses || []),
+        ...zeroWallets.map(wallet => wallet.wallet_address)
+      ]));
+      await base44.entities.WalletAccount.update(account.id, {
+        additional_addresses: updatedAdditionalAddresses,
+        deleted_wallet_addresses: deletedWalletAddresses
+      });
       account.additional_addresses = updatedAdditionalAddresses;
+      account.deleted_wallet_addresses = deletedWalletAddresses;
 
       const removedWalletIds = new Set(zeroWallets.map(wallet => wallet.id));
       const removedAddressKeys = new Set([...removableAddressKeys, ...zeroWallets.map(wallet => normalizeAddress(wallet.wallet_address))]);
