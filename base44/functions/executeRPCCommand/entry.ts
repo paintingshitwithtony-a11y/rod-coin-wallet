@@ -27,6 +27,11 @@ async function getAdminRPCSource(base44) {
     return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
 }
 
+async function isAdminAccount(base44, account) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
+}
+
 const ALLOWED_METHODS = new Set([
     'getblockchaininfo',
     'getblockcount',
@@ -77,7 +82,9 @@ Deno.serve(async (req) => {
         const account = accounts[0];
 
         const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
-        const rpcConfig = rpcConfigs.find(config => config.connection_status === 'connected') || await getAdminRPCSource(base44);
+        const rpcConfig = !(await isAdminAccount(base44, account))
+            ? await getAdminRPCSource(base44)
+            : rpcConfigs.find(config => config.connection_status === 'connected') || await getAdminRPCSource(base44);
         if (!rpcConfig) {
             return Response.json({ success: false, error: 'No connected RPC configuration found' }, { status: 400 });
         }

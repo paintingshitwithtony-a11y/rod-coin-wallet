@@ -6,7 +6,7 @@ import { Loader2, Wifi, WifiOff, AlertCircle, Activity, Edit, RefreshCw, Trash2,
 import { motion } from 'framer-motion';
 
 const isAdminConfig = (config) =>
-    config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)';
+    config._shared_admin_rpc || config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)';
 
 const getStatusIcon = (status) => {
     switch (status) {
@@ -50,15 +50,16 @@ export default function RPCConfigList({ configs, loading, testing, onEdit, onTes
         <div className="space-y-2">
             {configs.map((config) => {
                 const adminConfig = isAdminConfig(config);
+                const sharedAdminConfig = !!config._shared_admin_rpc;
                 return (
                     <motion.div
                         key={config.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        onClick={() => !config.is_active && onActivate(config)}
+                        onClick={() => !config.is_active && !sharedAdminConfig && onActivate(config)}
                         className={`p-4 rounded-lg border transition-all ${getStatusColor(config.connection_status)} ${
-                            !config.is_active ? 'cursor-pointer hover:border-purple-500/50 hover:bg-slate-800/70' : ''
-                        }`}
+                            !config.is_active && !sharedAdminConfig ? 'cursor-pointer hover:border-purple-500/50 hover:bg-slate-800/70' : ''
+                        }`
                     >
                         <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-3 flex-1">
@@ -68,7 +69,7 @@ export default function RPCConfigList({ configs, loading, testing, onEdit, onTes
                                         <h4 className="font-medium text-white">{config.name}</h4>
                                         {adminConfig && (
                                             <Badge variant="outline" className="text-xs border-slate-500/50 text-slate-400 gap-1">
-                                                <Lock className="w-2.5 h-2.5" /> Admin
+                                                <Lock className="w-2.5 h-2.5" /> {sharedAdminConfig ? 'Shared Admin' : 'Admin'}
                                             </Badge>
                                         )}
                                         {config.connection_type === 'electrum' && (
@@ -93,12 +94,16 @@ export default function RPCConfigList({ configs, loading, testing, onEdit, onTes
                                 </div>
                             </div>
                             <div className="flex gap-1 items-center" onClick={(e) => e.stopPropagation()}>
-                                <Button size="icon" variant="ghost" onClick={() => onEdit(config)} className="text-slate-400 hover:text-blue-400">
-                                    <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" onClick={() => onTest(config)} disabled={testing[config.id]} className="text-slate-400 hover:text-white">
-                                    {testing[config.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                                </Button>
+                                {!sharedAdminConfig && (
+                                    <>
+                                        <Button size="icon" variant="ghost" onClick={() => onEdit(config)} className="text-slate-400 hover:text-blue-400">
+                                            <Edit className="w-4 h-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={() => onTest(config)} disabled={testing[config.id]} className="text-slate-400 hover:text-white">
+                                            {testing[config.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                        </Button>
+                                    </>
+                                )}
                                 {!adminConfig && (
                                     <Button size="icon" variant="ghost" onClick={() => onDelete(config)} disabled={config.is_active} className="text-red-400 hover:text-red-300 disabled:opacity-30">
                                         <Trash2 className="w-4 h-4" />

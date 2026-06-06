@@ -124,49 +124,30 @@ async function getAdminRPCSource(base44) {
     return allConfigs.find(config => config.connection_status === 'connected' && isProtectedDefault(config)) || null;
 }
 
-async function cloneAdminRPCToAccount(base44, account, sourceConfig, existingConfigs) {
-    for (const cfg of existingConfigs) {
-        if (cfg.is_active) {
-            await base44.asServiceRole.entities.RPCConfiguration.update(cfg.id, { is_active: false });
-        }
-    }
+async function isAdminAccount(base44, account) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
+}
 
-    const existingCopy = existingConfigs.find(cfg =>
-        cfg.host === sourceConfig.host &&
-        cfg.port === sourceConfig.port &&
-        cfg.connection_type === sourceConfig.connection_type &&
-        cfg.username === (sourceConfig.username || '')
-    );
-
-    if (existingCopy) {
-        const updated = await base44.asServiceRole.entities.RPCConfiguration.update(existingCopy.id, {
-            is_active: true,
-            connection_status: sourceConfig.connection_status || existingCopy.connection_status || 'untested',
-            node_info: sourceConfig.node_info || existingCopy.node_info || {}
-        });
-        const activeConfig = { ...existingCopy, is_active: true };
-        await updateAccountRPC(base44, account.id, activeConfig);
-        return updated || activeConfig;
-    }
-
-    const copied = await base44.asServiceRole.entities.RPCConfiguration.create({
+function sharedAdminRPCView(sourceConfig, account) {
+    return {
+        id: `shared-admin-rpc-${sourceConfig.id}`,
         account_id: account.id,
-        name: sourceConfig.name?.includes('(Default)') ? sourceConfig.name : `${sourceConfig.name || 'Admin RPC'} (Default)`,
+        name: 'VPS RPC (Admin Managed)',
         connection_type: sourceConfig.connection_type || 'rpc',
         host: sourceConfig.host,
         port: sourceConfig.port || '',
-        username: sourceConfig.username || '',
-        password: sourceConfig.password || '',
-        api_key: sourceConfig.api_key || '',
-        curl_command: sourceConfig.curl_command || '',
+        username: '',
+        password: '',
+        api_key: '',
+        curl_command: '',
         use_ssl: sourceConfig.use_ssl || false,
         is_active: true,
-        connection_status: sourceConfig.connection_status || 'untested',
-        node_info: sourceConfig.node_info || {}
-    });
-
-    await updateAccountRPC(base44, account.id, copied);
-    return copied;
+        connection_status: sourceConfig.connection_status || 'connected',
+        last_connected: sourceConfig.last_connected || '',
+        node_info: sourceConfig.node_info || {},
+        _shared_admin_rpc: true
+    };
 }
 
 Deno.serve(async (req) => {
@@ -191,14 +172,15 @@ Deno.serve(async (req) => {
         const action = payload.action;
 
         if (action === 'list') {
-            let configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
-            const hasConnectedActive = configs.some(config => config.is_active && config.connection_status === 'connected');
+            const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
 
-            if (!hasConnectedActive) {
+            if (!(await isAdminAccount(base44, account))) {
                 const adminRPC = await getAdminRPCSource(base44);
-                if (adminRPC && adminRPC.account_id !== account.id) {
-                    await cloneAdminRPCToAccount(base44, account, adminRPC, configs);
-                    configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
+                if (adminRPC) {
+                    return Response.json({
+                        success: true,
+                        configs: [sharedAdminRPCView(adminRPC, account), ...configs.filter(config => !isProtectedDefault(config))]
+                    });
                 }
             }
 
@@ -264,6 +246,15 @@ Deno.serve(async (req) => {
         }
 
         if (action === 'useDefault') {
+            const adminRPC = await getAdminRPCSource(base44);
+            if (!adminRPC) {
+                return Response.json({ error: 'No admin RPC configuration is available yet.' }, { status: 404 });
+            }
+
+            if (!(await isAdminAccount(base44, account))) {
+                return Response.json({ success: true, config: sharedAdminRPCView(adminRPC, account) });
+            }
+
             const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
             const ownDefaultConfig = configs.find(c => c.name && c.name.includes('(Default)'));
 
@@ -275,13 +266,7 @@ Deno.serve(async (req) => {
                 return Response.json({ success: true, config: result.config });
             }
 
-            const adminRPC = await getAdminRPCSource(base44);
-            if (!adminRPC) {
-                return Response.json({ error: 'No admin RPC configuration is available yet.' }, { status: 404 });
-            }
-
-            const config = await cloneAdminRPCToAccount(base44, account, adminRPC, configs);
-            return Response.json({ success: true, config });
+            return Response.json({ success: true, config: adminRPC });
         }
 
         return Response.json({ error: 'Unknown action' }, { status: 400 });

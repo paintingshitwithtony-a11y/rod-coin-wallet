@@ -119,6 +119,11 @@ async function getAdminRPCSource(base44) {
     return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
 }
 
+async function isAdminAccount(base44, account) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -176,7 +181,9 @@ Deno.serve(async (req) => {
         if (!ownsAddress) return Response.json({ error: 'Selected sender address does not belong to this wallet account' }, { status: 403 });
 
         const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
-        const rpcConfig = rpcConfigs.find(config => config.connection_status === 'connected') || await getAdminRPCSource(base44);
+        const rpcConfig = !(await isAdminAccount(base44, account))
+            ? await getAdminRPCSource(base44)
+            : rpcConfigs.find(config => config.connection_status === 'connected') || await getAdminRPCSource(base44);
         if (!rpcConfig) return Response.json({ error: 'No connected RPC configuration found' }, { status: 500 });
         const rpcUrl = buildRpcUrl(rpcConfig);
         const rpcAuth = btoa(`${rpcConfig.username}:${rpcConfig.password}`);

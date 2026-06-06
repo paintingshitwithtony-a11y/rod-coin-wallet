@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+async function isAdminAccount(base44, account) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
+}
+
 async function getAdminRPCSource(base44) {
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
     for (const admin of admins) {
@@ -63,6 +68,9 @@ Deno.serve(async (req) => {
         if (payload.config_id) {
             configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ id: payload.config_id });
             configs = configs.filter(config => config.account_id === account.id);
+        } else if (!(await isAdminAccount(base44, account))) {
+            const adminRPC = await getAdminRPCSource(base44);
+            configs = adminRPC ? [adminRPC] : [];
         } else {
             configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
                 account_id: account.id,

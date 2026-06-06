@@ -14,6 +14,11 @@ async function getAdminRPCSource(base44) {
     return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
 }
 
+async function isAdminAccount(base44, account) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -45,7 +50,9 @@ Deno.serve(async (req) => {
             is_active: true
         });
 
-        const config = configs.find(c => c.connection_status === 'connected') || await getAdminRPCSource(base44);
+        const config = !(await isAdminAccount(base44, account))
+            ? await getAdminRPCSource(base44)
+            : configs.find(c => c.connection_status === 'connected') || await getAdminRPCSource(base44);
 
         if (!config) {
             return Response.json({ 
