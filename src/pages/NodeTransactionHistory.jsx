@@ -196,7 +196,9 @@ export default function NodeTransactionHistory() {
                             </Badge>
                           </div>
                           <p className="text-xs text-slate-400 mt-1">{tx.type === 'receive' ? 'To' : 'To recipient'}: <span className="font-mono text-amber-300">{shortAddress(tx.address)}</span></p>
-                          <p className="text-xs text-slate-500 mt-1">{tx.time ? new Date(tx.time).toLocaleString() : 'Time unavailable'}</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {tx.time ? `Local: ${new Date(tx.time).toLocaleString()} • UTC: ${new Date(tx.time).toISOString().replace('T', ' ').replace('.000Z', ' UTC')}` : 'Time unavailable'}
+                          </p>
                           <div className="flex items-center gap-2 mt-2 min-w-0">
                             <code className="text-xs text-slate-500 truncate">{tx.txid}</code>
                             <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyText(tx.txid)}>

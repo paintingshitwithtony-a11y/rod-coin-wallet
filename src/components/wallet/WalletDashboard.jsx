@@ -27,6 +27,7 @@ import RODConfEditor from './RODConfEditor';
 import NodeStatusCard from './NodeStatusCard';
 import DashboardRPCConsole from './DashboardRPCConsole';
 import AddressImportDiagnostics from './AddressImportDiagnostics';
+import BalanceTrendChart from './BalanceTrendChart';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -1417,6 +1418,12 @@ export default function WalletDashboard({ account, onLogout }) {
                                             </CardContent>
                                         </Card>
                                     </div>
+
+                                    <BalanceTrendChart
+                                      transactions={allAccountTransactions}
+                                      currentWallet={currentWallet}
+                                      currentBalance={balance.confirmed}
+                                    />
 
             <div className={`grid ${isMobile ? 'gap-4 mt-6' : 'gap-6 lg:grid-cols-2 mt-8'}`}>
     {/* My Addresses */}
