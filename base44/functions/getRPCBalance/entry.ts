@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
     try {
@@ -17,11 +17,11 @@ Deno.serve(async (req) => {
         }
         const requestedAddress = (body.address || '').trim();
 
-        // Get user's wallet account
-        let accounts = await base44.entities.WalletAccount.filter({ email: user.email });
+        // Get user's wallet account with service role after authenticating the user
+        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         
         if (accounts.length === 0) {
-            accounts = await base44.entities.WalletAccount.filter({ id: user.id });
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
         }
 
         if (accounts.length === 0) {
@@ -32,9 +32,23 @@ Deno.serve(async (req) => {
         }
 
         const account = accounts[0];
+        const targetAddress = requestedAddress || account.wallet_address;
+        const accountAddresses = [
+            account.wallet_address,
+            ...(account.additional_addresses || []).map(addr => addr.address)
+        ].filter(Boolean);
+        const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
+        wallets.forEach(wallet => accountAddresses.push(wallet.wallet_address));
+
+        if (!accountAddresses.some(address => address?.toLowerCase() === targetAddress.toLowerCase())) {
+            return Response.json({
+                success: false,
+                error: 'Address does not belong to this wallet account'
+            }, { status: 403 });
+        }
 
         // Get active RPC configuration
-        const configs = await base44.entities.RPCConfiguration.filter({
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
             account_id: account.id,
             is_active: true
         });
@@ -69,7 +83,6 @@ Deno.serve(async (req) => {
         }
         
         try {
-            const targetAddress = requestedAddress || account.wallet_address;
             const rpcResponse = await fetch(rpcUrl, {
                 method: 'POST',
                 headers,

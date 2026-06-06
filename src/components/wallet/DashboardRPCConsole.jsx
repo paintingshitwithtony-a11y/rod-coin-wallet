@@ -29,24 +29,20 @@ export default function DashboardRPCConsole({ selectedAddress, account }) {
     setRpcOutput('Querying RPC for: ' + selectedAddress);
 
     try {
-      // Use listunspent to get the true spendable UTXO balance for this address
-      const response = await base44.functions.invoke('executeRPCCommand', {
-        method: 'listunspent',
-        params: [0, 9999999, [selectedAddress]]
+      // Use the dedicated balance function so permissions and address ownership are handled server-side
+      const response = await base44.functions.invoke('getRPCBalance', {
+        address: selectedAddress
       });
 
       if (response.data.success) {
-        const utxos = (response.data.result || []).filter(u => u.address === selectedAddress);
-        const utxoBalance = parseFloat(utxos.reduce((sum, u) => sum + u.amount, 0).toFixed(8));
+        const utxoBalance = response.data.balance || 0;
         setBalance(utxoBalance);
         setRpcOutput(
           `✓ Method: listunspent (UTXO sum)\n` +
           `✓ Address: ${selectedAddress}\n` +
-          `✓ UTXOs found: ${utxos.length}\n` +
+          `✓ UTXOs found: ${response.data.utxoCount || 0}\n` +
           `✓ Spendable balance: ${utxoBalance.toFixed(8)} ROD\n` +
-          (utxos.length > 0
-            ? `\nUTXOs:\n` + utxos.map(u => `  txid: ${u.txid.slice(0,16)}... amount: ${u.amount} ROD conf: ${u.confirmations}`).join('\n')
-            : '\nNo UTXOs found for this address.')
+          (utxoBalance > 0 ? '\nLive RPC balance loaded.' : '\nNo spendable UTXOs found for this address.')
         );
       } else {
         const errMsg = response.data.error || 'RPC query failed';
@@ -77,29 +73,10 @@ export default function DashboardRPCConsole({ selectedAddress, account }) {
   };
 
   const explainWithAI = async () => {
-    if (!error && balance !== null && balance > 0) return; // nothing to explain if working fine
-    setAiLoading(true);
     setShowAI(true);
-    setAiExplanation('');
-    try {
-      const context = `
-RPC Balance Query context:
-- Address being queried: ${selectedAddress}
-- RPC Method used: listunspent
-- Error or result: ${error || (balance === 0 ? 'Balance returned as 0 ROD. No UTXOs found.' : rpcOutput)}
-- RPC output: ${rpcOutput}
-      `.trim();
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a helpful ROD (SpaceXpanse) wallet assistant. A user is querying their wallet balance via RPC and encountered the following situation:\n\n${context}\n\nPlease explain in plain English:\n1. What this error or result means\n2. The most likely cause(s)\n3. Specific steps to fix it\n\nBe concise and practical. Focus on the most common causes like: address not in wallet, node not synced, wallet locked, address never received funds, or listunspent returning empty because UTXOs are all spent.`,
-      });
-
-      setAiExplanation(typeof response === 'string' ? response : JSON.stringify(response));
-    } catch (err) {
-      setAiExplanation('AI explanation unavailable: ' + err.message);
-    } finally {
-      setAiLoading(false);
-    }
+    setAiExplanation(error
+      ? `This usually means the app could not read the live RPC balance for this address: ${error}`
+      : 'The live RPC node returned 0 spendable UTXOs for this address. If funds exist on-chain, import/rescan the address in your ROD node and make sure the node is fully synced.');
   };
 
   // Auto-trigger AI explanation when an error occurs

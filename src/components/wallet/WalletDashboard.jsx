@@ -691,19 +691,35 @@ export default function WalletDashboard({ account, onLogout }) {
         if (currentWallet.id === 'main-account') {
           const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
           if (accounts.length > 0) {
-            setBalance({
-              confirmed: accounts[0].balance || 0,
-              unconfirmed: 0
-            });
+            try {
+              const balResponse = await base44.functions.invoke('getRPCBalance', { address: currentWallet.wallet_address });
+              setBalance({
+                confirmed: balResponse.data.success ? balResponse.data.balance : (accounts[0].balance || 0),
+                unconfirmed: 0
+              });
+            } catch (_err) {
+              setBalance({
+                confirmed: accounts[0].balance || 0,
+                unconfirmed: 0
+              });
+            }
           }
         } else if (!currentWallet.id.startsWith('address-')) {
           // Only fetch from database if it's not a virtual address wallet
           const wallets = await base44.entities.Wallet.filter({ id: currentWallet.id });
           if (wallets.length > 0) {
-            setBalance({
-              confirmed: wallets[0].balance || 0,
-              unconfirmed: 0
-            });
+            try {
+              const balResponse = await base44.functions.invoke('getRPCBalance', { address: currentWallet.wallet_address });
+              setBalance({
+                confirmed: balResponse.data.success ? balResponse.data.balance : (wallets[0].balance || 0),
+                unconfirmed: 0
+              });
+            } catch (_err) {
+              setBalance({
+                confirmed: wallets[0].balance || 0,
+                unconfirmed: 0
+              });
+            }
           }
         }
       }
@@ -868,6 +884,16 @@ export default function WalletDashboard({ account, onLogout }) {
         confirmed: addressBalance,
         unconfirmed: 0
       });
+
+      try {
+        const balResponse = await base44.functions.invoke('getRPCBalance', { address: address.address });
+        if (balResponse.data.success) {
+          setBalance({
+            confirmed: balResponse.data.balance,
+            unconfirmed: 0
+          });
+        }
+      } catch (_err) {}
 
       // Fetch and display address-specific transactions
       await fetchWalletData();
