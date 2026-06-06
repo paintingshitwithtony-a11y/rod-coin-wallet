@@ -998,6 +998,16 @@ export default function WalletDashboard({ account, onLogout }) {
             <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10 overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-2 md:px-4 py-3">
                     <div className="flex items-center justify-center gap-2 md:gap-6 flex-wrap overflow-x-hidden">
+                        {/* Logo & Title */}
+                        <div className="flex items-center gap-2">
+                            <img
+                src="https://www.spacexpanse.org/img/about.png"
+                alt="SpaceXpanse Logo"
+                className="w-8 h-8 md:w-10 h-10 rounded-xl" />
+
+                            <h1 className="text-lg md:text-xl font-bold text-white">ROD Wallet</h1>
+                        </div>
+
                         {/* Status Badges */}
                         <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                             <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">
@@ -1191,15 +1201,6 @@ export default function WalletDashboard({ account, onLogout }) {
 
             {/* Spacer for fixed header */}
             <div className="my-1 h-8 md:h-12"></div>
-
-            {/* Logo & Title Section */}
-            <div className="flex items-center gap-2 px-2 md:px-4 mb-6">
-                <img
-                    src="https://www.spacexpanse.org/img/about.png"
-                    alt="SpaceXpanse Logo"
-                    className="w-10 h-10 md:w-12 h-12 rounded-xl" />
-                <h1 className="text-2xl md:text-3xl font-bold text-white">ROD Wallet</h1>
-            </div>
 
             {/* Main Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
