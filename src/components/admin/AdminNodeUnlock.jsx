@@ -19,18 +19,23 @@ export default function AdminNodeUnlock() {
     }
 
     setUnlocking(true);
-    const response = await base44.functions.invoke('executeRPCCommand', {
-      method: 'walletpassphrase',
-      params: [passphrase, 2147483647]
-    });
+    try {
+      const response = await base44.functions.invoke('executeRPCCommand', {
+        method: 'walletpassphrase',
+        params: [passphrase, 100000000]
+      });
 
-    if (response.data?.success) {
-      toast.success('Node wallet unlocked until restart or manual lock');
-      setPassphrase('');
-    } else {
-      toast.error(response.data?.error || 'Failed to unlock node wallet');
+      if (response.data?.success) {
+        toast.success('Node wallet unlocked until restart or manual lock');
+        setPassphrase('');
+      } else {
+        toast.error(response.data?.error || 'Failed to unlock node wallet');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to unlock node wallet');
+    } finally {
+      setUnlocking(false);
     }
-    setUnlocking(false);
   };
 
   return (
