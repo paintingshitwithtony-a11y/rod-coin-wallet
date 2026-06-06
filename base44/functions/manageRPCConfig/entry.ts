@@ -98,6 +98,76 @@ async function activateConfig(base44, account, configId) {
     return { config: updated || { ...config, is_active: true } };
 }
 
+async function getAdminRPCSource(base44) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    const adminAccountIds = [];
+
+    for (const admin of admins) {
+        const adminAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: admin.email });
+        for (const adminAccount of adminAccounts) {
+            adminAccountIds.push(adminAccount.id);
+        }
+    }
+
+    for (const accountId of adminAccountIds) {
+        const activeConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({
+            account_id: accountId,
+            is_active: true
+        });
+        if (activeConfigs.length > 0) {
+            return activeConfigs[0];
+        }
+    }
+
+    const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
+    return allConfigs.find(isProtectedDefault) || null;
+}
+
+async function cloneAdminRPCToAccount(base44, account, sourceConfig, existingConfigs) {
+    for (const cfg of existingConfigs) {
+        if (cfg.is_active) {
+            await base44.asServiceRole.entities.RPCConfiguration.update(cfg.id, { is_active: false });
+        }
+    }
+
+    const existingCopy = existingConfigs.find(cfg =>
+        cfg.host === sourceConfig.host &&
+        cfg.port === sourceConfig.port &&
+        cfg.connection_type === sourceConfig.connection_type &&
+        cfg.username === (sourceConfig.username || '')
+    );
+
+    if (existingCopy) {
+        const updated = await base44.asServiceRole.entities.RPCConfiguration.update(existingCopy.id, {
+            is_active: true,
+            connection_status: sourceConfig.connection_status || existingCopy.connection_status || 'untested',
+            node_info: sourceConfig.node_info || existingCopy.node_info || {}
+        });
+        const activeConfig = { ...existingCopy, is_active: true };
+        await updateAccountRPC(base44, account.id, activeConfig);
+        return updated || activeConfig;
+    }
+
+    const copied = await base44.asServiceRole.entities.RPCConfiguration.create({
+        account_id: account.id,
+        name: sourceConfig.name?.includes('(Default)') ? sourceConfig.name : `${sourceConfig.name || 'Admin RPC'} (Default)`,
+        connection_type: sourceConfig.connection_type || 'rpc',
+        host: sourceConfig.host,
+        port: sourceConfig.port || '',
+        username: sourceConfig.username || '',
+        password: sourceConfig.password || '',
+        api_key: sourceConfig.api_key || '',
+        curl_command: sourceConfig.curl_command || '',
+        use_ssl: sourceConfig.use_ssl || false,
+        is_active: true,
+        connection_status: sourceConfig.connection_status || 'untested',
+        node_info: sourceConfig.node_info || {}
+    });
+
+    await updateAccountRPC(base44, account.id, copied);
+    return copied;
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -184,16 +254,23 @@ Deno.serve(async (req) => {
 
         if (action === 'useDefault') {
             const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
-            const defaultConfig = configs.find(c => c.name && c.name.includes('(Default)')) || configs[0];
-            if (!defaultConfig) {
-                return Response.json({ error: 'No RPC configurations available. Please add one manually.' }, { status: 404 });
+            const ownDefaultConfig = configs.find(c => c.name && c.name.includes('(Default)'));
+
+            if (ownDefaultConfig) {
+                const result = await activateConfig(base44, account, ownDefaultConfig.id);
+                if (result.error) {
+                    return Response.json({ error: result.error }, { status: result.status });
+                }
+                return Response.json({ success: true, config: result.config });
             }
 
-            const result = await activateConfig(base44, account, defaultConfig.id);
-            if (result.error) {
-                return Response.json({ error: result.error }, { status: result.status });
+            const adminRPC = await getAdminRPCSource(base44);
+            if (!adminRPC) {
+                return Response.json({ error: 'No admin RPC configuration is available yet.' }, { status: 404 });
             }
-            return Response.json({ success: true, config: result.config });
+
+            const config = await cloneAdminRPCToAccount(base44, account, adminRPC, configs);
+            return Response.json({ success: true, config });
         }
 
         return Response.json({ error: 'Unknown action' }, { status: 400 });

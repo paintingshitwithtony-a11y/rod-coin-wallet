@@ -25,7 +25,7 @@ export default function UseDefaultRPCButton({ account, onSuccess }) {
         setLoading(true);
         try {
             const response = await base44.functions.invoke('manageRPCConfig', { action: 'useDefault', ...getWalletSessionPayload() });
-            toast.success(`Switched to: ${response.data.config.name}`);
+            toast.success(`Using admin RPC: ${response.data.config.name}`);
             if (onSuccess) onSuccess();
         } catch (err) {
             toast.error('Failed to apply default RPC: ' + err.message);
@@ -45,7 +45,7 @@ export default function UseDefaultRPCButton({ account, onSuccess }) {
             ) : (
                 <Star className="w-4 h-4 mr-2" />
             )}
-            Use Default
+            Use Admin RPC
         </Button>
     );
 }
