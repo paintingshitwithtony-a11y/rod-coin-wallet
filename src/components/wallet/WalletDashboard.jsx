@@ -1507,37 +1507,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                                          <NodeStatusCard />
                                                      </motion.div>
 
-                                                     {/* Statistics Cards */}
-                                                     <div className={`grid gap-3 ${isMobile ? 'grid-cols-3' : 'md:grid-cols-3 gap-4'}`}>
-                                                     <Card className="bg-slate-900/80 border-slate-700/50">
-                                                     <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
-                                                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
-                                                     <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-green-400`}>
-                                                     {isMobile ? '+' : '+'}{Object.values(addressBalances).reduce((sum, amount) => sum + Number(amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4, maximumFractionDigits: 8 })}
-                                                     {!isMobile && ' ROD'}
-                                                     </p>
-                                                     </CardContent>
-                                                     </Card>
-                                        <Card className="bg-slate-900/80 border-slate-700/50">
-                                            <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
-                                                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Sent' : 'Total Sent'}</p>
-                                                <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-red-400`}>
-                                                    {allAccountTransactions.filter(tx => tx.type === 'send').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
-                                                    {!isMobile && ' ROD'}
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                        <Card className="bg-slate-900/80 border-slate-700/50">
-                                            <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
-                                                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'TXs' : 'Transactions'}</p>
-                                                <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-white`}>
-                                                    {allAccountTransactions.length}
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-
-            <div className={`grid ${isMobile ? 'gap-4 mt-6' : 'gap-6 lg:grid-cols-2 mt-8'}`}>
+                                                     <div className={`grid ${isMobile ? 'gap-4 mt-6' : 'gap-6 lg:grid-cols-2 mt-8'}`}>
     {/* My Addresses */}
     <Card className="bg-slate-900/80 border-slate-700/50">
                             <CardHeader className="flex flex-row items-center justify-between">
