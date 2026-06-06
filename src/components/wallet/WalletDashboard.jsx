@@ -31,6 +31,8 @@ import DashboardRPCConsole from './DashboardRPCConsole';
 import AddressImportDiagnostics from './AddressImportDiagnostics';
 import BalanceTrendChart from './BalanceTrendChart';
 import AdminDebugButtons from './AdminDebugButtons';
+import MobileWalletTabs from './MobileWalletTabs';
+import ConnectionStatusAlerts from './ConnectionStatusAlerts';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -95,6 +97,10 @@ export default function WalletDashboard({ account, onLogout }) {
       const [unlockPassphrase, setUnlockPassphrase] = useState('');
       const [unlockingWallet, setUnlockingWallet] = useState(false);
       const [electronProxyConnected, setElectronProxyConnected] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const pullStartYRef = useRef(null);
+  const scrollPositionsRef = useRef({});
+  const activeTabRef = useRef('overview');
   const walletDataRequestRef = useRef(null);
   const lastWalletDataFetchRef = useRef(0);
 
@@ -590,6 +596,34 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const handleTabChange = (nextTab) => {
+    scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
+    activeTabRef.current = nextTab;
+    setActiveTab(nextTab);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollPositionsRef.current[nextTab] || 0, behavior: 'auto' });
+    });
+  };
+
+  const handleTouchStart = (event) => {
+    if (!isMobile || window.scrollY > 0 || loading || isSyncing) return;
+    pullStartYRef.current = event.touches[0].clientY;
+  };
+
+  const handleTouchMove = (event) => {
+    if (pullStartYRef.current === null) return;
+    const distance = Math.max(0, event.touches[0].clientY - pullStartYRef.current);
+    setPullDistance(Math.min(distance, 96));
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance > 72) {
+      handleManualRefresh();
+    }
+    pullStartYRef.current = null;
+    setPullDistance(0);
+  };
+
   const handleManualRefresh = async () => {
     // Prevent rapid clicking - 5 second cooldown
     const now = Date.now();
@@ -1010,7 +1044,15 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+            {isMobile && pullDistance > 0 && (
+              <div className="fixed top-[calc(4.5rem+env(safe-area-inset-top))] left-0 right-0 z-50 flex justify-center pointer-events-none">
+                <div className="rounded-full border border-purple-500/30 bg-slate-950/90 px-3 py-1 text-xs text-amber-300 shadow-lg">
+                  {pullDistance > 72 ? 'Release to refresh' : 'Pull to refresh'}
+                </div>
+              </div>
+            )}
+
             {/* Header Bar - Full Width */}
             <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10 overflow-x-hidden pt-[env(safe-area-inset-top)]">
                 <div className="max-w-7xl mx-auto px-2 md:px-4 py-3">
@@ -1220,7 +1262,7 @@ export default function WalletDashboard({ account, onLogout }) {
             <div className="my-1 h-8 md:h-12"></div>
 
             {/* Main Content Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
                 <div className="hidden md:flex justify-center mb-6">
                     <TabsList className={`bg-slate-800/50 border border-slate-700 ${isMobile ? 'w-full grid grid-cols-4 h-auto' : ''}`}>
                     <TabsTrigger value="overview" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
@@ -1257,7 +1299,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                 </TabsList>
                                 </div>
 
-                                <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+                                <TabsContent value="overview" forceMount className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
                                     <AdminRPCStatusIndicator account={account} />
 
                                     {/* RPC Console - Live Balance Query */}
@@ -1426,13 +1468,13 @@ export default function WalletDashboard({ account, onLogout }) {
                                                     />
                                                     <div className="flex gap-2 pt-2 flex-wrap">
                                                     <Button
-                                                        onClick={() => setActiveTab('send')}
+                                                        onClick={() => handleTabChange('send')}
                                                         className="flex-1 bg-slate-800/50 hover:bg-slate-800">
                                                         <ArrowUpRight className="w-4 h-4 mr-2" />
                                                         Send
                                                     </Button>
                                                     <Button
-                                                        onClick={() => setActiveTab('receive')}
+                                                        onClick={() => handleTabChange('receive')}
                                                         className="flex-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400">
                                                         <ArrowDownLeft className="w-4 h-4 mr-2" />
                                                         Receive
@@ -1522,7 +1564,7 @@ export default function WalletDashboard({ account, onLogout }) {
                       variant="ghost"
                       size="sm"
                       className="text-purple-400"
-                      onClick={() => setActiveTab('generate')}>
+                      onClick={() => handleTabChange('generate')}>
 
                                         + New
                                     </Button>
@@ -1535,7 +1577,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                         <Button
                                 variant="link"
                                 className="text-purple-400 mt-2"
-                                onClick={() => setActiveTab('generate')}>
+                                onClick={() => handleTabChange('generate')}>
 
                                             Generate your first address
                                         </Button>
@@ -1742,7 +1784,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 </TabsContent>
 
-                    <TabsContent value="history" className="mt-6">
+                    <TabsContent value="history" forceMount className="mt-6">
                     <TransactionHistory account={account} />
                     </TabsContent>
 
@@ -1759,7 +1801,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 </TabsContent>
 
-                <TabsContent value="send" className="mt-6">
+                <TabsContent value="send" forceMount className="mt-6">
                     <SendReceive
                 mode="send"
                 balance={balance.confirmed}
@@ -1770,11 +1812,11 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 </TabsContent>
 
-                <TabsContent value="receive" className="mt-6">
+                <TabsContent value="receive" forceMount className="mt-6">
                     <SendReceive
             mode="receive"
             addresses={addresses}
-            onGenerateNew={() => setActiveTab('generate')} />
+            onGenerateNew={() => handleTabChange('generate')} />
 
                 </TabsContent>
 
@@ -1782,7 +1824,7 @@ export default function WalletDashboard({ account, onLogout }) {
                     <AddressBook
                 account={account}
                 onSelectAddress={(address) => {
-                setActiveTab('send');
+                handleTabChange('send');
                 setTimeout(() => {
                 const event = new CustomEvent('selectContact', { detail: address });
                 window.dispatchEvent(event);
@@ -1803,7 +1845,7 @@ export default function WalletDashboard({ account, onLogout }) {
                 </TabsContent>
                 </Tabs>
 
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/30 bg-slate-950/95 backdrop-blur-xl px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"><div className="grid grid-cols-4 gap-1"><button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'overview' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><Wallet className="w-5 h-5" />Home</button><button onClick={() => setActiveTab('send')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'send' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><ArrowUpRight className="w-5 h-5" />Send</button><button onClick={() => setActiveTab('receive')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'receive' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><ArrowDownLeft className="w-5 h-5" />Receive</button><button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === 'history' ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}><Clock className="w-5 h-5" />History</button></div></div>
+            <MobileWalletTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
             {/* Unlock Wallet Modal */}
             {showUnlockDialog && (
@@ -1915,85 +1957,18 @@ export default function WalletDashboard({ account, onLogout }) {
                 />
             )}
 
-            {/* Connection Status Alert */}
-            {rpcConnected === false && !isReconnecting &&
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed top-20 md:top-4 right-2 md:right-4 z-50 max-w-md">
-
-                    <Alert className="bg-red-500/10 border-red-500/30 backdrop-blur-xl">
-                        <AlertCircle className="h-4 w-4 text-red-400" />
-                        <AlertDescription className="text-red-300/90">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <strong>RPC Offline</strong>
-                                    {rpcError && <p className="text-xs mt-1 text-red-400/80">{rpcError}</p>}
-                                </div>
-                                <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setReconnectAttempts(0);
-                  checkRPCStatus();
-                }}
-                className="text-red-300 hover:text-white ml-4">
-
-                                    <RefreshCw className="w-4 h-4 mr-1" />
-                                    Retry
-                                </Button>
-                            </div>
-                        </AlertDescription>
-                    </Alert>
-                </motion.div>
-      }
-
-            {isReconnecting &&
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed top-20 md:top-4 right-2 md:right-4 z-50 max-w-md">
-
-                    <Alert className="bg-yellow-500/10 border-yellow-500/30 backdrop-blur-xl">
-                        <Loader2 className="h-4 w-4 text-yellow-400 animate-spin" />
-                        <AlertDescription className="text-yellow-300/90">
-                            <strong>Reconnecting to RPC...</strong>
-                            <p className="text-xs mt-1">Attempt {reconnectAttempts} of 3</p>
-                        </AlertDescription>
-                    </Alert>
-                </motion.div>
-      }
-
-            {rpcConnected && rpcNodeInfo &&
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="fixed top-20 md:top-4 right-2 md:right-4 z-50 max-w-sm">
-
-                    <Card className="bg-green-500/10 border-green-500/30 backdrop-blur-xl">
-                        <CardContent className="p-3">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-green-300">RPC Connected</p>
-                                    <p className="text-xs text-green-400/80">
-                                        Block {rpcNodeInfo.blocks?.toLocaleString()} • {rpcNodeInfo.chain}
-                                    </p>
-                                </div>
-                                <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setRpcConnected(null)}
-                className="text-green-400 hover:text-white">
-
-                                    ×
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-      }
+            <ConnectionStatusAlerts
+              rpcConnected={rpcConnected}
+              isReconnecting={isReconnecting}
+              reconnectAttempts={reconnectAttempts}
+              rpcError={rpcError}
+              rpcNodeInfo={rpcNodeInfo}
+              onRetry={() => {
+                setReconnectAttempts(0);
+                checkRPCStatus();
+              }}
+              onDismiss={() => setRpcConnected(null)}
+            />
         </div>);
 
 }
