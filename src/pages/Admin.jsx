@@ -46,6 +46,7 @@ import DirectAppIdFix from '../components/admin/DirectAppIdFix';
 import OriginalMainDownload from '../components/admin/OriginalMainDownload';
 import GlobalsCssDownload from '../components/admin/GlobalsCssDownload';
 import WalletTester from '../components/admin/WalletTester';
+import AdminNodeUnlock from '../components/admin/AdminNodeUnlock';
 import { testRPCConnection } from '../components/wallet/RPCClient';
 
 export default function Admin() {
@@ -525,6 +526,8 @@ export default function Admin() {
                                 Export Configs
                             </Button>
                         </div>
+
+                        <AdminNodeUnlock />
 
                         {/* RPC Overview */}
                         <div className="grid gap-4 md:grid-cols-4">
