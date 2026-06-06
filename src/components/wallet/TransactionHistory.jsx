@@ -13,7 +13,7 @@ import {
 import {
     ArrowUpRight, ArrowDownLeft, Search, Filter, Download,
     Calendar, Hash, CheckCircle2, Clock, Copy, ExternalLink,
-    TrendingUp, TrendingDown, RefreshCw
+    RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -200,20 +200,6 @@ export default function TransactionHistory({ account }) {
 
     const getAddressLabel = (address) => addressLabels[(address || '').trim().toLowerCase()];
 
-    const getTotalStats = () => {
-        const received = filteredTxs
-            .filter(tx => tx.type === 'receive')
-            .reduce((sum, tx) => sum + tx.amount, 0);
-        
-        const sent = filteredTxs
-            .filter(tx => tx.type === 'send')
-            .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-
-        return { received, sent, count: filteredTxs.length };
-    };
-
-    const stats = getTotalStats();
-
     if (loading) {
         return (
             <Card className="bg-slate-900/80 border-slate-700/50">
@@ -227,51 +213,6 @@ export default function TransactionHistory({ account }) {
 
     return (
         <div className="space-y-6">
-            {/* Stats Overview */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card className="bg-gradient-to-br from-green-500/10 to-slate-900/80 border-green-500/30">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-slate-400 mb-1">Total Received</p>
-                                <p className="text-2xl font-bold text-green-400">
-                                    {stats.received.toFixed(4)} ROD
-                                </p>
-                            </div>
-                            <TrendingUp className="w-8 h-8 text-green-400/50" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-red-500/10 to-slate-900/80 border-red-500/30">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-slate-400 mb-1">Total Sent</p>
-                                <p className="text-2xl font-bold text-red-400">
-                                    {stats.sent.toFixed(4)} ROD
-                                </p>
-                            </div>
-                            <TrendingDown className="w-8 h-8 text-red-400/50" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-purple-500/10 to-slate-900/80 border-purple-500/30">
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-slate-400 mb-1">Transactions</p>
-                                <p className="text-2xl font-bold text-purple-400">
-                                    {stats.count}
-                                </p>
-                            </div>
-                            <Hash className="w-8 h-8 text-purple-400/50" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
             {/* Filters and Search */}
             <Card className="bg-slate-900/80 border-slate-700/50">
                 <CardHeader>
