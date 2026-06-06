@@ -32,15 +32,16 @@ Deno.serve(async (req) => {
         }
 
         const account = accounts[0];
-        const targetAddress = requestedAddress || account.wallet_address;
         const accountAddresses = [
             account.wallet_address,
             ...(account.additional_addresses || []).map(addr => addr.address)
         ].filter(Boolean);
         const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
         wallets.forEach(wallet => accountAddresses.push(wallet.wallet_address));
+        const uniqueAddresses = [...new Set(accountAddresses.map(address => address?.trim()).filter(Boolean))];
+        const queryAddresses = requestedAddress ? [requestedAddress] : uniqueAddresses;
 
-        if (!accountAddresses.some(address => address?.toLowerCase() === targetAddress.toLowerCase())) {
+        if (requestedAddress && !uniqueAddresses.some(address => address?.toLowerCase() === requestedAddress.toLowerCase())) {
             return Response.json({
                 success: false,
                 error: 'Address does not belong to this wallet account'
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
                     jsonrpc: '1.0',
                     id: 'getBalance',
                     method: 'listunspent',
-                    params: [0, 9999999, [targetAddress]]
+                    params: [0, 9999999, queryAddresses]
                 }),
                 signal: AbortSignal.timeout(15000)
             });
@@ -112,17 +113,18 @@ Deno.serve(async (req) => {
             }
 
             if (Array.isArray(rpcData.result)) {
-                const targetAddress = requestedAddress || account.wallet_address;
-                const balance = parseFloat(rpcData.result
-                    .filter(utxo => (utxo.address || '').toLowerCase() === targetAddress.toLowerCase())
+                const querySet = new Set(queryAddresses.map(address => address.toLowerCase()));
+                const matchingUtxos = rpcData.result.filter(utxo => querySet.has((utxo.address || '').toLowerCase()));
+                const balance = parseFloat(matchingUtxos
                     .reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0)
                     .toFixed(8));
 
                 return Response.json({ 
                     success: true,
-                    address: targetAddress,
+                    address: requestedAddress || 'all-account-addresses',
+                    addresses: queryAddresses,
                     balance,
-                    utxoCount: rpcData.result.length
+                    utxoCount: matchingUtxos.length
                 });
             }
 

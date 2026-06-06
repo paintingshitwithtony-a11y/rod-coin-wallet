@@ -186,7 +186,7 @@ export default function WalletDashboard({ account, onLogout }) {
       // Fetch RPC balance for main wallet
       let mainBalance = 0;
       try {
-        const balResponse = await base44.functions.invoke('getRPCBalance', { address: freshAccount.wallet_address });
+        const balResponse = await base44.functions.invoke('getRPCBalance', {});
         if (balResponse.data.success) {
           mainBalance = balResponse.data.balance;
         }
@@ -335,7 +335,7 @@ export default function WalletDashboard({ account, onLogout }) {
     if (!rpcConnected) return;
 
     try {
-      const response = await base44.functions.invoke('getRPCBalance', { address: currentWallet?.wallet_address || account.wallet_address });
+      const response = await base44.functions.invoke('getRPCBalance', currentWallet && currentWallet.id !== 'main-account' ? { address: currentWallet.wallet_address } : {});
       if (response.data.success) {
         // Only update if viewing main wallet
         if (!currentWallet || currentWallet.id === 'main-account') {
@@ -594,7 +594,7 @@ export default function WalletDashboard({ account, onLogout }) {
     toast.info('Syncing...');
     try {
       // Get fresh balance directly from RPC
-      const balResponse = await base44.functions.invoke('getRPCBalance', { address: currentWallet?.wallet_address || account.wallet_address });
+      const balResponse = await base44.functions.invoke('getRPCBalance', currentWallet && currentWallet.id !== 'main-account' ? { address: currentWallet.wallet_address } : {});
       if (balResponse.data.success) {
         setBalance({
           confirmed: balResponse.data.balance,
@@ -692,7 +692,7 @@ export default function WalletDashboard({ account, onLogout }) {
           const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
           if (accounts.length > 0) {
             try {
-              const balResponse = await base44.functions.invoke('getRPCBalance', { address: currentWallet.wallet_address });
+              const balResponse = await base44.functions.invoke('getRPCBalance', {});
               setBalance({
                 confirmed: balResponse.data.success ? balResponse.data.balance : (accounts[0].balance || 0),
                 unconfirmed: 0
