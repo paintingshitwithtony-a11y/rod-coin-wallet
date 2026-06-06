@@ -204,6 +204,17 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
         setDeletingSelected(true);
         try {
             await Promise.all(selectedWallets.map((wallet) => base44.entities.Wallet.delete(wallet.id)));
+
+            const deletedAddressKeys = new Set(selectedWallets.map((wallet) => normalizeAddress(wallet.wallet_address)));
+            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (accounts.length > 0) {
+                const updatedAdditionalAddresses = (accounts[0].additional_addresses || []).filter(
+                    (addr) => !deletedAddressKeys.has(normalizeAddress(addr.address))
+                );
+                await base44.entities.WalletAccount.update(account.id, { additional_addresses: updatedAdditionalAddresses });
+                account.additional_addresses = updatedAdditionalAddresses;
+            }
+
             toast.success(`${selectedWallets.length} wallet(s) deleted`);
             setSelectedWalletIds([]);
             fetchWallets();
@@ -231,6 +242,17 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
 
         try {
             await base44.entities.Wallet.delete(wallet.id);
+
+            const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
+            if (accounts.length > 0) {
+                const deletedAddressKey = normalizeAddress(wallet.wallet_address);
+                const updatedAdditionalAddresses = (accounts[0].additional_addresses || []).filter(
+                    (addr) => normalizeAddress(addr.address) !== deletedAddressKey
+                );
+                await base44.entities.WalletAccount.update(account.id, { additional_addresses: updatedAdditionalAddresses });
+                account.additional_addresses = updatedAdditionalAddresses;
+            }
+
             toast.success('Wallet deleted');
             setSelectedWalletIds((prev) => prev.filter((id) => id !== wallet.id));
             fetchWallets();

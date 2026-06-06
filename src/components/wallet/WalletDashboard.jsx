@@ -226,24 +226,36 @@ export default function WalletDashboard({ account, onLogout }) {
       const allWallets = uniqueByAddress([mainWallet, ...walletsWithImportStatus]);
       setAllWallets(allWallets);
 
-      // Merge wallet-entity addresses into the addresses list and keep custom wallet names as labels
-      setAddresses(prev => {
-        const existingAddrs = new Map(prev.map(a => [normalizeAddress(a.address), a]));
-        walletsWithImportStatus.forEach(w => {
-          const key = normalizeAddress(w.wallet_address);
-          const existing = existingAddrs.get(key);
-          existingAddrs.set(key, {
-            ...existing,
-            id: existing?.id || `wallet-${w.id}`,
-            address: w.wallet_address,
-            label: w.name || existing?.label || 'Wallet',
-            createdAt: existing?.createdAt || w.created_date,
-            isValid: true,
-            importStatus: w.importStatus || existing?.importStatus
-          });
-        });
-        return Array.from(existingAddrs.values());
-      });
+      const baseAddresses = uniqueByAddress([
+        {
+          id: 'main',
+          address: freshAccount.wallet_address,
+          label: 'Primary Address',
+          createdAt: freshAccount.created_date,
+          isValid: true
+        },
+        ...(freshAccount.additional_addresses || []).map((addr, i) => ({
+          id: `addr-${i}`,
+          address: addr.address,
+          label: addr.label || `Address ${i + 2}`,
+          createdAt: addr.created_at,
+          isValid: true,
+          importStatus: 'imported'
+        }))
+      ]);
+
+      const walletAddresses = walletsWithImportStatus.map((w) => ({
+        id: `wallet-${w.id}`,
+        address: w.wallet_address,
+        label: w.name || 'Wallet',
+        createdAt: w.created_date,
+        isValid: true,
+        importStatus: w.importStatus
+      }));
+
+      const refreshedAddresses = uniqueByAddress([...baseAddresses, ...walletAddresses]);
+      account.additional_addresses = freshAccount.additional_addresses || [];
+      setAddresses(refreshedAddresses);
 
       const liveBalances = {};
       const utxoCounts = {};
@@ -257,7 +269,7 @@ export default function WalletDashboard({ account, onLogout }) {
             liveBalances[normalizeAddress(wallet.wallet_address)] = 0;
             utxoCounts[normalizeAddress(wallet.wallet_address)] = 0;
           });
-          addresses.forEach(addr => {
+          refreshedAddresses.forEach(addr => {
             const key = normalizeAddress(addr.address);
             liveBalances[key] = 0;
             utxoCounts[key] = 0;
