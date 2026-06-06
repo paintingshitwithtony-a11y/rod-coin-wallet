@@ -226,6 +226,11 @@ export default function WalletDashboard({ account, onLogout }) {
       const allWallets = uniqueByAddress([mainWallet, ...walletsWithImportStatus]);
       setAllWallets(allWallets);
 
+      const deletedWalletAddressKeys = new Set((freshAccount.deleted_wallet_addresses || []).map(normalizeAddress));
+      const savedAdditionalAddresses = (freshAccount.additional_addresses || []).filter(
+        (addr) => !deletedWalletAddressKeys.has(normalizeAddress(addr.address))
+      );
+
       const baseAddresses = uniqueByAddress([
         {
           id: 'main',
@@ -234,7 +239,7 @@ export default function WalletDashboard({ account, onLogout }) {
           createdAt: freshAccount.created_date,
           isValid: true
         },
-        ...(freshAccount.additional_addresses || []).map((addr, i) => ({
+        ...savedAdditionalAddresses.map((addr, i) => ({
           id: `addr-${i}`,
           address: addr.address,
           label: addr.label || `Address ${i + 2}`,
@@ -253,8 +258,9 @@ export default function WalletDashboard({ account, onLogout }) {
         importStatus: w.importStatus
       }));
 
-      const refreshedAddresses = uniqueByAddress([...baseAddresses, ...walletAddresses]);
-      account.additional_addresses = freshAccount.additional_addresses || [];
+      const refreshedAddresses = uniqueByAddress([...walletAddresses, ...baseAddresses]);
+      account.additional_addresses = savedAdditionalAddresses;
+      account.deleted_wallet_addresses = freshAccount.deleted_wallet_addresses || [];
       setAddresses(refreshedAddresses);
 
       const liveBalances = {};

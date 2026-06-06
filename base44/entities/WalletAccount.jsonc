@@ -43,6 +43,13 @@
         }
       }
     },
+    "deleted_wallet_addresses": {
+      "type": "array",
+      "description": "Wallet addresses removed by the user so they stay hidden from My Addresses",
+      "items": {
+        "type": "string"
+      }
+    },
     "balance": {
       "type": "number",
       "default": 0,

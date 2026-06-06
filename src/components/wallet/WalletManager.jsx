@@ -211,8 +211,16 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 const updatedAdditionalAddresses = (accounts[0].additional_addresses || []).filter(
                     (addr) => !deletedAddressKeys.has(normalizeAddress(addr.address))
                 );
-                await base44.entities.WalletAccount.update(account.id, { additional_addresses: updatedAdditionalAddresses });
+                const deletedWalletAddresses = Array.from(new Set([
+                    ...(accounts[0].deleted_wallet_addresses || []),
+                    ...selectedWallets.map((wallet) => wallet.wallet_address)
+                ]));
+                await base44.entities.WalletAccount.update(account.id, {
+                    additional_addresses: updatedAdditionalAddresses,
+                    deleted_wallet_addresses: deletedWalletAddresses
+                });
                 account.additional_addresses = updatedAdditionalAddresses;
+                account.deleted_wallet_addresses = deletedWalletAddresses;
             }
 
             toast.success(`${selectedWallets.length} wallet(s) deleted`);
@@ -249,8 +257,16 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 const updatedAdditionalAddresses = (accounts[0].additional_addresses || []).filter(
                     (addr) => normalizeAddress(addr.address) !== deletedAddressKey
                 );
-                await base44.entities.WalletAccount.update(account.id, { additional_addresses: updatedAdditionalAddresses });
+                const deletedWalletAddresses = Array.from(new Set([
+                    ...(accounts[0].deleted_wallet_addresses || []),
+                    wallet.wallet_address
+                ]));
+                await base44.entities.WalletAccount.update(account.id, {
+                    additional_addresses: updatedAdditionalAddresses,
+                    deleted_wallet_addresses: deletedWalletAddresses
+                });
                 account.additional_addresses = updatedAdditionalAddresses;
+                account.deleted_wallet_addresses = deletedWalletAddresses;
             }
 
             toast.success('Wallet deleted');
