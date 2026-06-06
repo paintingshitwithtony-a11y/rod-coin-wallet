@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import WalletCreator from './WalletCreator';
 import WalletBackup from './WalletBackup';
 import WalletRestore from './WalletRestore';
+import WalletBulkActions from './WalletBulkActions';
 
 const WALLET_COLORS = [
     { name: 'Purple', class: 'from-purple-500 to-purple-700' },
@@ -46,6 +47,8 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
      const [totalBalance, setTotalBalance] = useState(0);
      const [editingWallet, setEditingWallet] = useState(null);
      const [editName, setEditName] = useState('');
+     const [selectedWalletIds, setSelectedWalletIds] = useState([]);
+     const [deletingSelected, setDeletingSelected] = useState(false);
 
     useEffect(() => {
         fetchWallets();
@@ -78,6 +81,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             
             const allWallets = uniqueWalletsByAddress([mainWallet, ...walletList]);
             setWallets(allWallets);
+            setSelectedWalletIds((prev) => prev.filter((id) => allWallets.some((wallet) => wallet.id === id && wallet.id !== 'main-account')));
             
             const total = allWallets.reduce((sum, w) => sum + (w.balance || 0), 0);
             setTotalBalance(total);
@@ -130,6 +134,46 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
         }
     };
 
+    const toggleWalletSelection = (walletId) => {
+        setSelectedWalletIds((prev) =>
+            prev.includes(walletId) ? prev.filter((id) => id !== walletId) : [...prev, walletId]
+        );
+    };
+
+    const selectAllRemovableWallets = () => {
+        setSelectedWalletIds(wallets.filter((wallet) => wallet.id !== 'main-account').map((wallet) => wallet.id));
+    };
+
+    const handleDeleteSelectedWallets = async () => {
+        const selectedWallets = wallets.filter((wallet) => selectedWalletIds.includes(wallet.id) && wallet.id !== 'main-account');
+
+        if (selectedWallets.length === 0) {
+            toast.error('Select at least one wallet to remove');
+            return;
+        }
+
+        if (wallets.length - selectedWallets.length <= 1) {
+            toast.error('Cannot delete all additional wallets');
+            return;
+        }
+
+        if (!confirm(`Delete ${selectedWallets.length} selected wallet(s)? This cannot be undone!`)) {
+            return;
+        }
+
+        setDeletingSelected(true);
+        try {
+            await Promise.all(selectedWallets.map((wallet) => base44.entities.Wallet.delete(wallet.id)));
+            toast.success(`${selectedWallets.length} wallet(s) deleted`);
+            setSelectedWalletIds([]);
+            fetchWallets();
+        } catch (err) {
+            toast.error('Failed to delete selected wallets');
+        } finally {
+            setDeletingSelected(false);
+        }
+    };
+
     const handleDeleteWallet = async (wallet) => {
         if (wallet.id === 'main-account') {
             toast.error('Cannot delete main wallet');
@@ -148,6 +192,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
         try {
             await base44.entities.Wallet.delete(wallet.id);
             toast.success('Wallet deleted');
+            setSelectedWalletIds((prev) => prev.filter((id) => id !== wallet.id));
             fetchWallets();
         } catch (err) {
             toast.error('Failed to delete wallet');
@@ -198,6 +243,14 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                 </div>
 
                 {/* Wallet List */}
+                <WalletBulkActions
+                    selectedCount={selectedWalletIds.length}
+                    removableCount={wallets.filter((wallet) => wallet.id !== 'main-account').length}
+                    deleting={deletingSelected}
+                    onSelectAll={selectAllRemovableWallets}
+                    onClear={() => setSelectedWalletIds([])}
+                    onDelete={handleDeleteSelectedWallets}
+                />
                 <div className="space-y-3">
                     {loading ? (
                         <p className="text-center text-slate-400 py-8">Loading wallets...</p>
@@ -214,6 +267,16 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                 <Card className={`border-slate-700 ${wallet.is_active ? 'bg-purple-900/20 border-purple-500/50' : 'bg-slate-800/50'}`}>
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-4">
+                                            {wallet.id !== 'main-account' && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedWalletIds.includes(wallet.id)}
+                                                    onChange={() => toggleWalletSelection(wallet.id)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="w-4 h-4 accent-purple-600"
+                                                    aria-label={`Select ${wallet.name}`}
+                                                />
+                                            )}
                                             <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${wallet.color || 'from-purple-500 to-purple-700'} flex items-center justify-center`}>
                                                 <Wallet className="w-6 h-6 text-white" />
                                             </div>
