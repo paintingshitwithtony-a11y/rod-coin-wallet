@@ -5,7 +5,7 @@ async function isAdminAccount(base44, account) {
     return admins.some(admin => admin.email === account.email || admin.id === account.id);
 }
 
-async function getAdminRPCSource(base44) {
+async function getAdminRPCSource(base44, connectedOnly = true) {
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
     for (const admin of admins) {
         const adminAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: admin.email });
@@ -14,13 +14,15 @@ async function getAdminRPCSource(base44) {
                 account_id: adminAccount.id,
                 is_active: true
             });
-            const connectedConfig = activeConfigs.find(config => config.connection_status === 'connected');
-            if (connectedConfig) return connectedConfig;
+            const adminConfig = connectedOnly
+                ? activeConfigs.find(config => config.connection_status === 'connected')
+                : activeConfigs[0];
+            if (adminConfig) return adminConfig;
         }
     }
 
     const configs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
-    return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
+    return configs.find(config => (!connectedOnly || config.connection_status === 'connected') && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
 }
 
 Deno.serve(async (req) => {
@@ -65,7 +67,10 @@ Deno.serve(async (req) => {
         const account = accounts[0];
 
         let configs;
-        if (payload.config_id) {
+        if (payload.admin_rpc_status) {
+            const adminRPC = await getAdminRPCSource(base44, false);
+            configs = adminRPC ? [adminRPC] : [];
+        } else if (payload.config_id) {
             configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ id: payload.config_id });
             configs = configs.filter(config => config.account_id === account.id);
         } else if (!(await isAdminAccount(base44, account))) {
@@ -151,6 +156,7 @@ Deno.serve(async (req) => {
 
             return Response.json({ 
                 connected: true,
+                sourceName: config.name,
                 nodeInfo: {
                     blocks: rpcData.result.blocks,
                     chain: rpcData.result.chain,

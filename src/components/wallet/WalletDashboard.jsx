@@ -25,6 +25,7 @@ import NetworkActivityDashboard from './NetworkActivityDashboard';
 import RPCConsole from './RPCConsole';
 import RODConfEditor from './RODConfEditor';
 import NodeStatusCard from './NodeStatusCard';
+import AdminRPCStatusIndicator from './AdminRPCStatusIndicator';
 import DashboardRPCConsole from './DashboardRPCConsole';
 import AddressImportDiagnostics from './AddressImportDiagnostics';
 import BalanceTrendChart from './BalanceTrendChart';
@@ -1230,6 +1231,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                 </div>
 
                                 <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+                                    <AdminRPCStatusIndicator account={account} />
+
                                     {/* RPC Console - Live Balance Query */}
                                     <DashboardRPCConsole 
                                         selectedAddress={currentWallet?.wallet_address || account.wallet_address}
