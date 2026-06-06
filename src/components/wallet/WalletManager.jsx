@@ -80,10 +80,50 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
             };
             
             const allWallets = uniqueWalletsByAddress([mainWallet, ...walletList]);
-            setWallets(allWallets);
-            setSelectedWalletIds((prev) => prev.filter((id) => allWallets.some((wallet) => wallet.id === id && wallet.id !== 'main-account')));
+            let walletsWithUtxos = allWallets.map((wallet) => ({
+                ...wallet,
+                spendableBalance: wallet.balance || 0,
+                utxoCount: 0
+            }));
+
+            try {
+                const response = await base44.functions.invoke('executeRPCCommand', {
+                    method: 'listunspent',
+                    params: [0, 9999999]
+                });
+
+                if (response.data.success) {
+                    const utxoByAddress = {};
+                    allWallets.forEach((wallet) => {
+                        utxoByAddress[normalizeAddress(wallet.wallet_address)] = { balance: 0, count: 0 };
+                    });
+
+                    (response.data.result || []).forEach((utxo) => {
+                        const key = normalizeAddress(utxo.address);
+                        if (utxoByAddress[key]) {
+                            utxoByAddress[key].balance = parseFloat((utxoByAddress[key].balance + Number(utxo.amount || 0)).toFixed(8));
+                            utxoByAddress[key].count += 1;
+                        }
+                    });
+
+                    walletsWithUtxos = allWallets.map((wallet) => {
+                        const utxoInfo = utxoByAddress[normalizeAddress(wallet.wallet_address)] || { balance: wallet.balance || 0, count: 0 };
+                        return {
+                            ...wallet,
+                            balance: utxoInfo.balance,
+                            spendableBalance: utxoInfo.balance,
+                            utxoCount: utxoInfo.count
+                        };
+                    });
+                }
+            } catch (err) {
+                console.warn('Failed to load wallet UTXOs:', err.message);
+            }
+
+            setWallets(walletsWithUtxos);
+            setSelectedWalletIds((prev) => prev.filter((id) => walletsWithUtxos.some((wallet) => wallet.id === id && wallet.id !== 'main-account')));
             
-            const total = allWallets.reduce((sum, w) => sum + (w.balance || 0), 0);
+            const total = walletsWithUtxos.reduce((sum, w) => sum + (w.spendableBalance || 0), 0);
             setTotalBalance(total);
         } catch (err) {
             toast.error('Failed to load wallets');
@@ -331,9 +371,15 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                 <p className="text-sm text-amber-400/80 font-mono truncate">
                                                     {wallet.wallet_address}
                                                 </p>
-                                                <p className="text-lg font-bold text-white mt-1">
-                                                    {(wallet.balance || 0).toFixed(4)} ROD
-                                                </p>
+                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                    <p className="text-lg font-bold text-white">
+                                                        {(wallet.spendableBalance ?? wallet.balance ?? 0).toFixed(4)} ROD
+                                                    </p>
+                                                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs">
+                                                        {wallet.utxoCount || 0} UTXO{wallet.utxoCount === 1 ? '' : 's'}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-xs text-slate-500">Spendable unspent outputs</p>
                                             </div>
 
                                             <div className="flex gap-2">
