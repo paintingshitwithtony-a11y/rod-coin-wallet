@@ -59,7 +59,7 @@ export default function RPCConfigList({ configs, loading, testing, onEdit, onTes
                         onClick={() => !config.is_active && !sharedAdminConfig && onActivate(config)}
                         className={`p-4 rounded-lg border transition-all ${getStatusColor(config.connection_status)} ${
                             !config.is_active && !sharedAdminConfig ? 'cursor-pointer hover:border-purple-500/50 hover:bg-slate-800/70' : ''
-                        }`
+                        }`}
                     >
                         <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-3 flex-1">
