@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 export default function TransactionHistory({ account }) {
     const [transactions, setTransactions] = useState([]);
     const [filteredTxs, setFilteredTxs] = useState([]);
+    const [addressLabels, setAddressLabels] = useState({});
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [memoSearch, setMemoSearch] = useState('');
@@ -45,11 +46,22 @@ export default function TransactionHistory({ account }) {
     const fetchTransactions = async () => {
         setLoading(true);
         try {
-            const txs = await base44.entities.Transaction.filter(
-                { account_id: account.id },
-                '-created_date',
-                500
-            );
+            const [txs, contacts] = await Promise.all([
+                base44.entities.Transaction.filter(
+                    { account_id: account.id },
+                    '-created_date',
+                    500
+                ),
+                base44.entities.AddressBook.filter(
+                    { account_id: account.id },
+                    '-created_date'
+                )
+            ]);
+            const labels = contacts.reduce((map, contact) => ({
+                ...map,
+                [(contact.address || '').trim().toLowerCase()]: contact.label
+            }), {});
+            setAddressLabels(labels);
             setTransactions(txs);
         } catch (err) {
             console.error('Failed to fetch transactions:', err);
@@ -185,6 +197,8 @@ export default function TransactionHistory({ account }) {
         toast.success('Copied to clipboard');
         setTimeout(() => setCopiedId(null), 2000);
     };
+
+    const getAddressLabel = (address) => addressLabels[(address || '').trim().toLowerCase()];
 
     const getTotalStats = () => {
         const received = filteredTxs
@@ -460,8 +474,13 @@ export default function TransactionHistory({ account }) {
                                                     </div>
 
                                                     <div className="space-y-1">
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-2 flex-wrap">
                                                             <span className="text-xs text-slate-500">Address:</span>
+                                                            {getAddressLabel(tx.address) && (
+                                                                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/40 text-xs">
+                                                                    {getAddressLabel(tx.address)}
+                                                                </Badge>
+                                                            )}
                                                             <code className="text-xs text-amber-400/80 font-mono">
                                                                 {tx.address?.slice(0, 12)}...{tx.address?.slice(-8)}
                                                             </code>
