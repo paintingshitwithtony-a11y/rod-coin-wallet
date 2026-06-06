@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2 } from
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2, Lock } from
 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -20,6 +20,7 @@ import WalletImport from './WalletImport';
 import RPCConfigManager from './RPCConfigManager';
 import TransactionHistory from './TransactionHistory';
 import WalletManager from './WalletManager';
+import WalletEncryptionDialog from './WalletEncryptionDialog';
 import RODNodeSetupGuide from './RODNodeSetupGuide';
 import NetworkActivityDashboard from './NetworkActivityDashboard';
 import RPCConsole from './RPCConsole';
@@ -74,6 +75,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [onlineUsers, setOnlineUsers] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [showWalletManager, setShowWalletManager] = useState(false);
+  const [showEncryptWallet, setShowEncryptWallet] = useState(null);
   const [currentWallet, setCurrentWallet] = useState(null);
   const [allWallets, setAllWallets] = useState([]);
   const [walletsLoading, setWalletsLoading] = useState(true);
@@ -1548,6 +1550,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                 const liveBalance = addressBalances[normalizeAddress(addr.address)];
                                 const addrBalance = liveBalance !== undefined ? liveBalance : txBalance;
                                 const hasBalance = addrBalance > 0;
+                                const matchedWallet = allWallets.find(w => normalizeAddress(w.wallet_address) === normalizeAddress(addr.address) && w.wallet_type === 'standard' && w.id !== 'main-account');
                                 return (
                                 <motion.div
                                 key={addr.id}
@@ -1591,10 +1594,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                                             Imported
                                                         </Badge>
                         }
-                                                    {(() => {
-                                                        const matchedWallet = allWallets.find(w => w.wallet_address === addr.address && w.wallet_type === 'standard' && w.id !== 'main-account');
-                                                        if (!matchedWallet) return null;
-                                                        return matchedWallet.encrypted_private_key ? (
+                                                    {matchedWallet && (
+                                                        matchedWallet.encrypted_private_key ? (
                                                             <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
                                                                 <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80] inline-block flex-shrink-0" />
                                                                 Properly Encrypted
@@ -1604,8 +1605,8 @@ export default function WalletDashboard({ account, onLogout }) {
                                                                 <span className="w-2 h-2 rounded-full bg-amber-400 inline-block flex-shrink-0" />
                                                                 Key Not Stored
                                                             </span>
-                                                        );
-                                                    })()}
+                                                        )
+                                                    )}
                                                 </div>
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
@@ -1631,6 +1632,19 @@ export default function WalletDashboard({ account, onLogout }) {
                                                 </div>
                                             </div>
                                             <div className="flex gap-1 shrink-0">
+                                                {matchedWallet && !matchedWallet.app_encryption_enabled && !matchedWallet.encrypted_private_key && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setShowEncryptWallet(matchedWallet);
+                                                    }}
+                                                    className="text-slate-400 hover:text-green-400"
+                                                    title="Encrypt app wallet record">
+                                                    <Lock className="w-4 h-4" />
+                                                  </Button>
+                                                )}
                                                 <Button
                         variant="ghost"
                         size="icon"
@@ -1867,6 +1881,17 @@ export default function WalletDashboard({ account, onLogout }) {
                      onWalletCreated={handleWalletCreated}
                      onClose={() => {
                          setShowWalletManager(false);
+                         fetchAllWallets();
+                     }}
+                 />
+             )}
+
+             {showEncryptWallet && (
+                 <WalletEncryptionDialog
+                     wallet={showEncryptWallet}
+                     onClose={() => setShowEncryptWallet(null)}
+                     onEncrypted={() => {
+                         setShowEncryptWallet(null);
                          fetchAllWallets();
                      }}
                  />
