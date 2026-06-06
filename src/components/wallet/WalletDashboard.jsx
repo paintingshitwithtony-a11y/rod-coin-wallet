@@ -64,7 +64,6 @@ export default function WalletDashboard({ account, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isAdmin, setIsAdmin] = useState(false);
 
-
   const [rpcConnected, setRpcConnected] = useState(null);
   const [showRPCModal, setShowRPCModal] = useState(false);
   const [showRPCManager, setShowRPCManager] = useState(false);
@@ -144,6 +143,20 @@ export default function WalletDashboard({ account, onLogout }) {
       };
       checkElectronProxy();
     }, []);
+
+  useEffect(() => {
+    if (!rpcConnected) return;
+
+    const refreshUnlockStatus = () => checkWalletUnlockStatus(true);
+    refreshUnlockStatus();
+    const interval = setInterval(refreshUnlockStatus, 15000);
+    window.addEventListener('focus', refreshUnlockStatus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', refreshUnlockStatus);
+    };
+  }, [rpcConnected]);
 
   useEffect(() => {
     // Load addresses from account
@@ -373,8 +386,6 @@ export default function WalletDashboard({ account, onLogout }) {
      await fetchAllWallets();
   };
 
-
-
   const updateMainWalletFromRPC = async () => {
     if (!rpcConnected) return;
 
@@ -394,7 +405,6 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-
   const fetchOnlineUsers = async () => {
     try {
       const response = await base44.functions.invoke('getOnlineUsers', {});
@@ -402,7 +412,6 @@ export default function WalletDashboard({ account, onLogout }) {
         setOnlineUsers(response.data.count);
       }
     } catch (err) {
-
 
       // Silently fail
     }};
@@ -432,7 +441,6 @@ export default function WalletDashboard({ account, onLogout }) {
         })));
       } else if (response.data.total === 0) {
 
-
         // No addresses to import yet
       } else if (response.data.message && showToast) {toast.warning(response.data.message, { duration: 5000 });}
     } catch (err) {
@@ -440,8 +448,8 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-  const checkWalletUnlockStatus = async () => {
-    if (!rpcConnected) return;
+  const checkWalletUnlockStatus = async (force = false) => {
+    if (!force && !rpcConnected) return;
     
     try {
       setCheckingUnlockStatus(true);
@@ -451,8 +459,10 @@ export default function WalletDashboard({ account, onLogout }) {
       });
       
       if (response.data && response.data.result) {
-        const unlockedUntil = Number(response.data.result.unlocked_until || 0);
-        setWalletUnlocked(!response.data.result.unlocked_until || unlockedUntil > Math.floor(Date.now() / 1000));
+        const walletInfo = response.data.result;
+        const hasUnlockField = Object.prototype.hasOwnProperty.call(walletInfo, 'unlocked_until');
+        const unlockedUntil = Number(walletInfo.unlocked_until || 0);
+        setWalletUnlocked(hasUnlockField ? unlockedUntil > Math.floor(Date.now() / 1000) : true);
       }
     } catch (err) {
       console.error('Failed to check unlock status:', err);
@@ -499,8 +509,6 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-
-
   const checkRPCStatus = async (isRetry = false) => {
     try {
       const response = await base44.functions.invoke('checkRPCStatus', {});
@@ -520,7 +528,7 @@ export default function WalletDashboard({ account, onLogout }) {
         }
 
         // Check wallet unlock status after RPC connects
-        setTimeout(() => checkWalletUnlockStatus(), 500);
+        setTimeout(() => checkWalletUnlockStatus(true), 500);
       } else {
         setRpcConnected(false);
         setRpcNodeInfo(null);
@@ -1001,8 +1009,6 @@ export default function WalletDashboard({ account, onLogout }) {
       .reduce((sum, tx) => sum + tx.amount, 0);
   };
 
-
-
   return (
     <div className="space-y-4 md:space-y-6 overflow-x-hidden">
             {/* Header Bar - Full Width */}
@@ -1443,8 +1449,6 @@ export default function WalletDashboard({ account, onLogout }) {
                                             </CardContent>
                                         </Card>
                                     </motion.div>
-
-
 
                                     {/* Node Status Card */}
                                                      <motion.div
