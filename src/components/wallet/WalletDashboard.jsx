@@ -1733,27 +1733,7 @@ export default function WalletDashboard({ account, onLogout }) {
                         </Card>
                         </div>
 
-                        {/* Market Data Widget */}
-                        {!isMobile &&
-                            <Card className="bg-slate-900/80 border-slate-700/50 overflow-hidden mt-8">
-                                <CardHeader>
-                                    <CardTitle className="text-white text-lg flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-green-400" />
-                                        ROD Market Data
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <iframe
-                                        src="https://coinpaprika.com/coin/rod-spacexpanse/embed/?interval=0&modules[]=market_details&modules[]=chart&nightMode=true&primaryCurrency=USD&updateActive=false&volumeVisible=false"
-                                        width="100%"
-                                        height="600"
-                                        frameBorder="0"
-                                        scrolling="no"
-                                        className="w-full"
-                                        title="ROD SpaceXpanse Market Data" />
-                                </CardContent>
-                            </Card>
-                        }
+
                 </TabsContent>
 
                     <TabsContent value="history" className="mt-6">
