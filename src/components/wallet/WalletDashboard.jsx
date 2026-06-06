@@ -994,24 +994,6 @@ export default function WalletDashboard({ account, onLogout }) {
 
   return (
     <div className="space-y-4 md:space-y-6 overflow-x-hidden">
-            {/* SpaceXpanse ROD Coin Header */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-6">
-              <div className="inline-flex items-center gap-3">
-                <div className="relative">
-                  <div className="bg-gradient-to-br rounded-2xl w-12 h-12 from-purple-500 via-purple-600 to-amber-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                    <span className="text-xl font-black text-white">R</span>
-                  </div>
-                </div>
-                <div className="text-left">
-                  <h2 className="text-2xl font-bold text-white tracking-tight">ROD Wallet</h2>
-                  <p className="text-sm text-purple-400">SpaceXpanse ROD Coin</p>
-                </div>
-              </div>
-            </motion.div>
-
             {/* Header Bar - Full Width */}
             <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-900/95 to-slate-900/95 backdrop-blur-xl border-b border-purple-500/30 shadow-lg shadow-purple-500/10 overflow-x-hidden">
                 <div className="max-w-7xl mx-auto px-2 md:px-4 py-3">
