@@ -26,6 +26,7 @@ import RPCConsole from './RPCConsole';
 import RODConfEditor from './RODConfEditor';
 import NodeStatusCard from './NodeStatusCard';
 import DashboardRPCConsole from './DashboardRPCConsole';
+import AddressImportDiagnostics from './AddressImportDiagnostics';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -1223,6 +1224,11 @@ export default function WalletDashboard({ account, onLogout }) {
                                     <DashboardRPCConsole 
                                         selectedAddress={currentWallet?.wallet_address || account.wallet_address}
                                         account={account}
+                                    />
+
+                                    <AddressImportDiagnostics
+                                        rpcConnected={rpcConnected}
+                                        onImportRescan={() => importAllAddresses(true, true)}
                                     />
 
                                     {/* Quick Action Buttons */}
