@@ -20,7 +20,20 @@
     },
     "encrypted_private_key": {
       "type": "string",
-      "description": "Encrypted private key"
+      "description": "Passphrase-encrypted private key payload"
+    },
+    "app_encryption_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the app wallet record private key is encrypted with a user passphrase"
+    },
+    "encrypted_at": {
+      "type": "string",
+      "description": "When app wallet record encryption was enabled"
+    },
+    "encryption_version": {
+      "type": "string",
+      "description": "App wallet record encryption format version"
     },
     "additional_addresses": {
       "type": "array",

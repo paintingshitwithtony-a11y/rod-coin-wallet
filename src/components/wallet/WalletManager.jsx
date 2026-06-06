@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { 
     Wallet, Plus, Download, Upload, CheckCircle2, 
-    Trash2, Pencil, AlertTriangle, Loader2
+    Trash2, Pencil, AlertTriangle, Loader2, Lock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -16,6 +16,7 @@ import WalletCreator from './WalletCreator';
 import WalletBackup from './WalletBackup';
 import WalletRestore from './WalletRestore';
 import WalletBulkActions from './WalletBulkActions';
+import WalletEncryptionDialog from './WalletEncryptionDialog';
 
 const WALLET_COLORS = [
     { name: 'Purple', class: 'from-purple-500 to-purple-700' },
@@ -49,6 +50,7 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
      const [editName, setEditName] = useState('');
      const [selectedWalletIds, setSelectedWalletIds] = useState([]);
      const [deletingSelected, setDeletingSelected] = useState(false);
+     const [showEncryptWallet, setShowEncryptWallet] = useState(null);
 
     useEffect(() => {
         fetchWallets();
@@ -438,6 +440,17 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                                                 )}
                                                 {wallet.id !== 'main-account' && (
                                                     <>
+                                                        {!wallet.app_encryption_enabled && !wallet.encrypted_private_key && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => setShowEncryptWallet(wallet)}
+                                                                className="border-slate-700 text-green-400 hover:text-green-300"
+                                                                title="Encrypt app wallet record"
+                                                            >
+                                                                <Lock className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
@@ -485,6 +498,17 @@ export default function WalletManager({ account, currentWallet, onWalletSwitch, 
                         wallet={showBackup}
                         account={account}
                         onClose={() => setShowBackup(null)}
+                    />
+                )}
+
+                {showEncryptWallet && (
+                    <WalletEncryptionDialog
+                        wallet={showEncryptWallet}
+                        onClose={() => setShowEncryptWallet(null)}
+                        onEncrypted={() => {
+                            setShowEncryptWallet(null);
+                            fetchWallets();
+                        }}
                     />
                 )}
 
