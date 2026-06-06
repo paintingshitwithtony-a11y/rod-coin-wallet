@@ -76,10 +76,14 @@ export default function NodeTransactionHistory() {
     setLoading(true);
     setError('');
     try {
-      const response = await base44.functions.invoke('getNodeTransactionHistory', {
+      const request = base44.functions.invoke('getNodeTransactionHistory', {
         address: selectedAddress,
         limit: 200
       });
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('ROD Core is taking too long to respond. Try Refresh again.')), 20000)
+      );
+      const response = await Promise.race([request, timeout]);
       if (response.data.success) {
         setData(response.data);
       } else {

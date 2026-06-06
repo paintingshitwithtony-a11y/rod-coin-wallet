@@ -88,99 +88,24 @@ Deno.serve(async (req) => {
 
         let walletTransactions = [];
         try {
-            walletTransactions = await rpcCall(rpcUrl, headers, 'listtransactions', ['*', limit, 0, true], 30000);
+            walletTransactions = await rpcCall(rpcUrl, headers, 'listtransactions', ['*', limit, 0, true], 15000);
         } catch (_err) {
-            walletTransactions = await rpcCall(rpcUrl, headers, 'listtransactions', ['*', limit, 0], 30000);
+            walletTransactions = await rpcCall(rpcUrl, headers, 'listtransactions', ['*', limit, 0], 15000);
         }
 
-        const candidateTxIds = [...new Set((walletTransactions || []).map((tx) => tx.txid).filter(Boolean))];
-        const transactions = [];
-        const rawCache = new Map();
-
-        async function getRawTransaction(txid) {
-            if (rawCache.has(txid)) return rawCache.get(txid);
-            const raw = await rpcCall(rpcUrl, headers, 'getrawtransaction', [txid, true], 30000);
-            rawCache.set(txid, raw);
-            return raw;
-        }
-
-        async function getInputAddresses(rawTx) {
-            const addresses = new Set();
-            for (const vin of rawTx.vin || []) {
-                if (!vin.txid || vin.vout === undefined) continue;
-                try {
-                    const prevRaw = await getRawTransaction(vin.txid);
-                    const prevOut = prevRaw.vout?.[vin.vout];
-                    getOutputAddresses(prevOut).forEach((address) => addresses.add(normalizeAddress(address)));
-                } catch (_err) {
-                    // Some nodes cannot return older raw transactions unless txindex is enabled.
-                }
-            }
-            return addresses;
-        }
-
-        for (const txid of candidateTxIds) {
-            let rawTx = null;
-            try {
-                rawTx = await getRawTransaction(txid);
-            } catch (_err) {
-                const entries = walletTransactions.filter((tx) => tx.txid === txid && normalizeAddress(tx.address) === normalizeAddress(selectedAddress));
-                entries.forEach((entry) => {
-                    transactions.push({
-                        txid,
-                        type: entry.category === 'send' ? 'send' : 'receive',
-                        amount: Math.abs(Number(entry.amount || 0)),
-                        address: entry.address || selectedAddress,
-                        time: entry.time ? new Date(entry.time * 1000).toISOString() : null,
-                        confirmations: entry.confirmations || 0,
-                        fee: Math.abs(Number(entry.fee || 0)),
-                        source: 'node-listtransactions'
-                    });
-                });
-                continue;
-            }
-
-            const inputAddresses = await getInputAddresses(rawTx);
-            const selectedLower = normalizeAddress(selectedAddress);
-            const sentFromSelected = inputAddresses.has(selectedLower);
-            const receivedOutputs = (rawTx.vout || []).filter((vout) => getOutputAddresses(vout).some((address) => normalizeAddress(address) === selectedLower));
-            const receivedAmount = receivedOutputs.reduce((sum, vout) => sum + Number(vout.value || 0), 0);
-            const outgoingAmount = sentFromSelected
-                ? (rawTx.vout || [])
-                    .filter((vout) => !getOutputAddresses(vout).some((address) => normalizeAddress(address) === selectedLower))
-                    .reduce((sum, vout) => sum + Number(vout.value || 0), 0)
-                : 0;
-
-            const nodeEntry = walletTransactions.find((tx) => tx.txid === txid) || {};
-            if (receivedAmount > 0) {
-                transactions.push({
-                    txid,
-                    type: 'receive',
-                    amount: parseFloat(receivedAmount.toFixed(8)),
-                    address: selectedAddress,
-                    time: rawTx.time ? new Date(rawTx.time * 1000).toISOString() : (nodeEntry.time ? new Date(nodeEntry.time * 1000).toISOString() : null),
-                    confirmations: Number(nodeEntry.confirmations || rawTx.confirmations || 0),
-                    fee: 0,
-                    source: 'node-rawtransaction'
-                });
-            }
-
-            if (outgoingAmount > 0) {
-                const firstRecipient = (rawTx.vout || []).find((vout) => !getOutputAddresses(vout).some((address) => normalizeAddress(address) === selectedLower));
-                transactions.push({
-                    txid,
-                    type: 'send',
-                    amount: parseFloat(outgoingAmount.toFixed(8)),
-                    address: getOutputAddresses(firstRecipient)[0] || 'External address',
-                    time: rawTx.time ? new Date(rawTx.time * 1000).toISOString() : (nodeEntry.time ? new Date(nodeEntry.time * 1000).toISOString() : null),
-                    confirmations: Number(nodeEntry.confirmations || rawTx.confirmations || 0),
-                    fee: Math.abs(Number(nodeEntry.fee || 0)),
-                    source: 'node-rawtransaction'
-                });
-            }
-        }
-
-        const sortedTransactions = transactions
+        const selectedLower = normalizeAddress(selectedAddress);
+        const sortedTransactions = (walletTransactions || [])
+            .filter((tx) => normalizeAddress(tx.address) === selectedLower)
+            .map((tx) => ({
+                txid: tx.txid,
+                type: tx.category === 'send' ? 'send' : 'receive',
+                amount: Math.abs(Number(tx.amount || 0)),
+                address: tx.address || selectedAddress,
+                time: tx.time ? new Date(tx.time * 1000).toISOString() : null,
+                confirmations: Number(tx.confirmations || 0),
+                fee: Math.abs(Number(tx.fee || 0)),
+                source: 'node-listtransactions'
+            }))
             .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0))
             .slice(0, limit);
 
