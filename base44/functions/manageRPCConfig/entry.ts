@@ -114,13 +114,14 @@ async function getAdminRPCSource(base44) {
             account_id: accountId,
             is_active: true
         });
-        if (activeConfigs.length > 0) {
-            return activeConfigs[0];
+        const connectedConfig = activeConfigs.find(config => config.connection_status === 'connected');
+        if (connectedConfig) {
+            return connectedConfig;
         }
     }
 
     const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
-    return allConfigs.find(isProtectedDefault) || null;
+    return allConfigs.find(config => config.connection_status === 'connected' && isProtectedDefault(config)) || null;
 }
 
 async function cloneAdminRPCToAccount(base44, account, sourceConfig, existingConfigs) {
@@ -190,7 +191,17 @@ Deno.serve(async (req) => {
         const action = payload.action;
 
         if (action === 'list') {
-            const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
+            let configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
+            const hasConnectedActive = configs.some(config => config.is_active && config.connection_status === 'connected');
+
+            if (!hasConnectedActive) {
+                const adminRPC = await getAdminRPCSource(base44);
+                if (adminRPC && adminRPC.account_id !== account.id) {
+                    await cloneAdminRPCToAccount(base44, account, adminRPC, configs);
+                    configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
+                }
+            }
+
             return Response.json({ success: true, configs });
         }
 

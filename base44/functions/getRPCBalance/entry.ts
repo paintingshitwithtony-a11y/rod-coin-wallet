@@ -1,5 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+async function getAdminRPCSource(base44) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    for (const admin of admins) {
+        const adminAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: admin.email });
+        for (const adminAccount of adminAccounts) {
+            const activeConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: adminAccount.id, is_active: true });
+            const connectedConfig = activeConfigs.find(config => config.connection_status === 'connected');
+            if (connectedConfig) return connectedConfig;
+        }
+    }
+    const configs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
+    return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -48,20 +62,20 @@ Deno.serve(async (req) => {
             }, { status: 403 });
         }
 
-        // Get active RPC configuration
+        // Get active RPC configuration, falling back to the admin connected RPC
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
             account_id: account.id,
             is_active: true
         });
 
-        if (configs.length === 0) {
+        const config = configs.find(c => c.connection_status === 'connected') || await getAdminRPCSource(base44);
+
+        if (!config) {
             return Response.json({ 
                 success: false,
-                error: 'No active RPC configuration'
+                error: 'No connected RPC configuration'
             }, { status: 400 });
         }
-
-        const config = configs[0];
 
         // Build RPC URL
         const SSL_PORTS = new Set(['443', '9443', '8443']);
