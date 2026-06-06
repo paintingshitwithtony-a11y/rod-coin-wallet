@@ -126,7 +126,37 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: data.error.message || 'RPC command failed', code: data.error.code });
         }
 
-        return Response.json({ success: true, result: data.result });
+        let result = data.result;
+        if (method.toLowerCase() === 'getwalletinfo' && result?.unlocked_until === 0) {
+            const savedPassphrase = Deno.env.get('WALLET_PASSPHRASE');
+            if (savedPassphrase) {
+                const unlockResponse = await fetch(rpcUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${rpcAuth}`
+                    },
+                    body: JSON.stringify({ jsonrpc: '1.0', id: 'unlock', method: 'walletpassphrase', params: [savedPassphrase, 100000000] }),
+                    signal: AbortSignal.timeout(25000)
+                });
+                const unlockData = await unlockResponse.json();
+                if (!unlockData.error) {
+                    const refreshedResponse = await fetch(rpcUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Basic ${rpcAuth}`
+                        },
+                        body: JSON.stringify({ jsonrpc: '1.0', id: 'walletinfo', method: 'getwalletinfo', params: [] }),
+                        signal: AbortSignal.timeout(25000)
+                    });
+                    const refreshedData = await refreshedResponse.json();
+                    if (!refreshedData.error) result = refreshedData.result;
+                }
+            }
+        }
+
+        return Response.json({ success: true, result });
 
     } catch (error) {
         // Never log RPC credentials or sensitive data
