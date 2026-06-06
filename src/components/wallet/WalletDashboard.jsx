@@ -1470,7 +1470,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                                      <CardContent className={`${isMobile ? 'p-2' : 'p-4'}`}>
                                                      <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 mb-1`}>{isMobile ? 'Received' : 'Total Received'}</p>
                                                      <p className={`${isMobile ? 'text-sm' : 'text-2xl'} font-bold text-green-400`}>
-                                                     {isMobile ? '+' : '+'}{allAccountTransactions.filter(tx => tx.type === 'receive').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4 })}
+                                                     {isMobile ? '+' : '+'}{Object.values(addressBalances).reduce((sum, amount) => sum + Number(amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: isMobile ? 2 : 4, maximumFractionDigits: 8 })}
                                                      {!isMobile && ' ROD'}
                                                      </p>
                                                      </CardContent>
