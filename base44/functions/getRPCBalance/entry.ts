@@ -9,6 +9,14 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        let body = {};
+        try {
+            body = await req.json();
+        } catch (_err) {
+            body = {};
+        }
+        const requestedAddress = (body.address || '').trim();
+
         // Get user's wallet account
         let accounts = await base44.entities.WalletAccount.filter({ email: user.email });
         
@@ -61,14 +69,15 @@ Deno.serve(async (req) => {
         }
         
         try {
+            const targetAddress = requestedAddress || account.wallet_address;
             const rpcResponse = await fetch(rpcUrl, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
                     jsonrpc: '1.0',
                     id: 'getBalance',
-                    method: 'getwalletinfo',
-                    params: []
+                    method: 'listunspent',
+                    params: [0, 9999999, [targetAddress]]
                 }),
                 signal: AbortSignal.timeout(15000)
             });
@@ -89,10 +98,18 @@ Deno.serve(async (req) => {
                 }, { status: 500 });
             }
 
-            if (rpcData.result && rpcData.result.balance !== undefined) {
+            if (Array.isArray(rpcData.result)) {
+                const targetAddress = requestedAddress || account.wallet_address;
+                const balance = parseFloat(rpcData.result
+                    .filter(utxo => (utxo.address || '').toLowerCase() === targetAddress.toLowerCase())
+                    .reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0)
+                    .toFixed(8));
+
                 return Response.json({ 
-                    success: true, 
-                    balance: rpcData.result.balance 
+                    success: true,
+                    address: targetAddress,
+                    balance,
+                    utxoCount: rpcData.result.length
                 });
             }
 

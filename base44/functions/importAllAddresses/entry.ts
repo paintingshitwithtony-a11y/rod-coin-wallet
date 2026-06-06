@@ -9,6 +9,14 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        let body = {};
+        try {
+            body = await req.json();
+        } catch (_err) {
+            body = {};
+        }
+        const rescan = body.rescan === true;
+
         // Get user's wallet account
         const accounts = await base44.entities.WalletAccount.filter({ 
             email: user.email 
@@ -106,9 +114,9 @@ Deno.serve(async (req) => {
                             jsonrpc: '1.0',
                             id: `import-${item.address}`,
                             method: 'importaddress',
-                            params: [item.address, item.label, false]
+                            params: [item.address, item.label, rescan]
                         }),
-                        signal: AbortSignal.timeout(15000) // Increased timeout
+                        signal: AbortSignal.timeout(rescan ? 120000 : 15000)
                     });
 
                     if (!importResponse.ok) {

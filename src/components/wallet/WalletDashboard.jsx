@@ -186,7 +186,7 @@ export default function WalletDashboard({ account, onLogout }) {
       // Fetch RPC balance for main wallet
       let mainBalance = 0;
       try {
-        const balResponse = await base44.functions.invoke('getRPCBalance', {});
+        const balResponse = await base44.functions.invoke('getRPCBalance', { address: freshAccount.wallet_address });
         if (balResponse.data.success) {
           mainBalance = balResponse.data.balance;
         }
@@ -335,7 +335,7 @@ export default function WalletDashboard({ account, onLogout }) {
     if (!rpcConnected) return;
 
     try {
-      const response = await base44.functions.invoke('getRPCBalance', {});
+      const response = await base44.functions.invoke('getRPCBalance', { address: currentWallet?.wallet_address || account.wallet_address });
       if (response.data.success) {
         // Only update if viewing main wallet
         if (!currentWallet || currentWallet.id === 'main-account') {
@@ -362,10 +362,10 @@ export default function WalletDashboard({ account, onLogout }) {
 
       // Silently fail
     }};
-  const importAllAddresses = async (showToast = false) => {
+  const importAllAddresses = async (showToast = false, rescan = false) => {
     // Only allow imports once every 3 minutes (180000 ms)
     const now = Date.now();
-    if (now - lastImportTime < 180000) {
+    if (!rescan && now - lastImportTime < 180000) {
       if (showToast) {
         const secondsLeft = Math.ceil((180000 - (now - lastImportTime)) / 1000);
         toast.info(`Import available again in ${secondsLeft}s`, { duration: 3000 });
@@ -374,7 +374,7 @@ export default function WalletDashboard({ account, onLogout }) {
     }
 
     try {
-      const response = await base44.functions.invoke('importAllAddresses', {});
+      const response = await base44.functions.invoke('importAllAddresses', { rescan });
 
       if (response.data.imported > 0) {
         setLastImportTime(now);
@@ -594,7 +594,7 @@ export default function WalletDashboard({ account, onLogout }) {
     toast.info('Syncing...');
     try {
       // Get fresh balance directly from RPC
-      const balResponse = await base44.functions.invoke('getRPCBalance', {});
+      const balResponse = await base44.functions.invoke('getRPCBalance', { address: currentWallet?.wallet_address || account.wallet_address });
       if (balResponse.data.success) {
         setBalance({
           confirmed: balResponse.data.balance,
@@ -1452,10 +1452,10 @@ export default function WalletDashboard({ account, onLogout }) {
                       size="sm"
                       className="text-amber-400 hover:text-amber-300"
                       onClick={async () => {
-                        await importAllAddresses(true);
+                        await importAllAddresses(true, true);
                       }}
                       disabled={!rpcConnected || loading}
-                      title="Import all addresses to blockchain">
+                      title="Import and rescan addresses for older deposits">
 
                                         <Plug className="w-4 h-4 mr-1" />
                                         Import to Chain
