@@ -87,6 +87,7 @@ export default function WalletDashboard({ account, onLogout }) {
       const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
       const [walletUnlocked, setWalletUnlocked] = useState(false);
       const [addressBalances, setAddressBalances] = useState({});
+      const [addressUtxoCounts, setAddressUtxoCounts] = useState({});
       const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
       const [showUnlockDialog, setShowUnlockDialog] = useState(false);
       const [unlockPassphrase, setUnlockPassphrase] = useState('');
@@ -245,6 +246,7 @@ export default function WalletDashboard({ account, onLogout }) {
       });
 
       const liveBalances = {};
+      const utxoCounts = {};
       try {
         const response = await base44.functions.invoke('executeRPCCommand', {
           method: 'listunspent',
@@ -253,11 +255,18 @@ export default function WalletDashboard({ account, onLogout }) {
         if (response.data.success) {
           allWallets.forEach(wallet => {
             liveBalances[normalizeAddress(wallet.wallet_address)] = 0;
+            utxoCounts[normalizeAddress(wallet.wallet_address)] = 0;
+          });
+          addresses.forEach(addr => {
+            const key = normalizeAddress(addr.address);
+            liveBalances[key] = 0;
+            utxoCounts[key] = 0;
           });
           (response.data.result || []).forEach(utxo => {
             const key = normalizeAddress(utxo.address);
             if (key in liveBalances) {
               liveBalances[key] = parseFloat(((liveBalances[key] || 0) + utxo.amount).toFixed(8));
+              utxoCounts[key] = (utxoCounts[key] || 0) + 1;
             }
           });
         }
@@ -265,6 +274,7 @@ export default function WalletDashboard({ account, onLogout }) {
         console.warn('Failed to fetch live address balances:', err.message);
       }
       setAddressBalances(liveBalances);
+      setAddressUtxoCounts(utxoCounts);
 
       // Set current wallet to active one or keep existing if still valid
       const activeWallet = allWallets.find(w => w.is_active) || mainWallet;
@@ -1608,20 +1618,27 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         );
                                                     })()}
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <p className="text-xs text-amber-400/80 font-mono truncate">
-                                                        {addr.address}
-                                                    </p>
-                                                    <span
-                                                        title={hasBalance ? `Balance: ${addrBalance.toFixed(4)} ROD — safe to keep` : 'Zero balance — safe to delete'}
-                                                        className={`flex-shrink-0 w-2 h-2 rounded-full ${hasBalance ? 'bg-green-400 shadow-[0_0_5px_#4ade80]' : 'bg-red-500'}`}
-                                                    />
-                                                    {!hasBalance && (
-                                                        <span className="text-xs text-red-400/70 flex-shrink-0">0 ROD</span>
-                                                    )}
-                                                    {hasBalance && (
-                                                        <span className="text-xs text-green-400/70 flex-shrink-0">{addrBalance.toFixed(2)} ROD</span>
-                                                    )}
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-xs text-amber-400/80 font-mono truncate">
+                                                            {addr.address}
+                                                        </p>
+                                                        <span
+                                                            title={hasBalance ? `Balance: ${addrBalance.toFixed(4)} ROD — safe to keep` : 'Zero balance — safe to delete'}
+                                                            className={`flex-shrink-0 w-2 h-2 rounded-full ${hasBalance ? 'bg-green-400 shadow-[0_0_5px_#4ade80]' : 'bg-red-500'}`}
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        {!hasBalance && (
+                                                            <span className="text-xs text-red-400/70">0 ROD</span>
+                                                        )}
+                                                        {hasBalance && (
+                                                            <span className="text-xs text-green-400/70">{addrBalance.toFixed(2)} ROD</span>
+                                                        )}
+                                                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs">
+                                                            {addressUtxoCounts[normalizeAddress(addr.address)] || 0} UTXO{(addressUtxoCounts[normalizeAddress(addr.address)] || 0) === 1 ? '' : 's'}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex gap-1 shrink-0">
