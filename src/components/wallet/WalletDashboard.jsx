@@ -105,20 +105,24 @@ export default function WalletDashboard({ account, onLogout }) {
   const lastWalletDataFetchRef = useRef(0);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const restoreTab = (tab) => {
+      scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
+      activeTabRef.current = tab;
+      setActiveTab(tab);
+      requestAnimationFrame(() => window.scrollTo({ top: scrollPositionsRef.current[tab] || 0, behavior: 'auto' }));
     };
+    const handlePopState = (event) => event.state?.walletTab && restoreTab(event.state.walletTab);
+    const handleWalletCreated = () => fetchAllWallets();
     checkMobile();
+    window.history.replaceState({ ...(window.history.state || {}), walletTab: activeTabRef.current }, '');
     window.addEventListener('resize', checkMobile);
-
-    // Listen for wallet creation events
-    const handleWalletCreated = () => {
-      fetchAllWallets();
-    };
+    window.addEventListener('popstate', handlePopState);
     window.addEventListener('walletCreated', handleWalletCreated);
 
     return () => {
       window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('walletCreated', handleWalletCreated);
     };
   }, []);
@@ -597,12 +601,14 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleTabChange = (nextTab) => {
+    if (nextTab === activeTabRef.current) return;
     scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
     activeTabRef.current = nextTab;
     setActiveTab(nextTab);
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: scrollPositionsRef.current[nextTab] || 0, behavior: 'auto' });
-    });
+    if (isMobile && window.history.state?.walletTab !== nextTab) {
+      window.history.pushState({ ...(window.history.state || {}), walletTab: nextTab }, '');
+    }
+    requestAnimationFrame(() => window.scrollTo({ top: scrollPositionsRef.current[nextTab] || 0, behavior: 'auto' }));
   };
 
   const handleTouchStart = (event) => {

@@ -15,8 +15,10 @@ export default function MobileWalletTabs({ activeTab, onTabChange }) {
                 {tabs.map(({ value, label, Icon }) => (
                     <button
                         key={value}
+                        type="button"
+                        aria-current={activeTab === value ? 'page' : undefined}
                         onClick={() => onTabChange(value)}
-                        className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${activeTab === value ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}
+                        className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs touch-manipulation select-none ${activeTab === value ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}
                     >
                         <Icon className="w-5 h-5" />
                         {label}

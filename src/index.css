@@ -84,11 +84,26 @@
 
   html {
     background: #020617;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground;
-    overscroll-behavior-y: auto;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: pan-y;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"],
+  .selectable-text {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   .safe-mobile-shell {
