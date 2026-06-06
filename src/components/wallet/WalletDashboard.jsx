@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +90,8 @@ export default function WalletDashboard({ account, onLogout }) {
       const [unlockPassphrase, setUnlockPassphrase] = useState('');
       const [unlockingWallet, setUnlockingWallet] = useState(false);
       const [electronProxyConnected, setElectronProxyConnected] = useState(false);
+  const walletDataRequestRef = useRef(null);
+  const lastWalletDataFetchRef = useRef(0);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -618,118 +620,71 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-  const fetchWalletData = async () => {
-     setLoading(true);
-     try {
-       // Fetch ALL account transactions for summary stats (no limit — accurate count)
-       const allTxs = await base44.entities.Transaction.filter(
-         { account_id: account.id },
-         '-created_date',
-         9999
-       );
-       setAllAccountTransactions(allTxs);
+  const fetchWalletData = async (force = false) => {
+     const now = Date.now();
+     if (walletDataRequestRef.current) return walletDataRequestRef.current;
+     if (!force && now - lastWalletDataFetchRef.current < 5000) return;
 
-       // Fetch actual transactions from database - filtered by current wallet
-       let txs;
-       if (currentWallet) {
-         if (currentWallet.id === 'main-account') {
-           // Main wallet: transactions with no wallet_id OR matching main wallet address
-           txs = await base44.entities.Transaction.filter(
-             { 
-               account_id: account.id,
-               wallet_address: currentWallet.wallet_address
-             },
-             '-created_date',
-             50
-           );
-         } else if (currentWallet.id.startsWith('address-')) {
-           // Virtual address wallet: filter by wallet_address
-           txs = await base44.entities.Transaction.filter(
-             { 
-               account_id: account.id,
-               wallet_address: currentWallet.wallet_address
-             },
-             '-created_date',
-             50
-           );
-         } else {
-           // Other wallets: transactions matching wallet_id
-           txs = await base44.entities.Transaction.filter(
-             { 
-               account_id: account.id,
-               wallet_id: currentWallet.id
-             },
-             '-created_date',
-             50
-           );
-         }
-       } else {
-         // No wallet selected, fetch all
-         txs = await base44.entities.Transaction.filter(
+     const request = (async () => {
+       setLoading(true);
+       try {
+         const allTxs = await base44.entities.Transaction.filter(
            { account_id: account.id },
            '-created_date',
-           50
+           9999
          );
-       }
-      
-      // Format transactions for display
-      const formattedTxs = txs.map((tx) => ({
-        id: tx.id,
-        type: tx.type,
-        amount: tx.amount,
-        address: tx.address.slice(0, 8) + '...' + tx.address.slice(-6),
-        confirmations: tx.confirmations,
-        timestamp: tx.created_date,
-        status: tx.status,
-        wallet_id: tx.wallet_id,
-        wallet_address: tx.wallet_address
-      }));
+         setAllAccountTransactions(allTxs);
 
-      setTransactions(formattedTxs);
+         let txs = allTxs;
+         if (currentWallet) {
+           if (currentWallet.id === 'main-account' || currentWallet.id.startsWith('address-')) {
+             txs = allTxs.filter(tx => tx.wallet_address === currentWallet.wallet_address);
+           } else {
+             txs = allTxs.filter(tx => tx.wallet_id === currentWallet.id);
+           }
+         }
+         txs = txs.slice(0, 50);
+        
+        const formattedTxs = txs.map((tx) => ({
+          id: tx.id,
+          type: tx.type,
+          amount: tx.amount,
+          address: tx.address.slice(0, 8) + '...' + tx.address.slice(-6),
+          confirmations: tx.confirmations,
+          timestamp: tx.created_date,
+          status: tx.status,
+          wallet_id: tx.wallet_id,
+          wallet_address: tx.wallet_address
+        }));
 
-      // Update balance from active wallet
-      if (currentWallet) {
-        if (currentWallet.id === 'main-account') {
-          const accounts = await base44.entities.WalletAccount.filter({ id: account.id });
-          if (accounts.length > 0) {
-            try {
-              const balResponse = await base44.functions.invoke('getRPCBalance', {});
-              setBalance({
-                confirmed: balResponse.data.success ? balResponse.data.balance : (accounts[0].balance || 0),
-                unconfirmed: 0
-              });
-            } catch (_err) {
-              setBalance({
-                confirmed: accounts[0].balance || 0,
-                unconfirmed: 0
-              });
+        setTransactions(formattedTxs);
+
+        if (currentWallet) {
+          try {
+            const balResponse = await base44.functions.invoke('getRPCBalance', currentWallet.id === 'main-account' ? {} : { address: currentWallet.wallet_address });
+            if (balResponse.data.success) {
+              setBalance({ confirmed: balResponse.data.balance, unconfirmed: 0 });
             }
-          }
-        } else if (!currentWallet.id.startsWith('address-')) {
-          // Only fetch from database if it's not a virtual address wallet
-          const wallets = await base44.entities.Wallet.filter({ id: currentWallet.id });
-          if (wallets.length > 0) {
-            try {
-              const balResponse = await base44.functions.invoke('getRPCBalance', { address: currentWallet.wallet_address });
-              setBalance({
-                confirmed: balResponse.data.success ? balResponse.data.balance : (wallets[0].balance || 0),
-                unconfirmed: 0
-              });
-            } catch (_err) {
-              setBalance({
-                confirmed: wallets[0].balance || 0,
-                unconfirmed: 0
-              });
+          } catch (_err) {
+            if (currentWallet.id !== 'main-account') {
+              setBalance({ confirmed: currentWallet.balance || 0, unconfirmed: 0 });
             }
           }
         }
+      } catch (err) {
+          console.error('Failed to fetch transactions:', err);
+          if (!String(err.message || '').toLowerCase().includes('rate limit')) {
+            toast.error('Failed to fetch transactions: ' + err.message);
+          }
+      } finally {
+        lastWalletDataFetchRef.current = Date.now();
+        walletDataRequestRef.current = null;
+        setLoading(false);
       }
-    } catch (err) {
-        console.error('Failed to fetch transactions:', err);
-        toast.error('Failed to fetch transactions: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
+    })();
+
+    walletDataRequestRef.current = request;
+    return request;
   };
 
   const handleAddressGenerated = async (newAddress) => {
