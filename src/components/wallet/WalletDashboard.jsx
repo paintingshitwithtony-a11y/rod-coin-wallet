@@ -919,6 +919,60 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
+  const getStoredAddressBalance = (walletAddress) => {
+    const liveBalance = addressBalances[normalizeAddress(walletAddress)];
+    if (liveBalance !== undefined) return Number(liveBalance || 0);
+    return allAccountTransactions
+      .filter(tx => normalizeAddress(tx.wallet_address) === normalizeAddress(walletAddress))
+      .reduce((sum, tx) => tx.type === 'receive' ? sum + tx.amount : tx.type === 'send' ? sum - Math.abs(tx.amount) : sum, 0);
+  };
+
+  const handleRemoveZeroBalanceItems = async () => {
+    const zeroWallets = allWallets.filter(wallet =>
+      wallet.id !== 'main-account' && getStoredAddressBalance(wallet.wallet_address) <= 0
+    );
+    const removableAddresses = (account.additional_addresses || []).filter(addr =>
+      normalizeAddress(addr.address) !== normalizeAddress(account.wallet_address) && getStoredAddressBalance(addr.address) <= 0
+    );
+
+    if (zeroWallets.length === 0 && removableAddresses.length === 0) {
+      toast.info('No zero-balance wallets or addresses to remove');
+      return;
+    }
+
+    if (!confirm(`Remove ${zeroWallets.length} zero-balance wallet(s) and ${removableAddresses.length} zero-balance address(es) from the app? Your primary wallet will not be removed.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await Promise.all(zeroWallets.map(wallet => base44.entities.Wallet.delete(wallet.id)));
+
+      const removableAddressKeys = new Set(removableAddresses.map(addr => normalizeAddress(addr.address)));
+      const updatedAdditionalAddresses = (account.additional_addresses || []).filter(addr => !removableAddressKeys.has(normalizeAddress(addr.address)));
+      await base44.entities.WalletAccount.update(account.id, { additional_addresses: updatedAdditionalAddresses });
+      account.additional_addresses = updatedAdditionalAddresses;
+
+      const removedWalletIds = new Set(zeroWallets.map(wallet => wallet.id));
+      const removedAddressKeys = new Set([...removableAddressKeys, ...zeroWallets.map(wallet => normalizeAddress(wallet.wallet_address))]);
+      setAllWallets(prev => prev.filter(wallet => !removedWalletIds.has(wallet.id)));
+      setAddresses(prev => prev.filter(addr => !removedAddressKeys.has(normalizeAddress(addr.address))));
+
+      if (currentWallet && (removedWalletIds.has(currentWallet.id) || removedAddressKeys.has(normalizeAddress(currentWallet.wallet_address)))) {
+        const mainWallet = allWallets.find(wallet => wallet.id === 'main-account');
+        setCurrentWallet(mainWallet || null);
+      }
+
+      await fetchAllWallets();
+      toast.success(`Removed ${zeroWallets.length} wallet(s) and ${removableAddresses.length} address(es)`);
+    } catch (err) {
+      console.error('Failed to remove zero-balance items:', err);
+      toast.error('Failed to remove zero-balance items: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getWalletDeposits = (walletAddress) => {
     return transactions
       .filter(tx => tx.type === 'receive' && tx.address.includes(walletAddress.slice(-6)))
@@ -1374,6 +1428,14 @@ export default function WalletDashboard({ account, onLogout }) {
                                                         Receive
                                                     </Button>
                                                 </div>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={handleRemoveZeroBalanceItems}
+                                                    disabled={loading || walletsLoading}
+                                                    className="w-full border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-red-200">
+                                                    {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                                                    Remove Zero-Balance Wallets & Addresses
+                                                </Button>
                                             </CardContent>
                                         </Card>
                                     </motion.div>
