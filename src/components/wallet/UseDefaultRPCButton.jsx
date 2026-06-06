@@ -7,35 +7,26 @@ import { toast } from 'sonner';
 export default function UseDefaultRPCButton({ account, onSuccess }) {
     const [loading, setLoading] = useState(false);
 
+    const getWalletSessionPayload = () => {
+        const savedSession = localStorage.getItem('rod_wallet_session');
+        if (!savedSession) return {};
+        try {
+            const session = JSON.parse(savedSession);
+            return {
+                account_id: session.id,
+                session_token: session.sessionToken
+            };
+        } catch (_error) {
+            return {};
+        }
+    };
+
     const handleUseDefault = async () => {
         setLoading(true);
         try {
-            // Get all RPC configs for this account
-            const userConfigs = await base44.entities.RPCConfiguration.filter({
-                account_id: account.id
-            });
-
-            // Look for a "(Default)" config first
-            let defaultConfig = userConfigs.find(c => c.name && c.name.includes('(Default)'));
-
-            if (!defaultConfig && userConfigs.length > 0) {
-                // Use only this account's saved configurations; never fall back to shared admin secrets.
-                defaultConfig = userConfigs[0];
-            }
-
-            if (defaultConfig) {
-                // Deactivate all others
-                await Promise.all(
-                    userConfigs
-                        .filter(c => c.is_active && c.id !== defaultConfig.id)
-                        .map(c => base44.entities.RPCConfiguration.update(c.id, { is_active: false }))
-                );
-                await base44.entities.RPCConfiguration.update(defaultConfig.id, { is_active: true });
-                toast.success(`Switched to: ${defaultConfig.name}`);
-                if (onSuccess) onSuccess();
-            } else {
-                toast.error('No RPC configurations available. Please add one manually.');
-            }
+            const response = await base44.functions.invoke('manageRPCConfig', { action: 'useDefault', ...getWalletSessionPayload() });
+            toast.success(`Switched to: ${response.data.config.name}`);
+            if (onSuccess) onSuccess();
         } catch (err) {
             toast.error('Failed to apply default RPC: ' + err.message);
         } finally {

@@ -78,6 +78,20 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         max_connections: 10
     });
 
+    const getWalletSessionPayload = () => {
+        const savedSession = localStorage.getItem('rod_wallet_session');
+        if (!savedSession) return {};
+        try {
+            const session = JSON.parse(savedSession);
+            return {
+                account_id: session.id,
+                session_token: session.sessionToken
+            };
+        } catch (_error) {
+            return {};
+        }
+    };
+
     useEffect(() => {
         const initUser = async () => {
             const user = await base44.auth.me();
@@ -107,11 +121,8 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
 
     const loadConfigurations = async () => {
         try {
-            const items = await base44.entities.RPCConfiguration.filter(
-                { account_id: account.id },
-                '-created_date'
-            );
-            setConfigs(items);
+            const response = await base44.functions.invoke('manageRPCConfig', { action: 'list', ...getWalletSessionPayload() });
+            setConfigs(response.data.configs || []);
         } catch (err) {
             console.error('Failed to load RPC configs:', err);
         } finally {
@@ -123,65 +134,53 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         setTesting(prev => ({ ...prev, [config.id]: true }));
         
         try {
-            // Temporarily activate this config for testing
-            const originalActive = configs.find(c => c.is_active);
-            await base44.entities.RPCConfiguration.update(config.id, { is_active: true });
-            
-            // Use backend proxy to test (avoids CORS)
-            const response = await base44.functions.invoke('checkRPCStatus', {});
-            
-            // Restore original active config
-            if (originalActive && originalActive.id !== config.id) {
-                await base44.entities.RPCConfiguration.update(config.id, { is_active: false });
-                await base44.entities.RPCConfiguration.update(originalActive.id, { is_active: true });
-            }
+            const response = await base44.functions.invoke('checkRPCStatus', { config_id: config.id, ...getWalletSessionPayload() });
 
             if (response.data.connected) {
-                await base44.entities.RPCConfiguration.update(config.id, {
-                    connection_status: 'connected',
-                    last_connected: new Date().toISOString(),
-                    node_info: response.data.nodeInfo || {}
+                await base44.functions.invoke('manageRPCConfig', {
+                    action: 'update',
+                    ...getWalletSessionPayload(),
+                    config_id: config.id,
+                    config: {
+                        connection_status: 'connected',
+                        last_connected: new Date().toISOString(),
+                        node_info: response.data.nodeInfo || {}
+                    }
                 });
                 toast.success(`Connected to ${config.name}!`);
-
-                // Auto-fix duplicate protocols on successful connection
-                try {
-                    const fixResponse = await base44.functions.invoke('fixDuplicateProtocols', {});
-                    if (fixResponse.data?.fixed > 0) {
-                        await loadConfigurations();
-                    }
-                } catch (err) {
-                    console.log('Auto-fix protocols skipped');
-                }
 
                 if (onConnectionSuccess) {
                     onConnectionSuccess();
                 }
             } else {
-                await base44.entities.RPCConfiguration.update(config.id, {
-                    connection_status: 'error',
-                    last_connected: null
+                await base44.functions.invoke('manageRPCConfig', {
+                    action: 'update',
+                    ...getWalletSessionPayload(),
+                    config_id: config.id,
+                    config: {
+                        connection_status: 'error',
+                        last_connected: null
+                    }
                 });
                 const errorMsg = response.data.error || 'Unknown error';
                 toast.error(`Connection failed: ${errorMsg}`);
-                
-                // Show troubleshooter for connection errors
                 setTroubleshootingError(errorMsg);
                 setTroubleshootingConfig(config);
             }
 
             await loadConfigurations();
         } catch (err) {
-            await base44.entities.RPCConfiguration.update(config.id, {
-                connection_status: 'error',
-                last_connected: null
+            await base44.functions.invoke('manageRPCConfig', {
+                action: 'update',
+                config_id: config.id,
+                config: {
+                    connection_status: 'error',
+                    last_connected: null
+                }
             });
             toast.error(`Test failed: ${err.message}`);
-            
-            // Show troubleshooter for connection errors
             setTroubleshootingError(err.message);
             setTroubleshootingConfig(config);
-            
             await loadConfigurations();
         } finally {
             setTesting(prev => ({ ...prev, [config.id]: false }));
@@ -190,36 +189,19 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
 
     const setActiveConfig = async (config) => {
         try {
-            // Deactivate all others
-            for (const cfg of configs) {
-                if (cfg.is_active && cfg.id !== config.id) {
-                    await base44.entities.RPCConfiguration.update(cfg.id, {
-                        is_active: false
-                    });
-                }
-            }
-
-            // Activate selected
-            await base44.entities.RPCConfiguration.update(config.id, {
-                is_active: true
-            });
-
-            // Update account with active RPC
-            await base44.entities.WalletAccount.update(account.id, {
-                rpc_host: config.host,
-                rpc_port: config.port,
-                rpc_username: config.username,
-                rpc_password: config.password
+            await base44.functions.invoke('manageRPCConfig', {
+                action: 'activate',
+                ...getWalletSessionPayload(),
+                config_id: config.id
             });
 
             toast.success(`Switched to ${config.name}`);
             await loadConfigurations();
 
-            // Trigger wallet refresh when switching active config
             if (onConnectionSuccess) {
                 onConnectionSuccess();
             }
-            } catch (err) {
+        } catch (err) {
             toast.error('Failed to switch configuration');
         }
     };
@@ -232,7 +214,11 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
         if (!confirm(`Delete "${config.name}"?`)) return;
         
         try {
-            await base44.entities.RPCConfiguration.delete(config.id);
+            await base44.functions.invoke('manageRPCConfig', {
+                action: 'delete',
+                ...getWalletSessionPayload(),
+                config_id: config.id
+            });
             toast.success('Configuration deleted');
             await loadConfigurations();
         } catch (err) {
@@ -298,19 +284,22 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                     let imported = 0;
                     for (const config of jsonData) {
                         if (config.name && config.host && config.port) {
-                            await base44.entities.RPCConfiguration.create({
-                                account_id: account.id,
-                                name: config.name,
-                                connection_type: config.connection_type || 'rpc',
-                                host: config.host,
-                                port: config.port,
-                                username: config.username || '',
-                                password: config.password || '',
-                                api_key: config.api_key || '',
-                                curl_command: config.curl_command || '',
-                                use_ssl: config.use_ssl || false,
-                                is_active: false,
-                                connection_status: 'untested'
+                            await base44.functions.invoke('manageRPCConfig', {
+                                action: 'create',
+                                ...getWalletSessionPayload(),
+                                config: {
+                                    name: config.name,
+                                    connection_type: config.connection_type || 'rpc',
+                                    host: config.host,
+                                    port: config.port,
+                                    username: config.username || '',
+                                    password: config.password || '',
+                                    api_key: config.api_key || '',
+                                    curl_command: config.curl_command || '',
+                                    use_ssl: config.use_ssl || false,
+                                    is_active: false,
+                                    connection_status: 'untested'
+                                }
                             });
                             imported++;
                         }
@@ -566,44 +555,34 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                   updateData.curl_command = formData.curl_command || '';
                   updateData.use_ssl = formData.use_ssl;
 
-                  await base44.entities.RPCConfiguration.update(editingConfig.id, updateData);
-
-                 // If this was the active config, update this account's saved RPC details too
-                 if (editingConfig.is_active) {
-                     await base44.entities.WalletAccount.update(account.id, {
-                         rpc_host: cleanedHost,
-                         rpc_port: formData.port,
-                         rpc_username: formData.username,
-                         rpc_password: formData.password
-                     });
-                 }
+                  await base44.functions.invoke('manageRPCConfig', {
+                      action: 'update',
+                      ...getWalletSessionPayload(),
+                      config_id: editingConfig.id,
+                      config: updateData
+                  });
 
                  toast.success('Configuration updated');
              } else {
                 // Create new config
-                const newConfig = await base44.entities.RPCConfiguration.create({
-                    account_id: account.id,
-                    name: formData.name,
-                    connection_type: formData.connection_type,
-                    host: cleanedHost,
-                    port: formData.port,
-                    username: formData.username || '',
-                    password: formData.password || '',
-                    api_key: formData.api_key || '',
-                    curl_command: formData.curl_command || '',
-                    use_ssl: formData.use_ssl,
-                    is_active: configs.length === 0,
-                    connection_status: 'untested'
+                const createResponse = await base44.functions.invoke('manageRPCConfig', {
+                    action: 'create',
+                    ...getWalletSessionPayload(),
+                    config: {
+                        name: formData.name,
+                        connection_type: formData.connection_type,
+                        host: cleanedHost,
+                        port: formData.port,
+                        username: formData.username || '',
+                        password: formData.password || '',
+                        api_key: formData.api_key || '',
+                        curl_command: formData.curl_command || '',
+                        use_ssl: formData.use_ssl,
+                        is_active: configs.length === 0,
+                        connection_status: 'untested'
+                    }
                 });
-
-                if (configs.length === 0) {
-                    await base44.entities.WalletAccount.update(account.id, {
-                        rpc_host: cleanedHost,
-                        rpc_port: formData.port,
-                        rpc_username: formData.username,
-                        rpc_password: formData.password
-                    });
-                }
+                const newConfig = createResponse.data.config;
 
                 toast.success('Configuration added');
                 
@@ -681,10 +660,8 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
                                             await loadConfigurations();
                                             
                                             // Auto-test the new connection
-                                            const newConfigs = await base44.entities.RPCConfiguration.filter({
-                                                account_id: account.id,
-                                                name: 'ROD Core (from secrets)'
-                                            });
+                                            const configResponse = await base44.functions.invoke('manageRPCConfig', { action: 'list', ...getWalletSessionPayload() });
+                                            const newConfigs = (configResponse.data.configs || []).filter(config => config.name === 'ROD Core (from secrets)');
                                             if (newConfigs.length > 0) {
                                                 setTimeout(() => testConnection(newConfigs[0]), 500);
                                             }

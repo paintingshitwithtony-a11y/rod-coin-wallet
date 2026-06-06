@@ -11,33 +11,42 @@ import { toast } from 'sonner';
 export default function GetBlockSetupGuide({ account, configs, onConfigsChanged }) {
     const [saving, setSaving] = useState(false);
 
+    const getWalletSessionPayload = () => {
+        const savedSession = localStorage.getItem('rod_wallet_session');
+        if (!savedSession) return {};
+        try {
+            const session = JSON.parse(savedSession);
+            return {
+                account_id: session.id,
+                session_token: session.sessionToken
+            };
+        } catch (_error) {
+            return {};
+        }
+    };
+
     const addConfig = async (name, host, port, apiKey = '', use_ssl = true) => {
         setSaving(true);
         try {
-            const newConfig = await base44.entities.RPCConfiguration.create({
-                account_id: account.id,
-                name,
-                connection_type: 'api',
-                host,
-                port: port || '',
-                username: '',
-                password: '',
-                api_key: apiKey,
-                curl_command: '',
-                use_ssl,
-                is_active: configs.length === 0,
-                connection_status: 'untested'
+            const response = await base44.functions.invoke('manageRPCConfig', {
+                action: 'create',
+                ...getWalletSessionPayload(),
+                config: {
+                    name,
+                    connection_type: 'api',
+                    host,
+                    port: port || '',
+                    username: '',
+                    password: '',
+                    api_key: apiKey,
+                    curl_command: '',
+                    use_ssl,
+                    is_active: configs.length === 0,
+                    connection_status: 'untested'
+                }
             });
-            if (configs.length === 0) {
-                await base44.entities.WalletAccount.update(account.id, {
-                    rpc_host: host,
-                    rpc_port: port || '',
-                    rpc_username: '',
-                    rpc_password: ''
-                });
-            }
             toast.success(`${name} added`);
-            if (onConfigsChanged) onConfigsChanged(newConfig);
+            if (onConfigsChanged) onConfigsChanged(response.data.config);
         } catch (err) {
             toast.error('Failed to add configuration');
         } finally {

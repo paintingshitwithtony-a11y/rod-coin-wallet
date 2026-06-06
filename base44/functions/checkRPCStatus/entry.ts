@@ -3,38 +3,59 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        const payload = await req.json().catch(() => ({}));
+        let user = null;
+        try {
+            user = await base44.auth.me();
+        } catch (_error) {
+            user = null;
         }
 
-        // Get user's wallet account - try by email first, then by user ID
-        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
-        
-        if (accounts.length === 0) {
-            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+        let accounts = [];
+        if (payload.account_id && payload.session_token) {
+            const sessions = await base44.asServiceRole.entities.UserSession.filter({
+                account_id: payload.account_id,
+                session_token: payload.session_token
+            });
+            if (sessions.length > 0) {
+                const lastActive = sessions[0].last_active ? new Date(sessions[0].last_active).getTime() : 0;
+                if (lastActive && Date.now() - lastActive <= 604800000) {
+                    accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: payload.account_id });
+                }
+            }
+        }
+
+        if (accounts.length === 0 && user) {
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+            if (accounts.length === 0) {
+                accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+            }
         }
 
         if (accounts.length === 0) {
             return Response.json({ 
                 connected: false,
-                error: 'Wallet not found'
+                error: 'Unauthorized wallet session'
             });
         }
 
         const account = accounts[0];
 
-        // Get active RPC configuration
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            account_id: account.id,
-            is_active: true
-        });
+        let configs;
+        if (payload.config_id) {
+            configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ id: payload.config_id });
+            configs = configs.filter(config => config.account_id === account.id);
+        } else {
+            configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
+                account_id: account.id,
+                is_active: true
+            });
+        }
 
         if (configs.length === 0) {
             return Response.json({ 
                 connected: false,
-                error: 'No active RPC configuration'
+                error: payload.config_id ? 'RPC configuration not found' : 'No active RPC configuration'
             });
         }
 
