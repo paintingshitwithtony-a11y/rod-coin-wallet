@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
     try {
@@ -17,10 +17,10 @@ Deno.serve(async (req) => {
         }
         const rescan = body.rescan === true;
 
-        // Get user's wallet account
-        const accounts = await base44.entities.WalletAccount.filter({ 
-            email: user.email 
-        });
+        // Get current wallet account from the active wallet session when provided
+        let accounts = body.accountId
+            ? await base44.asServiceRole.entities.WalletAccount.filter({ id: body.accountId })
+            : await base44.entities.WalletAccount.filter({ email: user.email });
 
         if (accounts.length === 0) {
             return Response.json({ error: 'Wallet not found' }, { status: 404 });
@@ -72,18 +72,22 @@ Deno.serve(async (req) => {
             { address: account.wallet_address, label: 'Primary Address' }
         ];
 
+        const deletedWalletAddressKeys = new Set((account.deleted_wallet_addresses || []).map((address) => (address || '').trim().toLowerCase()));
+
         if (account.additional_addresses) {
-            account.additional_addresses.forEach(addr => {
-                addressesToImport.push({
-                    address: addr.address,
-                    label: addr.label || 'Additional Address'
+            account.additional_addresses
+                .filter(addr => !deletedWalletAddressKeys.has((addr.address || '').trim().toLowerCase()))
+                .forEach(addr => {
+                    addressesToImport.push({
+                        address: addr.address,
+                        label: addr.label || 'Additional Address'
+                    });
                 });
-            });
         }
         
-        // Also get addresses from all Wallet entities
-        const wallets = await base44.entities.Wallet.filter({ account_id: account.id });
-        wallets.forEach(wallet => {
+        // Also get addresses from current account Wallet entities
+        const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
+        wallets.filter(wallet => !deletedWalletAddressKeys.has((wallet.wallet_address || '').trim().toLowerCase())).forEach(wallet => {
             const alreadyIncluded = addressesToImport.some(a => a.address === wallet.wallet_address);
             if (!alreadyIncluded) {
                 addressesToImport.push({

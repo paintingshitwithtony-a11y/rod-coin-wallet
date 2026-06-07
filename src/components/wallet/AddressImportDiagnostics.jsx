@@ -9,7 +9,7 @@ import { base44 } from '@/api/base44Client';
 
 const shortAddress = (address) => `${address.slice(0, 8)}...${address.slice(-6)}`;
 
-export default function AddressImportDiagnostics({ rpcConnected, onImportRescan }) {
+export default function AddressImportDiagnostics({ account, rpcConnected, onImportRescan }) {
   const [loading, setLoading] = useState(false);
   const [repairing, setRepairing] = useState(false);
   const [diagnostics, setDiagnostics] = useState(null);
@@ -17,7 +17,7 @@ export default function AddressImportDiagnostics({ rpcConnected, onImportRescan 
   const runDiagnostic = async () => {
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('diagnoseAddressImports', {});
+      const response = await base44.functions.invoke('diagnoseAddressImports', { accountId: account?.id });
       if (response.data.success) {
         setDiagnostics(response.data);
         const { missing, errors, totalBalance } = response.data.summary;
@@ -59,7 +59,7 @@ export default function AddressImportDiagnostics({ rpcConnected, onImportRescan 
           </CardTitle>
           <p className="text-xs text-slate-400 mt-1">Checks whether your wallet addresses are imported into ROD Core and visible to listunspent.</p>
         </div>
-        <Button onClick={runDiagnostic} disabled={!rpcConnected || loading || repairing} className="bg-cyan-600 hover:bg-cyan-700">
+        <Button onClick={runDiagnostic} disabled={!account?.id || !rpcConnected || loading || repairing} className="bg-cyan-600 hover:bg-cyan-700">
           {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
           Run Check
         </Button>

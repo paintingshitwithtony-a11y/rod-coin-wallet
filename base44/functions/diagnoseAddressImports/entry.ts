@@ -56,7 +56,16 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+        let body = {};
+        try {
+            body = await req.json();
+        } catch (_err) {
+            body = {};
+        }
+
+        let accounts = body.accountId
+            ? await base44.asServiceRole.entities.WalletAccount.filter({ id: body.accountId })
+            : await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) {
             accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
         }
@@ -75,23 +84,28 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
         }
 
+        const deletedWalletAddressKeys = new Set((account.deleted_wallet_addresses || []).map(normalizeAddress));
         const addresses = [
             { address: account.wallet_address, label: 'Primary Address', source: 'account' },
-            ...(account.additional_addresses || []).map((addr) => ({
-                address: addr.address,
-                label: addr.label || 'Additional Address',
-                source: 'additional'
-            }))
+            ...(account.additional_addresses || [])
+                .filter((addr) => !deletedWalletAddressKeys.has(normalizeAddress(addr.address)))
+                .map((addr) => ({
+                    address: addr.address,
+                    label: addr.label || 'Additional Address',
+                    source: 'additional'
+                }))
         ];
 
         const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
-        wallets.forEach((wallet) => {
-            addresses.push({
-                address: wallet.wallet_address,
-                label: wallet.name || 'Wallet Address',
-                source: 'wallet'
+        wallets
+            .filter((wallet) => !deletedWalletAddressKeys.has(normalizeAddress(wallet.wallet_address)))
+            .forEach((wallet) => {
+                addresses.push({
+                    address: wallet.wallet_address,
+                    label: wallet.name || 'Wallet Address',
+                    source: 'wallet'
+                });
             });
-        });
 
         const uniqueAddresses = [];
         const seen = new Set();

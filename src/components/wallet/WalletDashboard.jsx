@@ -427,7 +427,7 @@ export default function WalletDashboard({ account, onLogout }) {
     }
 
     try {
-      const response = await base44.functions.invoke('importAllAddresses', { rescan });
+      const response = await base44.functions.invoke('importAllAddresses', { accountId: account.id, rescan });
 
       if (response.data.imported > 0) {
         setLastImportTime(now);
@@ -1302,6 +1302,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                     />
 
                                     <AddressImportDiagnostics
+                                        account={account}
                                         rpcConnected={rpcConnected}
                                         onImportRescan={() => importAllAddresses(true, true)}
                                     />
