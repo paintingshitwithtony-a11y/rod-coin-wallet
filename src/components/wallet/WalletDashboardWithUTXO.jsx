@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import WalletDashboard from './WalletDashboard';
 import RawUTXOInspector from './RawUTXOInspector';
 
 export default function WalletDashboardWithUTXO({ account, onLogout }) {
   const [showUtxos, setShowUtxos] = useState(false);
-  const [panelTarget, setPanelTarget] = useState(null);
 
   useEffect(() => {
     const setupUtxoPanel = () => {
@@ -25,15 +23,6 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
         button.addEventListener('click', () => setShowUtxos(true));
         tabsList.insertBefore(button, messagesTab);
       }
-
-      let panel = document.getElementById('raw-utxo-dashboard-panel');
-      if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'raw-utxo-dashboard-panel';
-        panel.className = 'mt-6';
-        tabsList.insertAdjacentElement('afterend', panel);
-      }
-      setPanelTarget(panel);
     };
 
     const timer = setTimeout(setupUtxoPanel, 500);
@@ -44,7 +33,6 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
       clearTimeout(timer);
       observer.disconnect();
       document.getElementById('raw-utxo-dashboard-shortcut')?.remove();
-      document.getElementById('raw-utxo-dashboard-panel')?.remove();
     };
   }, []);
 
@@ -70,12 +58,15 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
   }, [showUtxos]);
 
   return (
-    <>
-      <WalletDashboard account={account} onLogout={onLogout} />
-      {panelTarget && showUtxos && createPortal(
-        <RawUTXOInspector account={account} />,
-        panelTarget
+    <div className="flex gap-6">
+      <div className="flex-1 min-w-0">
+        <WalletDashboard account={account} onLogout={onLogout} />
+      </div>
+      {showUtxos && (
+        <div className="w-96 flex-shrink-0 max-h-[calc(100vh-8rem)] overflow-y-auto">
+          <RawUTXOInspector account={account} />
+        </div>
       )}
-    </>
+    </div>
   );
 }
