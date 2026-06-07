@@ -169,7 +169,7 @@ export default function RawUTXOInspector({ account, wallets = [], addresses = []
         </CardContent>
       </Card>
 
-      <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-4">
+      <div className="space-y-4">
         {trackedWallets.map((wallet) => {
         const utxos = utxosByAddress[normalizeAddress(wallet.address)] || [];
         const total = utxos.reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0);
@@ -212,7 +212,7 @@ export default function RawUTXOInspector({ account, wallets = [], addresses = []
               ) : utxos.length === 0 ? (
                 <p className="text-sm text-slate-500 py-4">No UTXOs returned by the node for this wallet/address.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="max-h-[420px] overflow-y-auto pr-1 space-y-3 rounded-lg">
                   {utxos.map((utxo, index) => (
                     <div key={`${utxo.txid}-${utxo.vout}-${index}`} className="rounded-lg bg-slate-950/70 border border-slate-800 p-3 space-y-3">
                       <div className="grid gap-2 md:grid-cols-4 text-xs">
