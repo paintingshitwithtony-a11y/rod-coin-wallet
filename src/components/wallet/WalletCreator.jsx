@@ -31,7 +31,7 @@ const WALLET_COLORS = [
     { name: 'Cyan',   class: 'from-cyan-500 to-cyan-700' }
 ];
 
-function CopyField({ label, value, mono = false, alwaysVisible = false }) {
+function CopyField({ label, value, mono = false, alwaysVisible = false, onViewed }) {
     const [copied, setCopied] = useState(false);
     const [visible, setVisible] = useState(alwaysVisible);
 
@@ -51,7 +51,15 @@ function CopyField({ label, value, mono = false, alwaysVisible = false }) {
                     {displayValue}
                 </code>
                 {!alwaysVisible && (
-                    <button onClick={() => setVisible(v => !v)} className="text-slate-500 hover:text-slate-300 flex-shrink-0" title="Toggle visibility">
+                    <button
+                        onClick={() => setVisible((current) => {
+                            const next = !current;
+                            if (next && onViewed) onViewed();
+                            return next;
+                        })}
+                        className="text-slate-500 hover:text-slate-300 flex-shrink-0"
+                        title="Toggle visibility"
+                    >
                         {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                 )}
@@ -78,6 +86,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     // Confirmation checkboxes on recovery screen
     const [savedAddress, setSavedAddress] = useState(false);
     const [savedKey, setSavedKey] = useState(false);
+    const [privateKeyViewed, setPrivateKeyViewed] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -108,6 +117,9 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                 return;
             }
 
+            setSavedAddress(false);
+            setSavedKey(false);
+            setPrivateKeyViewed(false);
             setRecoveryData({
                 address,
                 wif,
@@ -125,6 +137,16 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     };
 
     const handleFinish = () => {
+        if (!privateKeyViewed) {
+            toast.error('Please view and save your private key before continuing. You will never see this key again.');
+            return;
+        }
+
+        if (!savedAddress || !savedKey) {
+            toast.error('Please confirm you have saved your wallet address and private key before continuing.');
+            return;
+        }
+
         const wallet = {
             id: recoveryData.walletId,
             name: recoveryData.walletName,
@@ -140,7 +162,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
         setStep('done');
     };
 
-    const allConfirmed = savedAddress && savedKey;
+    const allConfirmed = savedAddress && savedKey && privateKeyViewed;
 
     return (
         <Dialog open={true} onOpenChange={onClose}>
@@ -269,12 +291,26 @@ export default function WalletCreator({ account, onClose, onCreated }) {
 
                             {/* WIF Private Key */}
                             {recoveryData.wif ? (
-                                <CopyField label="Private Key (WIF)" value={recoveryData.wif} mono />
+                                <CopyField
+                                    label="Private Key (WIF)"
+                                    value={recoveryData.wif}
+                                    mono
+                                    onViewed={() => setPrivateKeyViewed(true)}
+                                />
                             ) : (
                                 <Alert className="border-slate-600 bg-slate-800">
                                     <KeyRound className="w-4 h-4 text-slate-400" />
                                     <AlertDescription className="text-slate-400 text-sm">
                                         Private key could not be exported (wallet may have re-locked). Export manually via RPC Console: <code className="text-amber-400">dumpprivkey {recoveryData.address}</code>
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {!privateKeyViewed && (
+                                <Alert className="border-red-500/50 bg-red-500/10">
+                                    <ShieldAlert className="w-4 h-4 text-red-400" />
+                                    <AlertDescription className="text-red-300 text-xs">
+                                        Please view and save your private key before continuing. You will never see this key again.
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -311,11 +347,12 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                         <input
                                             type="checkbox"
                                             checked={savedKey}
+                                            disabled={!privateKeyViewed}
                                             onChange={(e) => setSavedKey(e.target.checked)}
-                                            className="mt-0.5 accent-green-500 w-4 h-4 flex-shrink-0"
+                                            className="mt-0.5 accent-green-500 w-4 h-4 flex-shrink-0 disabled:opacity-40"
                                         />
                                         <span className="text-sm text-slate-300 group-hover:text-white">
-                                            I have saved the <strong className="text-white">private key (WIF)</strong> — it will not be shown again
+                                            I have viewed and saved the <strong className="text-white">private key (WIF)</strong> — it will not be shown again
                                         </span>
                                     </label>
 
@@ -324,8 +361,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
 
                             <Button
                                 onClick={handleFinish}
-                                disabled={!allConfirmed}
-                                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-40"
+                                className={`w-full ${allConfirmed ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-700 hover:bg-slate-600'}`}
                             >
                                 <Shield className="w-4 h-4 mr-2" />
                                 I've Saved Everything — Finish Setup
