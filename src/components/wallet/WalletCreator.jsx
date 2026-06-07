@@ -87,6 +87,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     const [savedAddress, setSavedAddress] = useState(false);
     const [savedKey, setSavedKey] = useState(false);
     const [privateKeyViewed, setPrivateKeyViewed] = useState(false);
+    const [keyFieldVisible, setKeyFieldVisible] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -120,6 +121,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             setSavedAddress(false);
             setSavedKey(false);
             setPrivateKeyViewed(false);
+            setKeyFieldVisible(false);
             setRecoveryData({
                 address,
                 wif,
@@ -138,6 +140,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
 
     const handleFinish = () => {
         if (!privateKeyViewed) {
+            setKeyFieldVisible(true);
             toast.error('Please view and save your private key before continuing. You will never see this key again.');
             return;
         }
@@ -295,6 +298,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                     label="Private Key (WIF)"
                                     value={recoveryData.wif}
                                     mono
+                                    alwaysVisible={keyFieldVisible}
                                     onViewed={() => setPrivateKeyViewed(true)}
                                 />
                             ) : (
