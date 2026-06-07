@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, Send, Inbox } from 'lucide-react';
+import { Loader2, Mail, Send, Inbox, Reply, Clock, CheckCircle2, Circle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -21,6 +21,7 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [messages, setMessages] = useState({ inbox: [], sent: [] });
+    const [selectedInboxMessage, setSelectedInboxMessage] = useState(null);
 
     const senderOptions = useMemo(() => {
         const byAddress = new Map();
@@ -43,8 +44,11 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
                 });
             }
         });
+        if (recipientAddress && !byAddress.has(recipientAddress)) {
+            byAddress.set(recipientAddress, { address: recipientAddress, label: 'Reply Recipient' });
+        }
         return Array.from(byAddress.values());
-    }, [contacts]);
+    }, [contacts, recipientAddress]);
 
     const loadMessages = async () => {
         setLoading(true);
@@ -66,7 +70,7 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
     }, [account.id]);
 
     const sendMessage = async (event) => {
-        event.preventDefault();
+        if (event) event.preventDefault();
         if (!recipientAddress.trim() || !body.trim()) {
             toast.error('Enter a wallet address and message');
             return;
@@ -87,6 +91,7 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
                 setRecipientAddress('');
                 setSubject('');
                 setBody('');
+                setSelectedInboxMessage(null);
                 await loadMessages();
             } else {
                 toast.error(response.data.error || 'Failed to send message');
@@ -96,28 +101,65 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
         }
     };
 
+    const unreadCount = messages.inbox.filter((message) => !message.read_by_recipient).length;
+
+    const selectInboxMessage = async (message) => {
+        setSelectedInboxMessage(message);
+        if (!message.read_by_recipient) {
+            setMessages((current) => ({
+                ...current,
+                inbox: current.inbox.map((item) => item.id === message.id ? { ...item, read_by_recipient: true } : item)
+            }));
+            await base44.functions.invoke('markWalletMessageRead', {
+                accountId: account.id,
+                messageId: message.id
+            });
+        }
+    };
+
+    const startReply = (message) => {
+        setRecipientAddress(message.sender_wallet_address);
+        setFromAddress(message.recipient_wallet_address);
+        setSubject(message.subject?.startsWith('Re:') ? message.subject : `Re: ${message.subject || 'Wallet message'}`);
+        setBody(`\n\n--- Original message ---\n${message.body}`);
+        toast.info('Reply ready on the left');
+    };
+
     const MessageList = ({ items, type }) => (
-        <div className="space-y-3 max-h-[460px] overflow-y-auto">
+        <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
             {items.length === 0 ? (
                 <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-6 text-center text-slate-400">
                     No {type} messages yet.
                 </div>
-            ) : items.map((message) => (
-                <div key={message.id} className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <p className="font-medium text-white truncate">{message.subject || 'No subject'}</p>
-                            <p className="text-xs text-slate-400 mt-1">
-                                {type === 'inbox' ? 'From' : 'To'} {shortAddress(type === 'inbox' ? message.sender_wallet_address : message.recipient_wallet_address)}
-                            </p>
+            ) : items.map((message) => {
+                const isInbox = type === 'inbox';
+                const isUnread = isInbox && !message.read_by_recipient;
+                const isSelected = selectedInboxMessage?.id === message.id;
+                return (
+                    <button
+                        key={message.id}
+                        type="button"
+                        onClick={() => isInbox ? selectInboxMessage(message) : setSelectedInboxMessage(null)}
+                        className={`w-full text-left rounded-xl border p-3 transition-colors ${isSelected ? 'border-purple-400 bg-purple-500/10' : 'border-slate-700/50 bg-slate-800/50 hover:bg-slate-800'} ${isUnread ? 'ring-1 ring-cyan-400/40' : ''}`}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    {isUnread ? <Circle className="w-2.5 h-2.5 fill-cyan-400 text-cyan-400 flex-shrink-0" /> : <CheckCircle2 className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />}
+                                    <p className={`font-medium truncate ${isUnread ? 'text-white' : 'text-slate-300'}`}>{message.subject || 'No subject'}</p>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">
+                                    {isInbox ? 'From' : 'To'} {shortAddress(isInbox ? message.sender_wallet_address : message.recipient_wallet_address)}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-2 line-clamp-2">{message.body}</p>
+                            </div>
+                            <Badge variant="outline" className="border-purple-500/50 text-purple-300 shrink-0">
+                                {new Date(message.created_date).toLocaleDateString()}
+                            </Badge>
                         </div>
-                        <Badge variant="outline" className="border-purple-500/50 text-purple-300 shrink-0">
-                            {new Date(message.created_date).toLocaleDateString()}
-                        </Badge>
-                    </div>
-                    <p className="text-sm text-slate-300 mt-3 whitespace-pre-wrap">{message.body}</p>
-                </div>
-            ))}
+                    </button>
+                );
+            })}
         </div>
     );
 
@@ -205,16 +247,56 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
                 </CardHeader>
                 <CardContent>
                     <Tabs defaultValue="inbox">
-                        <TabsList className="bg-slate-800/70 mb-4">
+                        <TabsList className="bg-slate-800/70 mb-4 flex flex-wrap h-auto">
                             <TabsTrigger value="inbox" className="data-[state=active]:bg-purple-600">
                                 <Inbox className="w-4 h-4 mr-2" /> Inbox ({messages.inbox.length})
                             </TabsTrigger>
                             <TabsTrigger value="sent" className="data-[state=active]:bg-purple-600">
                                 <Send className="w-4 h-4 mr-2" /> Sent ({messages.sent.length})
                             </TabsTrigger>
+                            {unreadCount > 0 && (
+                                <Badge className="ml-2 bg-cyan-500/20 text-cyan-300 border-cyan-500/40">
+                                    {unreadCount} unread
+                                </Badge>
+                            )}
                         </TabsList>
                         <TabsContent value="inbox">
-                            <MessageList items={messages.inbox} type="inbox" />
+                            <div className="grid gap-4 xl:grid-cols-[320px_1fr]">
+                                <MessageList items={messages.inbox} type="inbox" />
+                                <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 min-h-[260px]">
+                                    {selectedInboxMessage ? (
+                                        <div className="space-y-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <h3 className="text-lg font-semibold text-white break-words">{selectedInboxMessage.subject || 'No subject'}</h3>
+                                                    <p className="text-xs text-slate-400 mt-1">
+                                                        From {selectedInboxMessage.sender_label || 'Wallet'} · {shortAddress(selectedInboxMessage.sender_wallet_address)}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                                        <Clock className="w-3 h-3" /> {new Date(selectedInboxMessage.created_date).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => startReply(selectedInboxMessage)}
+                                                    className="bg-cyan-600 hover:bg-cyan-700 shrink-0"
+                                                >
+                                                    <Reply className="w-4 h-4 mr-2" /> Reply
+                                                </Button>
+                                            </div>
+                                            <div className="rounded-lg bg-slate-950/40 border border-slate-700/50 p-4 text-sm text-slate-200 whitespace-pre-wrap">
+                                                {selectedInboxMessage.body}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center text-slate-400">
+                                            <Inbox className="w-10 h-10 mb-3 text-slate-600" />
+                                            <p className="font-medium text-slate-300">Select a message</p>
+                                            <p className="text-xs mt-1">Open an inbox message to mark it read and reply.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </TabsContent>
                         <TabsContent value="sent">
                             <MessageList items={messages.sent} type="sent" />
