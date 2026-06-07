@@ -1634,10 +1634,17 @@ export default function WalletDashboard({ account, onLogout }) {
                         }
                                                     {matchedWallet && (
                                                         matchedWallet.encrypted_private_key ? (
-                                                            <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
-                                                                <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80] inline-block flex-shrink-0" />
-                                                                Properly Encrypted
-                                                            </span>
+                                                            matchedWallet.app_encryption_enabled ? (
+                                                                <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
+                                                                    <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_#4ade80] inline-block flex-shrink-0" />
+                                                                    Properly Encrypted
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-1 text-xs text-red-400 font-medium">
+                                                                    <span className="w-2 h-2 rounded-full bg-red-400 inline-block flex-shrink-0" />
+                                                                    Key Stored Insecurely
+                                                                </span>
+                                                            )
                                                         ) : (
                                                             <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
                                                                 <span className="w-2 h-2 rounded-full bg-amber-400 inline-block flex-shrink-0" />
