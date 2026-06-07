@@ -30,8 +30,8 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
       if (!panel) {
         panel = document.createElement('div');
         panel.id = 'raw-utxo-dashboard-panel';
-        panel.className = 'mt-6';
-        tabsList.insertAdjacentElement('afterend', panel);
+        panel.className = 'mt-6 w-full';
+        tabsList.parentElement?.insertAdjacentElement('afterend', panel);
       }
       setPanelTarget(panel);
     };
