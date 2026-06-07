@@ -58,6 +58,11 @@ export default function AuthScreen({ onAuth }) {
     const [showPassword, setShowPassword] = useState(false);
     const [nodePassphrase, setNodePassphrase] = useState('');
     const [generatedAddress, setGeneratedAddress] = useState(null);
+    const [showGeneratedPrivateKey, setShowGeneratedPrivateKey] = useState(false);
+    const [generatedPrivateKeyViewed, setGeneratedPrivateKeyViewed] = useState(false);
+    const [generatedPrivateKeyAcknowledged, setGeneratedPrivateKeyAcknowledged] = useState(false);
+    const [savingGeneratedPrivateKey, setSavingGeneratedPrivateKey] = useState(false);
+    const [generatedPrivateKeyStored, setGeneratedPrivateKeyStored] = useState(false);
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
     const [resetSent, setResetSent] = useState(false);
@@ -180,6 +185,11 @@ export default function AuthScreen({ onAuth }) {
                 last_login: new Date().toISOString()
             });
 
+            setShowGeneratedPrivateKey(false);
+            setGeneratedPrivateKeyViewed(false);
+            setGeneratedPrivateKeyAcknowledged(false);
+            setSavingGeneratedPrivateKey(false);
+            setGeneratedPrivateKeyStored(false);
             setGeneratedAddress({ address, wif, account });
 
             // Create session record
@@ -221,6 +231,32 @@ export default function AuthScreen({ onAuth }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSaveGeneratedPrivateKeyToApp = async () => {
+        if (!generatedPrivateKeyViewed) {
+            setShowGeneratedPrivateKey(true);
+            setGeneratedPrivateKeyViewed(true);
+            toast.error('Please view your private key before saving it in the app.');
+            return;
+        }
+
+        setSavingGeneratedPrivateKey(true);
+        await base44.entities.WalletAccount.update(generatedAddress.account.id, {
+            encrypted_private_key: generatedAddress.wif,
+            encryption_version: 'plain-wif-insecure'
+        });
+        setGeneratedPrivateKeyStored(true);
+        setSavingGeneratedPrivateKey(false);
+        toast.success('Private key saved in the app');
+    };
+
+    const handleOpenGeneratedWallet = () => {
+        if (!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged) {
+            toast.error('Please view and acknowledge your private key before opening the wallet.');
+            return;
+        }
+        onAuth(generatedAddress.account);
     };
 
     const handleForgotPassword = async (e) => {
@@ -295,23 +331,69 @@ export default function AuthScreen({ onAuth }) {
                                 </code>
                             </div>
 
-                            <div className="p-4 rounded-lg bg-slate-800/50 border border-amber-500/30">
-                                <p className="text-xs text-slate-400 mb-2">Your WIF Private Key — save this now</p>
-                                <code className="text-xs text-red-300 font-mono break-all">
-                                    {generatedAddress.wif}
+                            <div className="p-4 rounded-lg bg-slate-800/50 border border-amber-500/30 space-y-3">
+                                <p className="text-xs text-slate-400">Your WIF Private Key — save this now</p>
+                                <code className="block text-xs text-red-300 font-mono break-all">
+                                    {showGeneratedPrivateKey ? generatedAddress.wif : '•'.repeat(40)}
                                 </code>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setShowGeneratedPrivateKey(true);
+                                        setGeneratedPrivateKeyViewed(true);
+                                    }}
+                                    className="w-full border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                                >
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Show Private Key
+                                </Button>
                             </div>
 
                             <Alert className="bg-amber-500/10 border-amber-500/30">
                                 <AlertCircle className="h-4 w-4 text-amber-400" />
                                 <AlertDescription className="text-amber-300/80 text-xs">
-                                    This is a spendable ROD Core wallet. Save the WIF private key before continuing.
+                                    This is a spendable ROD Core wallet. View and save the WIF private key before continuing.
                                 </AlertDescription>
                             </Alert>
 
+                            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 space-y-3">
+                                <p className="text-red-300 text-xs font-semibold">
+                                    This is not secure and should not be done with large amounts of coins.
+                                </p>
+                                <Button
+                                    type="button"
+                                    onClick={handleSaveGeneratedPrivateKeyToApp}
+                                    disabled={!generatedPrivateKeyViewed || savingGeneratedPrivateKey || generatedPrivateKeyStored}
+                                    variant="outline"
+                                    className="w-full border-red-500/40 text-red-200 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {savingGeneratedPrivateKey ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : generatedPrivateKeyStored ? (
+                                        <CheckCircle2 className="w-4 h-4 mr-2 text-green-400" />
+                                    ) : (
+                                        <Lock className="w-4 h-4 mr-2" />
+                                    )}
+                                    {generatedPrivateKeyStored ? 'Private Key Saved in App' : 'Save Private Key in App'}
+                                </Button>
+                            </div>
+
+                            <label className="flex items-start gap-3 text-sm text-slate-300">
+                                <input
+                                    type="checkbox"
+                                    checked={generatedPrivateKeyAcknowledged}
+                                    disabled={!generatedPrivateKeyViewed}
+                                    onChange={(e) => setGeneratedPrivateKeyAcknowledged(e.target.checked)}
+                                    className="mt-0.5 accent-green-500 disabled:opacity-40"
+                                />
+                                <span>I have viewed and saved my private key. I understand it will not be shown again.</span>
+                            </label>
+
                             <Button
-                                onClick={() => onAuth(generatedAddress.account)}
-                                className="w-full bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600"
+                                onClick={handleOpenGeneratedWallet}
+                                disabled={!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged}
+                                className="w-full bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 I Saved My Key — Open Wallet
                             </Button>
