@@ -89,7 +89,9 @@ Deno.serve(async (req) => {
             recipient_label: recipient.label,
             subject,
             body: messageBody,
-            read_by_recipient: false
+            read_by_recipient: false,
+            deleted_by_sender: false,
+            deleted_by_recipient: false
         });
 
         return Response.json({ success: true, message });

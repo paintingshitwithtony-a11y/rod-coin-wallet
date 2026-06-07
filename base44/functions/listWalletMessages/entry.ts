@@ -23,7 +23,11 @@ Deno.serve(async (req) => {
         const inbox = await base44.asServiceRole.entities.WalletMessage.filter({ recipient_account_id: accountId }, '-created_date', 100);
         const sent = await base44.asServiceRole.entities.WalletMessage.filter({ sender_account_id: accountId }, '-created_date', 100);
 
-        return Response.json({ success: true, inbox, sent });
+        return Response.json({
+            success: true,
+            inbox: inbox.filter((message) => !message.deleted_by_recipient),
+            sent: sent.filter((message) => !message.deleted_by_sender)
+        });
     } catch (error) {
         console.error('listWalletMessages error:', error);
         return Response.json({ success: false, error: error.message || 'Failed to load messages' }, { status: 500 });

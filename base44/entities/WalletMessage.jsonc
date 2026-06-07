@@ -38,6 +38,16 @@
       "type": "boolean",
       "default": false,
       "description": "Whether the recipient has opened the message"
+    },
+    "deleted_by_sender": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the sender deleted this message from their conversation view"
+    },
+    "deleted_by_recipient": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the recipient deleted this message from their conversation view"
     }
   },
   "required": [
