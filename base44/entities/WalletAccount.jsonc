@@ -20,7 +20,11 @@
     },
     "encrypted_private_key": {
       "type": "string",
-      "description": "Encrypted private key"
+      "description": "Private key storage payload; may be empty until the user explicitly saves a key"
+    },
+    "encryption_version": {
+      "type": "string",
+      "description": "Private key storage format, including plain-wif-insecure for intentionally insecure app storage"
     },
     "additional_addresses": {
       "type": "array",

@@ -20,34 +20,6 @@ async function hashPassword(password) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Simple encryption for private key (in production, use proper encryption)
-async function encryptPrivateKey(privateKey, password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(privateKey);
-    const keyData = encoder.encode(password.padEnd(32, '0').slice(0, 32));
-    
-    const key = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'AES-GCM' },
-        false,
-        ['encrypt']
-    );
-    
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        data
-    );
-    
-    const combined = new Uint8Array(iv.length + encrypted.byteLength);
-    combined.set(iv);
-    combined.set(new Uint8Array(encrypted), iv.length);
-    
-    return btoa(String.fromCharCode(...combined));
-}
-
 export default function AuthScreen({ onAuth }) {
     const [activeTab, setActiveTab] = useState('login');
     const [email, setEmail] = useState('');
@@ -170,16 +142,21 @@ export default function AuthScreen({ onAuth }) {
                 passphrase: nodePassphrase.trim() || undefined
             });
             const { address, wif } = walletResponse.data;
-            const passwordHash = await hashPassword(password);
-            const encryptedPrivateKey = await encryptPrivateKey(wif, password);
+            if (!walletResponse.data?.success || !address || !wif) {
+                setError(walletResponse.data?.error || 'Failed to generate spendable wallet private key.');
+                setLoading(false);
+                return;
+            }
 
-            // Create account with a node-generated spendable wallet
+            const passwordHash = await hashPassword(password);
+
+            // Create account with a node-generated spendable wallet, but do not store the WIF key unless the user explicitly chooses the insecure save option.
             const account = await base44.entities.WalletAccount.create({
                 email: email.toLowerCase(),
                 password_hash: passwordHash,
                 wallet_address: address,
                 public_key_hash: address,
-                encrypted_private_key: encryptedPrivateKey,
+                encrypted_private_key: '',
                 additional_addresses: [],
                 balance: 0,
                 last_login: new Date().toISOString()
@@ -192,40 +169,7 @@ export default function AuthScreen({ onAuth }) {
             setGeneratedPrivateKeyStored(false);
             setGeneratedAddress({ address, wif, account });
 
-            // Create session record
-            const sessionToken = crypto.randomUUID();
-            const deviceInfo = navigator.userAgent;
-            
-            let ipAddress = 'Unknown';
-            try {
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipResponse.json();
-                ipAddress = ipData.ip;
-            } catch (e) {
-                // IP detection failed
-            }
-            
-            await base44.entities.UserSession.create({
-                account_id: account.id,
-                session_token: sessionToken,
-                device_info: deviceInfo,
-                ip_address: ipAddress,
-                last_active: new Date().toISOString(),
-                is_current: true
-            });
-
-            // Store session
-            const session = {
-                id: account.id,
-                email: account.email,
-                wallet_address: account.wallet_address,
-                sessionToken: sessionToken,
-                timestamp: Date.now()
-            };
-            
-            localStorage.setItem('rod_wallet_session', JSON.stringify(session));
-            
-            toast.success('Spendable wallet created successfully!');
+            toast.success('Spendable wallet created. View and acknowledge the private key to continue.');
         } catch (err) {
             setError(err?.response?.data?.error || err?.message || 'Failed to create wallet. Please try again.');
         } finally {
@@ -255,12 +199,45 @@ export default function AuthScreen({ onAuth }) {
         toast.success('Private key saved in the app');
     };
 
-    const handleOpenGeneratedWallet = () => {
+    const handleOpenGeneratedWallet = async () => {
         if (!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged) {
             toast.error('Please view and acknowledge your private key before opening the wallet.');
             return;
         }
-        onAuth(generatedAddress.account);
+
+        setLoading(true);
+        const account = generatedAddress.account;
+        const sessionToken = crypto.randomUUID();
+        const deviceInfo = navigator.userAgent;
+        let ipAddress = 'Unknown';
+
+        try {
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipResponse.json();
+            ipAddress = ipData.ip;
+        } catch (e) {
+            // IP detection failed
+        }
+
+        await base44.entities.UserSession.create({
+            account_id: account.id,
+            session_token: sessionToken,
+            device_info: deviceInfo,
+            ip_address: ipAddress,
+            last_active: new Date().toISOString(),
+            is_current: true
+        });
+
+        localStorage.setItem('rod_wallet_session', JSON.stringify({
+            id: account.id,
+            email: account.email,
+            wallet_address: account.wallet_address,
+            sessionToken,
+            timestamp: Date.now()
+        }));
+
+        setLoading(false);
+        onAuth(account);
     };
 
     const handleForgotPassword = async (e) => {
@@ -357,13 +334,13 @@ export default function AuthScreen({ onAuth }) {
                             <Alert className="bg-amber-500/10 border-amber-500/30">
                                 <AlertCircle className="h-4 w-4 text-amber-400" />
                                 <AlertDescription className="text-amber-300/80 text-xs">
-                                    This is a spendable ROD Core wallet. View and save the WIF private key before continuing.
+                                    This is a spendable ROD Core wallet. You must view and acknowledge the WIF private key before opening the wallet. It is not saved in the app unless you explicitly choose the insecure save option.
                                 </AlertDescription>
                             </Alert>
 
                             <div className="rounded-lg border-2 border-red-500/70 bg-red-500/15 p-3 space-y-3 shadow-lg shadow-red-950/20">
                                 <p className="text-red-200 text-sm font-bold">
-                                    Warning: saving your private key locally is not secure and should not be done with large amounts of coins.
+                                    Optional insecure save: saving your private key in the app stores it as plain WIF and is not secure. Do not use this for wallets holding large amounts of coins.
                                 </p>
                                 <label className="flex items-start gap-3 cursor-pointer">
                                     <input
@@ -374,7 +351,7 @@ export default function AuthScreen({ onAuth }) {
                                         className="mt-0.5 accent-red-500 w-4 h-4 flex-shrink-0 disabled:opacity-40"
                                     />
                                     <span className="text-xs text-red-100">
-                                        I have viewed and acknowledged this private key and understand the local storage risk.
+                                        I have viewed this private key, saved it somewhere secure, and understand the risk of storing it in the app.
                                     </span>
                                 </label>
                                 <Button
@@ -391,15 +368,16 @@ export default function AuthScreen({ onAuth }) {
                                     ) : (
                                         <Lock className="w-4 h-4 mr-2" />
                                     )}
-                                    {generatedPrivateKeyStored ? 'Private Key Saved in App' : 'Save Private Key in App'}
+                                    {generatedPrivateKeyStored ? 'Private Key Saved in App Insecurely' : 'Save Private Key in App Insecurely'}
                                 </Button>
                             </div>
 
                             <Button
                                 onClick={handleOpenGeneratedWallet}
-                                disabled={!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged}
+                                disabled={!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged || loading}
                                 className="w-full bg-gradient-to-r from-purple-600 to-amber-500 hover:from-purple-700 hover:to-amber-600 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
+                                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                                 I Saved My Key — Open Wallet
                             </Button>
                         </motion.div>
