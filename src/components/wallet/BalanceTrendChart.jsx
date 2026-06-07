@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,36 @@ const txNetAmount = (tx) => {
 
 export default function BalanceTrendChart({ transactions, account, currentWallet, currentBalance, allWallets = [], addressBalances = {} }) {
   const [trendScope, setTrendScope] = useState('primary');
+  const [myAddressKeys, setMyAddressKeys] = useState([]);
+
+  useEffect(() => {
+    const collectMyAddresses = () => {
+      const title = Array.from(document.querySelectorAll('*')).find((node) => node.textContent?.trim() === 'My Addresses');
+      const cardText = title?.closest('.bg-slate-900\/80')?.textContent || '';
+      const addresses = Array.from(new Set((transactions || [])
+        .map((tx) => tx.wallet_address)
+        .filter((address) => address && cardText.includes(address))
+        .map(normalizeAddress)));
+      setMyAddressKeys((previous) => previous.join('|') === addresses.join('|') ? previous : addresses);
+    };
+
+    collectMyAddresses();
+    const observer = new MutationObserver(collectMyAddresses);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [transactions]);
 
   const chartData = useMemo(() => {
     const now = new Date();
     const allTransactions = transactions || [];
+    const trackedAddressKeys = myAddressKeys.length > 0
+      ? myAddressKeys
+      : Array.from(new Set(allTransactions.map((tx) => normalizeAddress(tx.wallet_address)).filter(Boolean)));
+    const trackedTransactions = allTransactions.filter((tx) => trackedAddressKeys.includes(normalizeAddress(tx.wallet_address)));
     const primaryAddress = normalizeAddress(account?.wallet_address || currentWallet?.wallet_address);
-    const primaryTransactions = allTransactions.filter((tx) => normalizeAddress(tx.wallet_address) === primaryAddress);
-    const liveBalances = Object.values(addressBalances).map(Number).filter((value) => !Number.isNaN(value));
-    const fallbackAllBalance = allTransactions.reduce((sum, tx) => sum + txNetAmount(tx), 0);
+    const primaryTransactions = trackedTransactions.filter((tx) => normalizeAddress(tx.wallet_address) === primaryAddress);
+    const liveBalances = trackedAddressKeys.map((key) => Number(addressBalances[key])).filter((value) => !Number.isNaN(value));
+    const fallbackAllBalance = trackedTransactions.reduce((sum, tx) => sum + txNetAmount(tx), 0);
     const fallbackPrimaryBalance = primaryTransactions.reduce((sum, tx) => sum + txNetAmount(tx), 0);
     const totalLiveBalance = liveBalances.length > 0
       ? liveBalances.reduce((sum, amount) => sum + amount, 0)
@@ -34,7 +56,7 @@ export default function BalanceTrendChart({ transactions, account, currentWallet
         ? Number(primaryLiveBalance || 0)
         : Number(currentBalance ?? fallbackPrimaryBalance ?? 0);
 
-    const selectedTransactions = trendScope === 'all' ? allTransactions : primaryTransactions;
+    const selectedTransactions = trendScope === 'all' ? trackedTransactions : primaryTransactions;
 
     return Array.from({ length: 30 }, (_, index) => {
       const day = new Date(now);
@@ -52,7 +74,7 @@ export default function BalanceTrendChart({ transactions, account, currentWallet
         balance: Number(balance.toFixed(8))
       };
     });
-  }, [transactions, account, currentWallet, currentBalance, allWallets, addressBalances, trendScope]);
+  }, [transactions, account, currentWallet, currentBalance, allWallets, addressBalances, trendScope, myAddressKeys]);
 
   return (
     <Card className="bg-slate-900/80 border-slate-700/50 mt-6">
