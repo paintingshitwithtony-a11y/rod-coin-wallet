@@ -106,27 +106,13 @@ export default function WalletDashboard({ account, onLogout }) {
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    const restoreTab = (tab) => {
-      scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
-      activeTabRef.current = tab;
-      setActiveTab(tab);
-      requestAnimationFrame(() => window.scrollTo({ top: scrollPositionsRef.current[tab] || 0, behavior: 'auto' }));
-    };
-    const handlePopState = (event) => event.state?.walletTab && restoreTab(event.state.walletTab);
     const handleWalletCreated = () => fetchAllWallets();
     checkMobile();
-    try {
-      window.history.replaceState({ walletTab: activeTabRef.current }, '');
-    } catch (err) {
-      console.warn('Wallet tab history initialization skipped:', err);
-    }
     window.addEventListener('resize', checkMobile);
-    window.addEventListener('popstate', handlePopState);
     window.addEventListener('walletCreated', handleWalletCreated);
 
     return () => {
       window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('walletCreated', handleWalletCreated);
     };
   }, []);
@@ -605,19 +591,10 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleTabChange = (nextTab) => {
-    if (!nextTab || nextTab === activeTab) return;
-    scrollPositionsRef.current[activeTab] = window.scrollY;
+    if (!nextTab || nextTab === activeTabRef.current) return;
+    scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
     activeTabRef.current = nextTab;
     setActiveTab(nextTab);
-    if (isMobile) {
-      try {
-        if (window.history.state?.walletTab !== nextTab) {
-          window.history.pushState({ walletTab: nextTab }, '');
-        }
-      } catch (err) {
-        console.warn('Wallet tab history update skipped:', err);
-      }
-    }
     requestAnimationFrame(() => window.scrollTo({ top: scrollPositionsRef.current[nextTab] || 0, behavior: 'auto' }));
   };
 
@@ -1281,33 +1258,33 @@ export default function WalletDashboard({ account, onLogout }) {
             <Tabs value={activeTab} onValueChange={handleTabChange}>
                 <div className="hidden md:flex justify-center mb-6">
                     <TabsList className={`bg-slate-800/50 border border-slate-700 ${isMobile ? 'w-full grid grid-cols-4 h-auto' : ''}`}>
-                    <TabsTrigger value="overview" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
+                    <TabsTrigger value="overview" onClick={() => handleTabChange('overview')} className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         {isMobile ? 'Home' : 'Overview'}
                     </TabsTrigger>
-                    <TabsTrigger value="history" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
+                    <TabsTrigger value="history" onClick={() => handleTabChange('history')} className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         History
                     </TabsTrigger>
-                    <TabsTrigger value="send" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
+                    <TabsTrigger value="send" onClick={() => handleTabChange('send')} className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         Send
                     </TabsTrigger>
-                    <TabsTrigger value="receive" className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
+                    <TabsTrigger value="receive" onClick={() => handleTabChange('receive')} className={`data-[state=active]:bg-purple-600 ${isMobile ? 'text-xs py-2' : ''}`}>
                         Receive
                     </TabsTrigger>
                     {!isMobile &&
                     <>
-                    <TabsTrigger value="generate" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="generate" onClick={() => handleTabChange('generate')} className="data-[state=active]:bg-purple-600">
                       Generate
                     </TabsTrigger>
-                    <TabsTrigger value="import" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="import" onClick={() => handleTabChange('import')} className="data-[state=active]:bg-purple-600">
                       Import
                     </TabsTrigger>
-                    <TabsTrigger value="contacts" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="contacts" onClick={() => handleTabChange('contacts')} className="data-[state=active]:bg-purple-600">
                       Contacts
                     </TabsTrigger>
-                    <TabsTrigger value="network" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="network" onClick={() => handleTabChange('network')} className="data-[state=active]:bg-purple-600">
                         Network
                     </TabsTrigger>
-                    <TabsTrigger value="console" className="data-[state=active]:bg-purple-600">
+                    <TabsTrigger value="console" onClick={() => handleTabChange('console')} className="data-[state=active]:bg-purple-600">
                         RPC Console
                     </TabsTrigger>
                         </>
