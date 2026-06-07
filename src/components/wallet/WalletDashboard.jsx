@@ -361,7 +361,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
          // Refresh wallet-specific data and re-fetch all wallets to get fresh balances
          await Promise.all([
-             fetchWalletData(),
+             fetchWalletData(true, updatedWallet),
              fetchAllWallets()
          ]);
      } catch (err) {
@@ -659,8 +659,9 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   };
 
-  const fetchWalletData = async (force = false) => {
+  const fetchWalletData = async (force = false, walletOverride = null) => {
      const now = Date.now();
+     const selectedWallet = walletOverride || currentWallet;
      if (walletDataRequestRef.current) return walletDataRequestRef.current;
      if (!force && now - lastWalletDataFetchRef.current < 5000) return;
 
@@ -675,11 +676,11 @@ export default function WalletDashboard({ account, onLogout }) {
          setAllAccountTransactions(allTxs);
 
          let txs = allTxs;
-         if (currentWallet) {
-           if (currentWallet.id === 'main-account' || currentWallet.id.startsWith('address-')) {
-             txs = allTxs.filter(tx => tx.wallet_address === currentWallet.wallet_address);
+         if (selectedWallet) {
+           if (selectedWallet.id === 'main-account' || selectedWallet.id.startsWith('address-')) {
+             txs = allTxs.filter(tx => normalizeAddress(tx.wallet_address) === normalizeAddress(selectedWallet.wallet_address));
            } else {
-             txs = allTxs.filter(tx => tx.wallet_id === currentWallet.id);
+             txs = allTxs.filter(tx => tx.wallet_id === selectedWallet.id || normalizeAddress(tx.wallet_address) === normalizeAddress(selectedWallet.wallet_address));
            }
          }
          txs = txs.slice(0, 50);
@@ -698,15 +699,15 @@ export default function WalletDashboard({ account, onLogout }) {
 
         setTransactions(formattedTxs);
 
-        if (currentWallet) {
+        if (selectedWallet) {
           try {
-            const balResponse = await base44.functions.invoke('getRPCBalance', currentWallet.id === 'main-account' ? {} : { address: currentWallet.wallet_address });
+            const balResponse = await base44.functions.invoke('getRPCBalance', selectedWallet.id === 'main-account' ? {} : { address: selectedWallet.wallet_address });
             if (balResponse.data.success) {
               setBalance({ confirmed: balResponse.data.balance, unconfirmed: 0 });
             }
           } catch (_err) {
-            if (currentWallet.id !== 'main-account') {
-              setBalance({ confirmed: currentWallet.balance || 0, unconfirmed: 0 });
+            if (selectedWallet.id !== 'main-account') {
+              setBalance({ confirmed: selectedWallet.balance || 0, unconfirmed: 0 });
             }
           }
         }
@@ -759,7 +760,13 @@ export default function WalletDashboard({ account, onLogout }) {
     }, 2000);
   };
 
-  const handleWalletImported = async (importedWallet) => {
+  const handleWalletImported = async (importedWallet = null) => {
+    if (!importedWallet?.address) {
+      await fetchAllWallets();
+      await fetchWalletData(true);
+      return;
+    }
+
     const newAddress = {
       id: `imported-${Date.now()}`,
       address: importedWallet.address,
@@ -891,7 +898,7 @@ export default function WalletDashboard({ account, onLogout }) {
       } catch (_err) {}
 
       // Fetch and display address-specific transactions
-      await fetchWalletData();
+      await fetchWalletData(true, addressWallet);
       
       toast.success(`Viewing ${address.label}`);
     } catch (err) {
@@ -1588,7 +1595,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                                 addresses.map((addr, index) => {
                                 const txBalance = allAccountTransactions
-                                .filter(tx => tx.wallet_address === addr.address)
+                                .filter(tx => normalizeAddress(tx.wallet_address) === normalizeAddress(addr.address))
                                 .reduce((sum, tx) => tx.type === 'receive' ? sum + tx.amount : tx.type === 'send' ? sum - Math.abs(tx.amount) : sum, 0);
                                 const liveBalance = addressBalances[normalizeAddress(addr.address)];
                                 const addrBalance = liveBalance !== undefined ? liveBalance : txBalance;
@@ -1941,7 +1948,7 @@ export default function WalletDashboard({ account, onLogout }) {
                      currentWallet={currentWallet}
                      onWalletSwitch={(wallet) => {
                          setCurrentWallet(wallet);
-                         fetchWalletData();
+                         fetchWalletData(true, wallet);
                      }}
                      onWalletCreated={handleWalletCreated}
                      onClose={() => {
