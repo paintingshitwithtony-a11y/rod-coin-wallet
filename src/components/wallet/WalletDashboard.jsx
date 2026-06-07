@@ -104,6 +104,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const activeTabRef = useRef('overview');
   const walletDataRequestRef = useRef(null);
   const lastWalletDataFetchRef = useRef(0);
+  const lastDepositCheckRef = useRef(0);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -560,7 +561,14 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const checkForDeposits = async (silent = false) => {
-    if (!rpcConnected) return;
+    if (!rpcConnected || isSyncing) return;
+
+    const now = Date.now();
+    if (now - lastDepositCheckRef.current < 30000) {
+      if (!silent) toast.info('Please wait a moment before syncing again', { duration: 2000 });
+      return;
+    }
+    lastDepositCheckRef.current = now;
 
     try {
       setIsSyncing(true);
@@ -619,10 +627,10 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleManualRefresh = async () => {
-    // Prevent rapid clicking - 5 second cooldown
+    // Prevent rapid syncing that can hit rate limits
     const now = Date.now();
-    if (now - lastManualSyncTime < 5000) {
-      toast.info('Sync in progress...', { duration: 2000 });
+    if (now - lastManualSyncTime < 30000) {
+      toast.info('Please wait a moment before syncing again', { duration: 2000 });
       return;
     }
 
@@ -640,11 +648,8 @@ export default function WalletDashboard({ account, onLogout }) {
       }
 
       await checkForDeposits(false);
-      await fetchWalletData();
+      await fetchWalletData(true);
       await checkRPCStatus();
-      if (rpcConnected) {
-        await importAllAddresses(true);
-      }
       toast.success('Sync complete!');
     } catch (err) {
       console.error('Refresh failed:', err);
