@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AuthScreen from '@/components/wallet/AuthScreen';
-import WalletDashboard from '@/components/wallet/WalletDashboard';
-import RawUTXOInspector from '@/components/wallet/RawUTXOInspector';
+import WalletDashboardWithUTXO from '@/components/wallet/WalletDashboardWithUTXO';
 import WalletPreloader from '@/components/wallet/WalletPreloader';
 import { Toaster } from 'sonner';
 import { base44 } from '@/api/base44Client';
@@ -118,14 +117,9 @@ export default function Wallet() {
 
                 {/* Content */}
                 {account ?
-        <>
-          <WalletDashboard
-            account={account}
-            onLogout={handleLogout} />
-          <div className="mt-8">
-            <RawUTXOInspector account={account} />
-          </div>
-        </> :
+        <WalletDashboardWithUTXO
+          account={account}
+          onLogout={handleLogout} /> :
 
 
         <div className="flex items-center justify-center min-h-[60vh]">

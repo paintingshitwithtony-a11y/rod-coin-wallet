@@ -169,7 +169,8 @@ export default function RawUTXOInspector({ account, wallets = [], addresses = []
         </CardContent>
       </Card>
 
-      {trackedWallets.map((wallet) => {
+      <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-4">
+        {trackedWallets.map((wallet) => {
         const utxos = utxosByAddress[normalizeAddress(wallet.address)] || [];
         const total = utxos.reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0);
 
@@ -246,7 +247,8 @@ export default function RawUTXOInspector({ account, wallets = [], addresses = []
             </CardContent>
           </Card>
         );
-      })}
+        })}
+      </div>
     </div>
   );
 }
