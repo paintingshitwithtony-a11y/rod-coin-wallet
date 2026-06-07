@@ -1,45 +1,81 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import WalletDashboard from './WalletDashboard';
 import RawUTXOInspector from './RawUTXOInspector';
 
 export default function WalletDashboardWithUTXO({ account, onLogout }) {
-  const inspectorRef = useRef(null);
-
-  const scrollToInspector = () => {
-    inspectorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const [showUtxos, setShowUtxos] = useState(false);
+  const [panelTarget, setPanelTarget] = useState(null);
 
   useEffect(() => {
-    const addUtxoShortcut = () => {
+    const setupUtxoPanel = () => {
       const messagesTab = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Messages');
-      if (!messagesTab || document.getElementById('raw-utxo-dashboard-shortcut')) return;
+      if (!messagesTab) return;
 
-      const button = document.createElement('button');
-      button.id = 'raw-utxo-dashboard-shortcut';
-      button.type = 'button';
-      button.textContent = 'UTXOs';
-      button.className = messagesTab.className;
-      button.addEventListener('click', scrollToInspector);
-      messagesTab.parentElement?.insertBefore(button, messagesTab);
+      const tabsList = messagesTab.parentElement;
+      if (!tabsList) return;
+
+      let button = document.getElementById('raw-utxo-dashboard-shortcut');
+      if (!button) {
+        button = document.createElement('button');
+        button.id = 'raw-utxo-dashboard-shortcut';
+        button.type = 'button';
+        button.textContent = 'UTXOs';
+        button.className = messagesTab.className;
+        button.addEventListener('click', () => setShowUtxos(true));
+        tabsList.insertBefore(button, messagesTab);
+      }
+
+      let panel = document.getElementById('raw-utxo-dashboard-panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'raw-utxo-dashboard-panel';
+        panel.className = 'mt-6';
+        tabsList.insertAdjacentElement('afterend', panel);
+      }
+      setPanelTarget(panel);
     };
 
-    const timer = setTimeout(addUtxoShortcut, 500);
-    const observer = new MutationObserver(addUtxoShortcut);
+    const timer = setTimeout(setupUtxoPanel, 500);
+    const observer = new MutationObserver(setupUtxoPanel);
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       clearTimeout(timer);
       observer.disconnect();
       document.getElementById('raw-utxo-dashboard-shortcut')?.remove();
+      document.getElementById('raw-utxo-dashboard-panel')?.remove();
     };
   }, []);
+
+  useEffect(() => {
+    const shortcut = document.getElementById('raw-utxo-dashboard-shortcut');
+    const originalTabs = Array.from(shortcut?.parentElement?.querySelectorAll('button') || []).filter((button) => button !== shortcut);
+    const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+    shortcut?.setAttribute('data-state', showUtxos ? 'active' : 'inactive');
+    panels.forEach((panel) => {
+      panel.style.display = showUtxos ? 'none' : '';
+    });
+
+    const closeUtxos = () => setShowUtxos(false);
+    originalTabs.forEach((button) => button.addEventListener('click', closeUtxos));
+
+    return () => {
+      panels.forEach((panel) => {
+        panel.style.display = '';
+      });
+      originalTabs.forEach((button) => button.removeEventListener('click', closeUtxos));
+    };
+  }, [showUtxos]);
 
   return (
     <>
       <WalletDashboard account={account} onLogout={onLogout} />
-      <section ref={inspectorRef} className="mt-8 scroll-mt-24">
-        <RawUTXOInspector account={account} />
-      </section>
+      {panelTarget && showUtxos && createPortal(
+        <RawUTXOInspector account={account} />,
+        panelTarget
+      )}
     </>
   );
 }
