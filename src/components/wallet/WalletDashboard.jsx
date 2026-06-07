@@ -595,7 +595,7 @@ export default function WalletDashboard({ account, onLogout }) {
     scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
     activeTabRef.current = nextTab;
     setActiveTab(nextTab);
-    requestAnimationFrame(() => window.scrollTo({ top: scrollPositionsRef.current[nextTab] || 0, behavior: 'auto' }));
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
   };
 
   const handleTouchStart = (event) => {
@@ -1292,7 +1292,7 @@ export default function WalletDashboard({ account, onLogout }) {
                                 </TabsList>
                                 </div>
 
-                                <TabsContent value="overview" forceMount className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+                                <TabsContent value="overview" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
                                     <AdminRPCStatusIndicator account={account} />
 
                                     {/* RPC Console - Live Balance Query */}
@@ -1777,7 +1777,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 </TabsContent>
 
-                    <TabsContent value="history" forceMount className="mt-6">
+                    <TabsContent value="history" className="mt-6">
                     <TransactionHistory account={account} />
                     </TabsContent>
 
@@ -1794,7 +1794,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 </TabsContent>
 
-                <TabsContent value="send" forceMount className="mt-6">
+                <TabsContent value="send" className="mt-6">
                     <SendReceive
                 mode="send"
                 balance={balance.confirmed}
@@ -1805,7 +1805,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 </TabsContent>
 
-                <TabsContent value="receive" forceMount className="mt-6">
+                <TabsContent value="receive" className="mt-6">
                     <SendReceive
             mode="receive"
             addresses={addresses}
