@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
             let utxos = [];
             let balanceError = null;
             try {
-                utxos = await rpcCall(rpcUrl, headers, 'listunspent', [0, 9999999, [item.address]], 15000);
+                utxos = await rpcCall(rpcUrl, headers, 'listunspent', [0, 9999999, [item.address], true], 15000);
             } catch (err) {
                 balanceError = err.message;
             }

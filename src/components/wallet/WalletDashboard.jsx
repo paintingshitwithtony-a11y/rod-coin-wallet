@@ -292,9 +292,10 @@ export default function WalletDashboard({ account, onLogout }) {
       const liveBalances = {};
       const utxoCounts = {};
       try {
+        const trackedAddresses = refreshedAddresses.map((addr) => addr.address).filter(Boolean);
         const response = await base44.functions.invoke('executeRPCCommand', {
           method: 'listunspent',
-          params: [0, 9999999]
+          params: [0, 9999999, trackedAddresses, true]
         });
         if (response.data.success) {
           allWallets.forEach(wallet => {
@@ -1313,7 +1314,7 @@ export default function WalletDashboard({ account, onLogout }) {
 
                                     {/* RPC Console - Live Balance Query */}
                                     <DashboardRPCConsole 
-                                        selectedAddress={currentWallet?.wallet_address || account.wallet_address}
+                                        selectedAddress={account.wallet_address}
                                         account={account}
                                     />
 

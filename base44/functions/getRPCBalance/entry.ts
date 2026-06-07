@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
                     jsonrpc: '1.0',
                     id: 'getBalance',
                     method: 'listunspent',
-                    params: [0, 9999999, queryAddresses]
+                    params: [0, 9999999, queryAddresses, true]
                 }),
                 signal: AbortSignal.timeout(15000)
             });
