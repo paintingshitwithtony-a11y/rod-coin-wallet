@@ -32,6 +32,21 @@ async function isAdminAccount(base44, account) {
     return admins.some(admin => admin.email === account.email || admin.id === account.id);
 }
 
+function getEnvRPCConfig() {
+    const host = Deno.env.get('ROD_RPC_HOST');
+    const port = Deno.env.get('ROD_RPC_PORT');
+    const username = Deno.env.get('ROD_RPC_USERNAME');
+    const password = Deno.env.get('ROD_RPC_PASSWORD');
+    if (!host || !username || !password) return null;
+    return {
+        host,
+        port,
+        username,
+        password,
+        use_ssl: host.startsWith('https')
+    };
+}
+
 const ALLOWED_METHODS = new Set([
     'getblockchaininfo',
     'getblockcount',
@@ -73,18 +88,24 @@ Deno.serve(async (req) => {
             }, { status: 403 });
         }
 
-        // Load user's account and active RPC config
-        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
-        if (accounts.length === 0) {
-            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
-        }
-        if (accounts.length === 0) return Response.json({ success: false, error: 'Account not found' }, { status: 404 });
-        const account = accounts[0];
+        const envRPCConfig = getEnvRPCConfig();
+        let rpcConfig = envRPCConfig;
 
-        const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
-        const rpcConfig = !(await isAdminAccount(base44, account))
-            ? await getAdminRPCSource(base44)
-            : rpcConfigs.find(config => config.connection_status === 'connected') || await getAdminRPCSource(base44);
+        if (!rpcConfig) {
+            // Load user's account and active RPC config only when env secrets are unavailable
+            let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+            if (accounts.length === 0) {
+                accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+            }
+            if (accounts.length === 0) return Response.json({ success: false, error: 'Account not found' }, { status: 404 });
+            const account = accounts[0];
+
+            const rpcConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id, is_active: true });
+            rpcConfig = !(await isAdminAccount(base44, account))
+                ? await getAdminRPCSource(base44)
+                : rpcConfigs.find(config => config.connection_status === 'connected') || await getAdminRPCSource(base44);
+        }
+
         if (!rpcConfig) {
             return Response.json({ success: false, error: 'No connected RPC configuration found' }, { status: 400 });
         }
