@@ -62,6 +62,18 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const downloadPrivateKeyTxt = (addr) => {
+        const content = `ROD Wallet Private Key Backup\n\nAddress: ${addr.address}\nPrivate Key (WIF): ${addr.privateKey}\nCreated: ${new Date(addr.createdAt).toLocaleString()}\n\nKeep this file private. Anyone with this key can spend funds from this wallet.`;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rod-private-key-${addr.address.slice(0, 8)}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Private key TXT downloaded');
+    };
+
     const exportAddresses = () => {
         if (addresses.some((addr) => !addr.privateKeyViewed || !addr.privateKeyAcknowledged)) {
             toast.error('View and acknowledge every private key before exporting.');
@@ -254,18 +266,30 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                                                                     {addr.privateKey}
                                                                 </code>
                                                             </div>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => copyToClipboard(addr.privateKey, `pk-${addr.id}`)}
-                                                                className="shrink-0 text-slate-400 hover:text-white mt-4"
-                                                            >
-                                                                {copiedId === `pk-${addr.id}` ? (
-                                                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                                                                ) : (
-                                                                    <Copy className="w-4 h-4" />
-                                                                )}
-                                                            </Button>
+                                                            <div className="flex flex-col sm:flex-row gap-2 shrink-0 mt-4">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => copyToClipboard(addr.privateKey, `pk-${addr.id}`)}
+                                                                    className="text-slate-400 hover:text-white"
+                                                                    title="Copy private key"
+                                                                >
+                                                                    {copiedId === `pk-${addr.id}` ? (
+                                                                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                                    ) : (
+                                                                        <Copy className="w-4 h-4" />
+                                                                    )}
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => downloadPrivateKeyTxt(addr)}
+                                                                    className="border-red-500/40 bg-red-500/10 text-red-100 hover:bg-red-500/20 hover:text-white"
+                                                                >
+                                                                    <Download className="w-4 h-4 mr-2" />
+                                                                    TXT
+                                                                </Button>
+                                                            </div>
                                                         </motion.div>
                                                     )}
                                                 </div>
