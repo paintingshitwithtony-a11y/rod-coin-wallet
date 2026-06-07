@@ -234,10 +234,14 @@ export default function AuthScreen({ onAuth }) {
     };
 
     const handleSaveGeneratedPrivateKeyToApp = async () => {
-        if (!generatedPrivateKeyViewed) {
+        if (!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged) {
             setShowGeneratedPrivateKey(true);
             setGeneratedPrivateKeyViewed(true);
-            toast.error('Please view your private key before saving it in the app.');
+            toast.error('Please view and acknowledge your private key before saving it in the app.');
+            return;
+        }
+
+        if (!confirm('Warning: Saving your private key in the app is not secure and should not be done with large amounts of coins. Do you understand and want to continue?')) {
             return;
         }
 
@@ -364,7 +368,7 @@ export default function AuthScreen({ onAuth }) {
                                 <Button
                                     type="button"
                                     onClick={handleSaveGeneratedPrivateKeyToApp}
-                                    disabled={!generatedPrivateKeyViewed || savingGeneratedPrivateKey || generatedPrivateKeyStored}
+                                    disabled={!generatedPrivateKeyViewed || !generatedPrivateKeyAcknowledged || savingGeneratedPrivateKey || generatedPrivateKeyStored}
                                     variant="outline"
                                     className="w-full border-red-500/40 text-red-200 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                 >

@@ -143,8 +143,13 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     };
 
     const handleSavePrivateKeyToApp = async () => {
-        if (!privateKeyViewed) {
-            toast.error('Please view your private key before saving it in the app.');
+        if (!privateKeyViewed || !savedKey) {
+            setKeyFieldVisible(true);
+            toast.error('Please view and acknowledge your private key before saving it in the app.');
+            return;
+        }
+
+        if (!confirm('Warning: Saving your private key in the app is not secure and should not be done with large amounts of coins. Do you understand and want to continue?')) {
             return;
         }
 
@@ -347,7 +352,7 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                     </p>
                                     <Button
                                         onClick={handleSavePrivateKeyToApp}
-                                        disabled={!privateKeyViewed || savingPrivateKey || privateKeyStored}
+                                        disabled={!privateKeyViewed || !savedKey || savingPrivateKey || privateKeyStored}
                                         variant="outline"
                                         className="w-full border-red-500/40 text-red-200 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
