@@ -115,7 +115,11 @@ export default function WalletDashboard({ account, onLogout }) {
     const handlePopState = (event) => event.state?.walletTab && restoreTab(event.state.walletTab);
     const handleWalletCreated = () => fetchAllWallets();
     checkMobile();
-    window.history.replaceState({ ...(window.history.state || {}), walletTab: activeTabRef.current }, '');
+    try {
+      window.history.replaceState({ walletTab: activeTabRef.current }, '');
+    } catch (err) {
+      console.warn('Wallet tab history initialization skipped:', err);
+    }
     window.addEventListener('resize', checkMobile);
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('walletCreated', handleWalletCreated);
@@ -601,12 +605,18 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleTabChange = (nextTab) => {
-    if (nextTab === activeTabRef.current) return;
-    scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
+    if (!nextTab || nextTab === activeTab) return;
+    scrollPositionsRef.current[activeTab] = window.scrollY;
     activeTabRef.current = nextTab;
     setActiveTab(nextTab);
-    if (isMobile && window.history.state?.walletTab !== nextTab) {
-      window.history.pushState({ ...(window.history.state || {}), walletTab: nextTab }, '');
+    if (isMobile) {
+      try {
+        if (window.history.state?.walletTab !== nextTab) {
+          window.history.pushState({ walletTab: nextTab }, '');
+        }
+      } catch (err) {
+        console.warn('Wallet tab history update skipped:', err);
+      }
     }
     requestAnimationFrame(() => window.scrollTo({ top: scrollPositionsRef.current[nextTab] || 0, behavior: 'auto' }));
   };
