@@ -346,15 +346,27 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                             )}
 
                             {recoveryData.wif && (
-                                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 space-y-3">
-                                    <p className="text-red-300 text-xs font-semibold">
-                                        This is not secure and should not be done with large amounts of coins.
+                                <div className="rounded-lg border-2 border-red-500/70 bg-red-500/15 p-3 space-y-3 shadow-lg shadow-red-950/20">
+                                    <p className="text-red-200 text-sm font-bold">
+                                        Warning: saving your private key locally is not secure and should not be done with large amounts of coins.
                                     </p>
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={savedKey}
+                                            disabled={!privateKeyViewed}
+                                            onChange={(e) => setSavedKey(e.target.checked)}
+                                            className="mt-0.5 accent-red-500 w-4 h-4 flex-shrink-0 disabled:opacity-40"
+                                        />
+                                        <span className="text-xs text-red-100">
+                                            I have viewed and acknowledged this private key and understand the local storage risk.
+                                        </span>
+                                    </label>
                                     <Button
                                         onClick={handleSavePrivateKeyToApp}
                                         disabled={!privateKeyViewed || !savedKey || savingPrivateKey || privateKeyStored}
                                         variant="outline"
-                                        className="w-full border-red-500/40 text-red-200 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="w-full border-red-400/60 text-red-100 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                         {savingPrivateKey ? (
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
