@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/select";
 import {
     ArrowUpRight, ArrowDownLeft, Search, Filter, Download,
-    Calendar, Hash, CheckCircle2, Clock, Copy, ExternalLink,
-    RefreshCw
+    Calendar, Hash, CheckCircle2, Clock, Copy,
+    RefreshCw, ShieldCheck, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -36,16 +36,22 @@ export default function TransactionHistory({ account }) {
     const [copiedId, setCopiedId] = useState(null);
 
     useEffect(() => {
-        fetchTransactions();
+        fetchTransactions(true);
+        const interval = setInterval(() => fetchTransactions(true), 30000);
+        return () => clearInterval(interval);
     }, [account]);
 
     useEffect(() => {
         applyFilters();
     }, [transactions, searchQuery, memoSearch, addressFilter, minAmount, maxAmount, typeFilter, statusFilter, sortBy, dateRange]);
 
-    const fetchTransactions = async () => {
+    const fetchTransactions = async (refreshFromNode = false) => {
         setLoading(true);
         try {
+            if (refreshFromNode) {
+                await base44.functions.invoke('checkDeposits', {}).catch(() => null);
+            }
+
             const [txs, contacts] = await Promise.all([
                 base44.entities.Transaction.filter(
                     { account_id: account.id },
@@ -200,6 +206,18 @@ export default function TransactionHistory({ account }) {
 
     const getAddressLabel = (address) => addressLabels[(address || '').trim().toLowerCase()];
 
+    const getConfirmationLevel = (confirmations = 0) => {
+        if (confirmations >= 6) return { label: 'Final', color: 'text-green-400', border: 'border-green-500/50', bg: 'bg-green-500/20', percent: 100 };
+        if (confirmations > 0) return { label: 'Confirming', color: 'text-amber-400', border: 'border-amber-500/50', bg: 'bg-amber-500/20', percent: Math.min((confirmations / 6) * 100, 100) };
+        return { label: 'Unconfirmed', color: 'text-red-400', border: 'border-red-500/50', bg: 'bg-red-500/20', percent: 0 };
+    };
+
+    const confirmationStats = {
+        incoming: transactions.filter(tx => tx.type === 'receive' && (tx.confirmations || 0) < 6).length,
+        outgoing: transactions.filter(tx => tx.type === 'send' && (tx.confirmations || 0) < 6).length,
+        final: transactions.filter(tx => (tx.confirmations || 0) >= 6).length
+    };
+
     if (loading) {
         return (
             <Card className="bg-slate-900/80 border-slate-700/50">
@@ -225,7 +243,7 @@ export default function TransactionHistory({ account }) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={fetchTransactions}
+                                onClick={() => fetchTransactions(true)}
                                 className="border-slate-700 text-slate-300"
                             >
                                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -246,6 +264,24 @@ export default function TransactionHistory({ account }) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {/* Search and Filters Row 1 */}
+                    <div className="grid gap-3 md:grid-cols-3">
+                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                            <p className="text-xs text-amber-200 flex items-center gap-1"><ArrowDownLeft className="w-3 h-3" /> Incoming Monitoring</p>
+                            <p className="text-2xl font-bold text-white">{confirmationStats.incoming}</p>
+                            <p className="text-xs text-slate-400">waiting for 6 confirmations</p>
+                        </div>
+                        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3">
+                            <p className="text-xs text-red-200 flex items-center gap-1"><ArrowUpRight className="w-3 h-3" /> Outgoing Monitoring</p>
+                            <p className="text-2xl font-bold text-white">{confirmationStats.outgoing}</p>
+                            <p className="text-xs text-slate-400">waiting for 6 confirmations</p>
+                        </div>
+                        <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-3">
+                            <p className="text-xs text-green-200 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Fully Confirmed</p>
+                            <p className="text-2xl font-bold text-white">{confirmationStats.final}</p>
+                            <p className="text-xs text-slate-400">6+ confirmations</p>
+                        </div>
+                    </div>
+
                     <div className="grid gap-3 md:grid-cols-5">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -352,6 +388,10 @@ export default function TransactionHistory({ account }) {
                         </span>
                     </div>
 
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <RefreshCw className="w-3 h-3" /> Confirmations refresh automatically every 30 seconds while this page is open.
+                    </div>
+
                     {/* Transaction List */}
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
                         <AnimatePresence>
@@ -370,7 +410,9 @@ export default function TransactionHistory({ account }) {
                                     </p>
                                 </motion.div>
                             ) : (
-                                filteredTxs.map((tx, index) => (
+                                filteredTxs.map((tx, index) => {
+                                    const confirmationLevel = getConfirmationLevel(tx.confirmations || 0);
+                                    return (
                                     <motion.div
                                         key={tx.id}
                                         initial={{ opacity: 0, y: 20 }}
@@ -396,21 +438,15 @@ export default function TransactionHistory({ account }) {
                                                         <span className="text-sm font-medium text-white">
                                                             {tx.type === 'receive' ? 'Received' : 'Sent'}
                                                         </span>
-                                                        <Badge variant={tx.status === 'confirmed' ? 'outline' : 'secondary'}
-                                                               className={tx.status === 'confirmed' 
-                                                                   ? 'border-green-500/50 text-green-400 text-xs'
-                                                                   : 'bg-amber-500/20 text-amber-400 text-xs'}>
-                                                            {tx.status === 'confirmed' ? (
-                                                                <>
-                                                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                                    Confirmed
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Clock className="w-3 h-3 mr-1" />
-                                                                    Pending
-                                                                </>
-                                                            )}
+                                                        <Badge variant="outline" className={`${confirmationLevel.border} ${confirmationLevel.color} text-xs`}>
+                                                           {(tx.confirmations || 0) >= 6 ? (
+                                                               <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                           ) : (tx.confirmations || 0) > 0 ? (
+                                                               <Clock className="w-3 h-3 mr-1" />
+                                                           ) : (
+                                                               <AlertTriangle className="w-3 h-3 mr-1" />
+                                                           )}
+                                                           {confirmationLevel.label}
                                                         </Badge>
                                                     </div>
 
@@ -446,18 +482,26 @@ export default function TransactionHistory({ account }) {
                                                             </div>
                                                         )}
 
-                                                        <div className="flex items-center gap-3 text-xs text-slate-500">
-                                                            <span className="flex items-center gap-1">
-                                                                <Calendar className="w-3 h-3" />
-                                                                {new Date(tx.created_date).toLocaleString()}
-                                                            </span>
-                                                            <span className="flex items-center gap-1">
-                                                                <CheckCircle2 className="w-3 h-3" />
-                                                                {tx.confirmations || 0} confirmations
-                                                            </span>
-                                                            {tx.fee > 0 && (
-                                                                <span>Fee: {tx.fee} ROD</span>
-                                                            )}
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                                                                <span className="flex items-center gap-1">
+                                                                    <Calendar className="w-3 h-3" />
+                                                                    {new Date(tx.created_date).toLocaleString()}
+                                                                </span>
+                                                                <span className={`flex items-center gap-1 ${confirmationLevel.color}`}>
+                                                                    <CheckCircle2 className="w-3 h-3" />
+                                                                    {tx.confirmations || 0}/6 confirmations
+                                                                </span>
+                                                                {tx.fee > 0 && (
+                                                                    <span>Fee: {tx.fee} ROD</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="h-2 rounded-full bg-slate-700 overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full ${confirmationLevel.bg}`}
+                                                                    style={{ width: `${confirmationLevel.percent}%` }}
+                                                                />
+                                                            </div>
                                                         </div>
 
                                                         <div className="flex items-center gap-2 mt-1">
@@ -492,7 +536,8 @@ export default function TransactionHistory({ account }) {
                                             </div>
                                         </div>
                                     </motion.div>
-                                ))
+                                    );
+                                })
                             )}
                         </AnimatePresence>
                     </div>
