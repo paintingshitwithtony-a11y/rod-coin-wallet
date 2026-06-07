@@ -88,6 +88,8 @@ export default function WalletCreator({ account, onClose, onCreated }) {
     const [savedKey, setSavedKey] = useState(false);
     const [privateKeyViewed, setPrivateKeyViewed] = useState(false);
     const [keyFieldVisible, setKeyFieldVisible] = useState(false);
+    const [savingPrivateKey, setSavingPrivateKey] = useState(false);
+    const [privateKeyStored, setPrivateKeyStored] = useState(false);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -122,6 +124,8 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             setSavedKey(false);
             setPrivateKeyViewed(false);
             setKeyFieldVisible(false);
+            setSavingPrivateKey(false);
+            setPrivateKeyStored(false);
             setRecoveryData({
                 address,
                 wif,
@@ -136,6 +140,23 @@ export default function WalletCreator({ account, onClose, onCreated }) {
             setLoading(false);
             setLoadingMsg('');
         }
+    };
+
+    const handleSavePrivateKeyToApp = async () => {
+        if (!privateKeyViewed) {
+            toast.error('Please view your private key before saving it in the app.');
+            return;
+        }
+
+        setSavingPrivateKey(true);
+        await base44.entities.Wallet.update(recoveryData.walletId, {
+            encrypted_private_key: recoveryData.wif,
+            app_encryption_enabled: false,
+            encryption_version: 'plain-wif-insecure'
+        });
+        setPrivateKeyStored(true);
+        setSavingPrivateKey(false);
+        toast.success('Private key saved in the app');
     };
 
     const handleFinish = () => {
@@ -317,6 +338,29 @@ export default function WalletCreator({ account, onClose, onCreated }) {
                                         Please view and save your private key before continuing. You will never see this key again.
                                     </AlertDescription>
                                 </Alert>
+                            )}
+
+                            {recoveryData.wif && (
+                                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 space-y-3">
+                                    <p className="text-red-300 text-xs font-semibold">
+                                        This is not secure and should not be done with large amounts of coins.
+                                    </p>
+                                    <Button
+                                        onClick={handleSavePrivateKeyToApp}
+                                        disabled={!privateKeyViewed || savingPrivateKey || privateKeyStored}
+                                        variant="outline"
+                                        className="w-full border-red-500/40 text-red-200 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        {savingPrivateKey ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : privateKeyStored ? (
+                                            <CheckCircle2 className="w-4 h-4 mr-2 text-green-400" />
+                                        ) : (
+                                            <KeyRound className="w-4 h-4 mr-2" />
+                                        )}
+                                        {privateKeyStored ? 'Private Key Saved in App' : 'Save Private Key in App'}
+                                    </Button>
+                                </div>
                             )}
 
                             {/* Private Key Recovery Notice */}
