@@ -37,19 +37,17 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                 address,
                 publicKeyHash: address,
                 privateKey: wif,
+                privateKeyViewed: false,
+                privateKeyAcknowledged: false,
                 isValid: validation.valid,
                 createdAt: new Date().toISOString(),
                 label,
-                importStatus: 'imported'
+                importStatus: 'pending'
             };
 
             setAddresses(prev => [newAddress, ...prev]);
 
-            if (onAddressGenerated) {
-                onAddressGenerated(newAddress);
-            }
-
-            toast.success('Spendable ROD wallet generated');
+            toast.success('Spendable ROD wallet generated. View and acknowledge the private key before saving.');
         } catch (error) {
             toast.error(error?.response?.data?.error || error?.message || 'Failed to generate spendable wallet');
         } finally {
@@ -65,6 +63,11 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
     };
 
     const exportAddresses = () => {
+        if (addresses.some((addr) => !addr.privateKeyViewed || !addr.privateKeyAcknowledged)) {
+            toast.error('View and acknowledge every private key before exporting.');
+            return;
+        }
+
         const exportData = addresses.map(addr => ({
             address: addr.address,
             privateKey: addr.privateKey,
@@ -79,6 +82,20 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
         a.click();
         URL.revokeObjectURL(url);
         toast.success('Addresses exported');
+    };
+
+    const handleShowPrivateKeys = () => {
+        setShowPrivateKeys((current) => {
+            const next = !current;
+            if (next) {
+                setAddresses((items) => items.map((item) => ({ ...item, privateKeyViewed: true })));
+            }
+            return next;
+        });
+    };
+
+    const setAddressAcknowledged = (addressId, checked) => {
+        setAddresses((items) => items.map((item) => item.id === addressId ? { ...item, privateKeyAcknowledged: checked } : item));
     };
 
     return (
@@ -150,7 +167,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setShowPrivateKeys(!showPrivateKeys)}
+                                        onClick={handleShowPrivateKeys}
                                         className="text-slate-400 hover:text-slate-300"
                                     >
                                         <Shield className="w-4 h-4 mr-2" />
@@ -256,10 +273,29 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                                                 <p className="text-xs text-slate-500 mt-2">
                                                     Created {new Date(addr.createdAt).toLocaleString()}
                                                 </p>
+                                                {showPrivateKeys && (
+                                                    <label className="mt-3 flex items-start gap-2 text-xs text-red-100 cursor-pointer rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={addr.privateKeyAcknowledged || false}
+                                                            onChange={(e) => setAddressAcknowledged(addr.id, e.target.checked)}
+                                                            className="mt-0.5 accent-red-500"
+                                                        />
+                                                        <span>I viewed and saved this private key securely and understand app storage is insecure.</span>
+                                                    </label>
+                                                )}
                                                 <Button
                                                     size="sm"
-                                                    onClick={() => setSelectedAddressToSave(addr)}
-                                                    className="mt-3 bg-blue-600 hover:bg-blue-700"
+                                                    onClick={() => {
+                                                        if (!addr.privateKeyViewed || !addr.privateKeyAcknowledged) {
+                                                            toast.error('Show, save, and acknowledge this private key before saving the wallet.');
+                                                            setShowPrivateKeys(true);
+                                                            setAddresses((items) => items.map((item) => item.id === addr.id ? { ...item, privateKeyViewed: true } : item));
+                                                            return;
+                                                        }
+                                                        setSelectedAddressToSave(addr);
+                                                    }}
+                                                    className={`mt-3 bg-blue-600 hover:bg-blue-700 ${(!addr.privateKeyViewed || !addr.privateKeyAcknowledged) ? 'opacity-60' : ''}`}
                                                 >
                                                     <Save className="w-4 h-4 mr-2" />
                                                     Save as Wallet
