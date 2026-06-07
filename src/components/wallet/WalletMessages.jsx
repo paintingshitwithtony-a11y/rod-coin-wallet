@@ -17,6 +17,7 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const [fromAddress, setFromAddress] = useState(currentWallet?.wallet_address || account.wallet_address);
+    const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [messages, setMessages] = useState({ inbox: [], sent: [] });
@@ -31,6 +32,19 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
         });
         return Array.from(byAddress.values());
     }, [account, addresses]);
+
+    const recipientOptions = useMemo(() => {
+        const byAddress = new Map();
+        contacts.forEach((contact) => {
+            if (contact.address && !byAddress.has(contact.address)) {
+                byAddress.set(contact.address, {
+                    address: contact.address,
+                    label: contact.label || 'Contact'
+                });
+            }
+        });
+        return Array.from(byAddress.values());
+    }, [contacts]);
 
     const loadMessages = async () => {
         setLoading(true);
@@ -48,6 +62,7 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
 
     useEffect(() => {
         loadMessages();
+        base44.entities.AddressBook.filter({ account_id: account.id }).then(setContacts);
     }, [account.id]);
 
     const sendMessage = async (event) => {
@@ -132,12 +147,25 @@ export default function WalletMessages({ account, addresses = [], currentWallet 
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-300">Recipient Wallet Address</Label>
-                            <Input
-                                value={recipientAddress}
-                                onChange={(e) => setRecipientAddress(e.target.value)}
-                                placeholder="Paste ROD wallet address"
-                                className="bg-slate-800 border-slate-700 text-white"
-                            />
+                            {recipientOptions.length > 0 ? (
+                                <select
+                                    value={recipientAddress}
+                                    onChange={(e) => setRecipientAddress(e.target.value)}
+                                    className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                                >
+                                    <option value="">Select a contact</option>
+                                    {recipientOptions.map((option) => (
+                                        <option key={option.address} value={option.address}>{option.label} — {shortAddress(option.address)}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <Input
+                                    value={recipientAddress}
+                                    onChange={(e) => setRecipientAddress(e.target.value)}
+                                    placeholder="Paste ROD wallet address"
+                                    className="bg-slate-800 border-slate-700 text-white"
+                                />
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-300">Subject</Label>
