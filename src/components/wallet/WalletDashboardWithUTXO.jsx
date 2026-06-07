@@ -50,24 +50,40 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
 
   useEffect(() => {
     const shortcut = document.getElementById('raw-utxo-dashboard-shortcut');
-    const originalTabs = Array.from(shortcut?.parentElement?.querySelectorAll('button') || []).filter((button) => button !== shortcut);
+    const normalTabs = Array.from(shortcut?.parentElement?.querySelectorAll('button') || []).filter((button) => button !== shortcut);
     const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
 
     shortcut?.setAttribute('data-state', showUtxos ? 'active' : 'inactive');
     panels.forEach((panel) => {
+      panel.hidden = showUtxos;
       panel.style.display = showUtxos ? 'none' : '';
     });
 
-    const closeUtxos = () => setShowUtxos(false);
-    originalTabs.forEach((button) => button.addEventListener('click', closeUtxos));
+    if (panelTarget) {
+      panelTarget.hidden = !showUtxos;
+      panelTarget.style.display = showUtxos ? 'block' : 'none';
+    }
+
+    const closeUtxos = () => {
+      setShowUtxos(false);
+      if (panelTarget) {
+        panelTarget.hidden = true;
+        panelTarget.style.display = 'none';
+      }
+    };
+
+    normalTabs.forEach((button) => button.addEventListener('pointerdown', closeUtxos, true));
+    normalTabs.forEach((button) => button.addEventListener('click', closeUtxos, true));
 
     return () => {
       panels.forEach((panel) => {
+        panel.hidden = false;
         panel.style.display = '';
       });
-      originalTabs.forEach((button) => button.removeEventListener('click', closeUtxos));
+      normalTabs.forEach((button) => button.removeEventListener('pointerdown', closeUtxos, true));
+      normalTabs.forEach((button) => button.removeEventListener('click', closeUtxos, true));
     };
-  }, [showUtxos]);
+  }, [showUtxos, panelTarget]);
 
   return (
     <>
