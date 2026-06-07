@@ -1,0 +1,50 @@
+{
+  "name": "WalletMessage",
+  "type": "object",
+  "properties": {
+    "sender_account_id": {
+      "type": "string",
+      "description": "WalletAccount id of the sender"
+    },
+    "sender_wallet_address": {
+      "type": "string",
+      "description": "Wallet address the message was sent from"
+    },
+    "sender_label": {
+      "type": "string",
+      "description": "Display label for the sender"
+    },
+    "recipient_account_id": {
+      "type": "string",
+      "description": "WalletAccount id of the recipient"
+    },
+    "recipient_wallet_address": {
+      "type": "string",
+      "description": "Wallet address the message was sent to"
+    },
+    "recipient_label": {
+      "type": "string",
+      "description": "Display label for the recipient wallet address"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Optional message subject"
+    },
+    "body": {
+      "type": "string",
+      "description": "Message text"
+    },
+    "read_by_recipient": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the recipient has opened the message"
+    }
+  },
+  "required": [
+    "sender_account_id",
+    "sender_wallet_address",
+    "recipient_account_id",
+    "recipient_wallet_address",
+    "body"
+  ]
+}

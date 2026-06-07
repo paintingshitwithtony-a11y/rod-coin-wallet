@@ -29,6 +29,7 @@ import NodeStatusCard from './NodeStatusCard';
 import AdminRPCStatusIndicator from './AdminRPCStatusIndicator';
 import DashboardRPCConsole from './DashboardRPCConsole';
 import AddressImportDiagnostics from './AddressImportDiagnostics';
+import WalletMessages from './WalletMessages';
 import BalanceTrendChart from './BalanceTrendChart';
 import AdminDebugButtons from './AdminDebugButtons';
 import MobileWalletTabs from './MobileWalletTabs';
@@ -1287,6 +1288,9 @@ export default function WalletDashboard({ account, onLogout }) {
                     <TabsTrigger value="console" onClick={() => handleTabChange('console')} className="data-[state=active]:bg-purple-600">
                         RPC Console
                     </TabsTrigger>
+                    <TabsTrigger value="messages" onClick={() => handleTabChange('messages')} className="data-[state=active]:bg-purple-600">
+                        Messages
+                    </TabsTrigger>
                         </>
                         }
                                 </TabsList>
@@ -1836,6 +1840,14 @@ export default function WalletDashboard({ account, onLogout }) {
 
                 <TabsContent value="console" className="mt-6">
                     <RPCConsole account={account} />
+                </TabsContent>
+
+                <TabsContent value="messages" className="mt-6">
+                    <WalletMessages
+                        account={account}
+                        addresses={addresses}
+                        currentWallet={currentWallet}
+                    />
                 </TabsContent>
                 </Tabs>
 
