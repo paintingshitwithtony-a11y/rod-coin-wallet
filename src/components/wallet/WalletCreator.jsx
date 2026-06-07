@@ -365,7 +365,8 @@ export default function WalletCreator({ account, onClose, onCreated }) {
 
                             <Button
                                 onClick={handleFinish}
-                                className={`w-full ${allConfirmed ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                disabled={!allConfirmed}
+                                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 <Shield className="w-4 h-4 mr-2" />
                                 I've Saved Everything — Finish Setup
