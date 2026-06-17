@@ -2,52 +2,61 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
     try {
-        const rpcRequest = {
-            jsonrpc: "1.0",
-            id: 1,
-            method: "getbalance",
-            params: []
+        const base44 = createClientFromRequest(req);
+        const user = await base44.auth.me();
+
+        if (!user) {
+            return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Get first active config without heavy lookups
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
+        const config = configs[0];
+
+        if (!config) {
+            return Response.json({ success: false, error: 'No config' }, { status: 400 });
+        }
+
+        const protocol = config.use_ssl ? 'https' : 'http';
+        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+
+        const headers = {
+            'Content-Type': 'application/json'
         };
 
-        const relayResponse = await fetch(
-            "https://rodcoinwallet.com/api/apps/695c1217b1d1db20f67a77f2/functions/rpcRelay",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": req.headers.get("Authorization") || req.headers.get("authorization") || ""
-                },
-                body: JSON.stringify(rpcRequest)
-            }
-        );
-
-        if (!relayResponse.ok) {
-            return Response.json({ 
-                success: false, 
-                error: `Relay HTTP error: ${relayResponse.status}` 
-            }, { status: 500 });
+        if (config.username && config.password) {
+            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
         }
 
-        const data = await relayResponse.json();
+        const rpcResponse = await fetch(rpcUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                jsonrpc: '1.0',
+                id: 1,
+                method: 'getbalance',
+                params: []
+            }),
+            signal: AbortSignal.timeout(15000)
+        });
 
-        if (data.error) {
-            return Response.json({ success: false, error: data.error }, { status: 500 });
+        const rpcData = await rpcResponse.json();
+
+        if (rpcData.error) {
+            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
         }
 
-        const balance = parseFloat(Number(data.result || 0).toFixed(8));
+        const balance = parseFloat(Number(rpcData.result || 0).toFixed(8));
 
         return Response.json({
             success: true,
             balance: balance,
-            utxoCount: "Via rpcRelay",
-            note: "Real balance from ROD node"
+            utxoCount: 'Real',
+            note: 'Direct call'
         });
 
     } catch (error) {
-        console.error("getRPCBalance error:", error);
-        return Response.json({ 
-            success: false, 
-            error: error.message || "Unknown error" 
-        }, { status: 500 });
+        console.error('getRPCBalance FULL ERROR:', error);
+        return Response.json({ success: false, error: error.message || 'Unknown' }, { status: 500 });
     }
 });
