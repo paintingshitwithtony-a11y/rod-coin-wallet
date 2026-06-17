@@ -4,66 +4,63 @@ Deno.serve(async (req) => {
     console.log('=== getRPCBalance START ===');
     console.log('Method:', req.method);
     console.log('URL:', req.url);
+    console.log('Content-Length:', req.headers.get('Content-Length'));
 
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-        if (!user) {
-            return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-        }
+        if (!user) return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-        // Get active RPC config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
         const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
         const headers = { 'Content-Type': 'application/json' };
-
         if (config.username && config.password) {
             const auth = btoa(`${config.username}:${config.password}`);
             headers['Authorization'] = `Basic ${auth}`;
         }
 
-        // === Get address from frontend (POST body or query) ===
+        // === ROBUST ADDRESS EXTRACTION ===
         let address = null;
 
-        // Try query params first
+        // 1. From query params
         const url = new URL(req.url);
         address = url.searchParams.get('address');
 
-        // Try POST body (this is what the frontend is using)
+        // 2. From body (most likely)
         if (!address) {
             try {
                 const bodyText = await req.text();
-                console.log('Raw request body:', bodyText);
-                
+                console.log('📦 Raw body received:', bodyText);
+
                 if (bodyText && bodyText.trim() !== '') {
                     const body = JSON.parse(bodyText);
-                    address = body.address || body.Address || body.walletAddress;
-                    console.log('Parsed body address:', address);
+                    console.log('📦 Parsed body:', body);
+                    
+                    address = body.address || body.Address || body.walletAddress || body.accountAddress;
                 }
-            } catch (e) {
-                console.log('Body parse failed:', e.message);
+            } catch (parseErr) {
+                console.log('Body parse error:', parseErr.message);
             }
         }
 
+        console.log('Final address used:', address);
+
         if (!address) {
-            console.log('❌ No address received from frontend');
             return Response.json({ 
                 success: false, 
                 error: 'Address parameter is required' 
             }, { status: 400 });
         }
 
-        console.log('✅ Using address:', address);
-
-        // Call ROD RPC
+        // === RPC CALL ===
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -79,7 +76,7 @@ Deno.serve(async (req) => {
         console.log('RPC HTTP Status:', rpcResponse.status);
 
         const rpcData = await rpcResponse.json();
-        console.log('RPC Response:', JSON.stringify(rpcData));
+        console.log('RPC Data:', JSON.stringify(rpcData));
 
         if (rpcData.error) {
             return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
@@ -99,7 +96,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        console.error('💥 getRPCBalance FULL ERROR:', error);
+        console.error('💥 FULL ERROR:', error);
         return Response.json({ 
             success: false, 
             error: error.message || 'Unknown error' 
