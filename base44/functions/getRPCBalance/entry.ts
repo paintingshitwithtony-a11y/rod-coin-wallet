@@ -8,14 +8,11 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Your Mining Wallet address (Primary)
-        const address = "RQMWaKapFi3vqmrgz7Q8wu8we8L97UQyJ2";
-
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
@@ -24,6 +21,31 @@ Deno.serve(async (req) => {
         const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
             headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
+        }
+
+        // Get address
+        let address = null;
+        try {
+            const body = await req.json();
+            address = body.address || body.Address || body.walletAddress;
+        } catch (e) {
+            try {
+                const text = await req.text();
+                if (text) {
+                    const parsed = JSON.parse(text);
+                    address = parsed.address || parsed.Address || parsed.walletAddress;
+                }
+            } catch (_) {}
+        }
+
+        if (!address) {
+            // Fallback to primary address
+            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id || user.account_id });
+            if (accounts.length > 0) address = accounts[0].wallet_address;
+        }
+
+        if (!address) {
+            return Response.json({ success: false, error: 'No address found' }, { status: 400 });
         }
 
         const rpcResponse = await fetch(rpcUrl, {
@@ -53,12 +75,11 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             balance: parseFloat(balance.toFixed(8)),
-            utxoCount: utxos.length,
-            addressUsed: address
+            utxoCount: utxos.length
         });
 
     } catch (error) {
         console.error('getRPCBalance error:', error);
-        return Response.json({ success: false, error: error.message || 'Failed to fetch balance' }, { status: 500 });
+        return Response.json({ success: false, error: error.message || 'Connection failed' }, { status: 500 });
     }
 });
