@@ -9,39 +9,49 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Build a simple getbalance request
-        const rpcRequest = {
-            jsonrpc: '1.0',
-            id: 1,
-            method: 'getbalance',
-            params: []
-        };
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
+        const config = configs.find(c => c.name && c.name.toLowerCase().includes('duck')) || configs[0];
 
-        // Forward to your existing rpcProxy (which already works for the Test button)
-        const proxyUrl = 'https://rodcoinwallet.com/api/apps/695c1217b1d1db20f67a77f2/functions/rpcProxy';
-
-        const proxyResponse = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': req.headers.get('Authorization') || req.headers.get('authorization') || ''
-            },
-            body: JSON.stringify(rpcRequest)
-        });
-
-        const data = await proxyResponse.json();
-
-        if (data.error) {
-            return Response.json({ success: false, error: data.error }, { status: 500 });
+        if (!config) {
+            return Response.json({ success: false, error: 'No active config' }, { status: 400 });
         }
 
-        const balance = parseFloat(Number(data.result || 0).toFixed(8));
+        const protocol = config.use_ssl ? 'https' : 'http';
+        const rpcUrl = protocol + '://' + config.host + ':' + config.port;
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (config.username && config.password) {
+            headers['Authorization'] = 'Basic ' + btoa(config.username + ':' + config.password);
+        }
+
+        const rpcResponse = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                jsonrpc: '1.0',
+                id: 1,
+                method: 'getbalance',
+                params: []
+            }),
+            signal: AbortSignal.timeout(15000)
+        });
+
+        const rpcData = await rpcResponse.json();
+
+        if (rpcData.error) {
+            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
+        }
+
+        const balance = parseFloat(Number(rpcData.result || 0).toFixed(8));
 
         return Response.json({
             success: true,
             balance: balance,
-            utxoCount: 'Via rpcProxy',
-            note: 'Real balance from ROD node'
+            utxoCount: 'Real',
+            note: 'Direct getbalance call'
         });
 
     } catch (error) {
