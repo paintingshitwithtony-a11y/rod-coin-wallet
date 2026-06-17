@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // 1. Try address from frontend call first (most common)
+        // 1. Get address from frontend (preferred)
         let address = null;
         try {
             const body = await req.json();
@@ -23,29 +23,43 @@ Deno.serve(async (req) => {
             } catch (_) {}
         }
 
-        // 2. Safe fallback: Get main wallet address for THIS user only
+        // 2. Safe multi-source fallback (read-only)
         if (!address) {
             try {
+                // Try main WalletAccount
                 const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
                     id: user.id || user.account_id 
                 });
                 
-                if (accounts.length > 0 && accounts[0].wallet_address) {
-                    address = accounts[0].wallet_address;
+                if (accounts.length > 0) {
+                    const acc = accounts[0];
+                    address = acc.wallet_address || 
+                             (acc.additional_addresses && acc.additional_addresses[0]?.address) ||
+                             null;
+                }
+
+                // If still no address, try any Wallet record for this account
+                if (!address) {
+                    const wallets = await base44.asServiceRole.entities.Wallet.filter({ 
+                        account_id: user.id || user.account_id 
+                    }, '-created_date', 1);
+                    if (wallets.length > 0) {
+                        address = wallets[0].wallet_address;
+                    }
                 }
             } catch (fallbackErr) {
-                console.error('Fallback query failed:', fallbackErr);
+                console.error('Address fallback error:', fallbackErr);
             }
         }
 
         if (!address) {
             return Response.json({ 
                 success: false, 
-                error: 'No address found for this account. Please generate or import an address first.' 
+                error: 'No address found. Please generate or import an address first.' 
             }, { status: 400 });
         }
 
-        // Load active RPC config
+        // Load RPC config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
@@ -62,7 +76,7 @@ Deno.serve(async (req) => {
             headers['Authorization'] = 'Basic ' + auth;
         }
 
-        // Call ROD node
+        // RPC Call
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers: headers,
