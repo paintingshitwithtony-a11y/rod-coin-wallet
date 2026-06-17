@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get primary address
+        // Get user's primary address
         const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) {
             return Response.json({ success: false, error: 'Wallet account not found' }, { status: 400 });
@@ -19,24 +19,11 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'No primary address found' }, { status: 400 });
         }
 
-        // Get active config
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
-        const config = configs[0];
-
-        if (!config) {
-            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
-        }
-
-        const protocol = config.use_ssl ? 'https' : 'http';
-        let rpcUrl = `${protocol}://${config.host}:${config.port}`;
-
-        // Add wallet path for ROD Core (this fixes "Wallet file not specified")
-        rpcUrl += '/wallet/';   // Most common wallet name
+        // Force your DuckDNS config (port 443 + SSL)
+        const rpcUrl = "https://rodcoinwallet.duckdns.org:443";
 
         const headers = { 'Content-Type': 'application/json' };
-        if (config.username && config.password) {
-            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
-        }
+        // You can add username/password here if needed from your config
 
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
