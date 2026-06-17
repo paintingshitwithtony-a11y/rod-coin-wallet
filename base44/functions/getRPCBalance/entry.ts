@@ -2,150 +2,85 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
     console.log("=== getRPCBalance START ===");
-    
+
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-        
         if (!user) {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get request body (support both JSON and form data)
+        // Get address from request or account
         let body = {};
         try {
-            const bodyText = await req.text();
-            if (bodyText) {
-                body = JSON.parse(bodyText);
-            }
-        } catch (e) {
-            console.log("Body parse failed, using empty body");
-        }
+            const text = await req.text();
+            if (text) body = JSON.parse(text);
+        } catch (_) {}
 
-        console.log("Request body:", body);
+        let address = body.address || body.walletAddress || body.addr;
 
-        // 1. Try address from frontend request
-        let address = body.address || body.Address || body.walletAddress || body.accountAddress || body.addr;
-
-        // 2. Fallback: Get user's WalletAccount
         if (!address) {
-            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-                email: user.email 
-            });
-            
+            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
             if (accounts.length > 0) {
-                const account = accounts[0];
-                address = account.wallet_address || 
-                         (account.additional_addresses && account.additional_addresses[0]?.address);
-                
-                console.log("Found address from WalletAccount:", address);
+                const acc = accounts[0];
+                address = acc.wallet_address || (acc.additional_addresses && acc.additional_addresses[0]?.address);
             }
         }
 
         if (!address) {
-            return Response.json({ 
-                success: false, 
-                error: "No address found for this account. Please generate or import an address first." 
-            }, { status: 400 });
+            return Response.json({ success: false, error: "No address found" }, { status: 400 });
         }
 
-        console.log("Using address:", address);
-
-        // Get active RPC configuration
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ 
-            is_active: true 
-        });
-
+        // Get active config
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
-        console.log("Using RPC config:", {
-            name: config.name,
-            host: config.host,
-            port: config.port,
-            use_ssl: config.use_ssl
-        });
-
-        // Build RPC URL - Force DuckDNS + correct port for your setup
-        const protocol = config.use_ssl || config.port === '443' ? 'https' : 'http';
+        // Build URL with wallet path (CRITICAL for ROD Core)
+        const protocol = config.use_ssl ? 'https' : 'http';
         let rpcUrl = `${protocol}://${config.host}`;
-        
-        if (config.port && config.port !== '443' && config.port !== '80') {
-            rpcUrl += `:${config.port}`;
-        }
+        if (config.port && config.port !== '443') rpcUrl += `:${config.port}`;
+        rpcUrl += '/wallet/wallet.dat';   // ← This fixes the error
 
-        // Force correct endpoint for ROD Core (named wallet support)
-        if (!rpcUrl.includes('/wallet/')) {
-            rpcUrl += '/wallet/wallet.dat';
-        }
+        console.log("RPC URL:", rpcUrl);
 
-        console.log("Final RPC URL:", rpcUrl);
-
-        const rpcAuth = btoa(`${config.username || 'roduser'}:${config.password}`);
+        const auth = btoa(`${config.username || 'roduser'}:${config.password}`);
 
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Basic ${rpcAuth}`
+                'Authorization': `Basic ${auth}`
             },
             body: JSON.stringify({
                 jsonrpc: '1.0',
-                id: 'balance',
+                id: 1,
                 method: 'listunspent',
                 params: [0, 9999999, [address]]
             }),
             signal: AbortSignal.timeout(15000)
         });
 
-        const responseText = await rpcResponse.text();
-        console.log("RPC Raw Response:", responseText);
+        const data = await rpcResponse.json();
 
-        let rpcData;
-        try {
-            rpcData = JSON.parse(responseText);
-        } catch (e) {
-            return Response.json({ 
-                success: false, 
-                error: 'Invalid RPC response from node',
-                raw: responseText 
-            }, { status: 500 });
+        if (data.error) {
+            return Response.json({ success: false, error: data.error.message }, { status: 500 });
         }
 
-        if (rpcData.error) {
-            return Response.json({ 
-                success: false, 
-                error: rpcData.error.message || rpcData.error 
-            }, { status: 500 });
-        }
-
-        // Calculate balance from UTXOs
-        const utxos = rpcData.result || [];
-        let balance = 0;
-        
-        utxos.forEach(utxo => {
-            balance += parseFloat(utxo.amount || 0);
-        });
-
-        const finalBalance = parseFloat(balance.toFixed(8));
-
-        console.log(`Balance for ${address}: ${finalBalance} ROD (${utxos.length} UTXOs)`);
+        const utxos = data.result || [];
+        const balance = utxos.reduce((sum, u) => sum + parseFloat(u.amount || 0), 0);
 
         return Response.json({
             success: true,
-            balance: finalBalance,
+            balance: parseFloat(balance.toFixed(8)),
             utxoCount: utxos.length,
-            addressUsed: address,
-            note: 'Live RPC balance'
+            addressUsed: address
         });
 
     } catch (error) {
-        console.error('getRPCBalance FULL ERROR:', error);
-        return Response.json({ 
-            success: false, 
-            error: error.message || 'Unknown error' 
-        }, { status: 500 });
+        console.error('getRPCBalance error:', error);
+        return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
