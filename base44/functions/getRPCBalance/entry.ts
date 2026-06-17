@@ -8,63 +8,49 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // 1. Get address from frontend (preferred)
         let address = null;
+        let debug = { userId: user.id, sources: [] };
+
+        // Try frontend payload
         try {
             const body = await req.json();
-            address = body.address || body.Address || body.walletAddress || body.accountAddress;
+            address = body.address || body.Address || body.walletAddress;
+            if (address) debug.sources.push('frontend_json');
         } catch (e) {
             try {
                 const text = await req.text();
-                if (text && text.trim() !== '') {
+                if (text) {
                     const parsed = JSON.parse(text);
                     address = parsed.address || parsed.Address || parsed.walletAddress;
+                    if (address) debug.sources.push('frontend_text');
                 }
             } catch (_) {}
         }
 
-        // 2. Safe multi-source fallback (read-only)
+        // Fallback - read user's main address
         if (!address) {
-            try {
-                // Try main WalletAccount
-                const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-                    id: user.id || user.account_id 
-                });
-                
-                if (accounts.length > 0) {
-                    const acc = accounts[0];
-                    address = acc.wallet_address || 
-                             (acc.additional_addresses && acc.additional_addresses[0]?.address) ||
-                             null;
-                }
-
-                // If still no address, try any Wallet record for this account
-                if (!address) {
-                    const wallets = await base44.asServiceRole.entities.Wallet.filter({ 
-                        account_id: user.id || user.account_id 
-                    }, '-created_date', 1);
-                    if (wallets.length > 0) {
-                        address = wallets[0].wallet_address;
-                    }
-                }
-            } catch (fallbackErr) {
-                console.error('Address fallback error:', fallbackErr);
+            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id || user.account_id });
+            if (accounts.length > 0) {
+                address = accounts[0].wallet_address;
+                debug.used_account = true;
+                debug.account_data = { has_wallet_address: !!accounts[0].wallet_address };
             }
         }
 
         if (!address) {
             return Response.json({ 
                 success: false, 
-                error: 'No address found. Please generate or import an address first.' 
+                error: 'No address found',
+                debug: debug 
             }, { status: 400 });
         }
 
-        // Load RPC config
+        // RPC Config & Call
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
@@ -72,14 +58,12 @@ Deno.serve(async (req) => {
 
         const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
-            const auth = btoa(config.username + ':' + config.password);
-            headers['Authorization'] = 'Basic ' + auth;
+            headers['Authorization'] = 'Basic ' + btoa(config.username + ':' + config.password);
         }
 
-        // RPC Call
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
-            headers: headers,
+            headers,
             body: JSON.stringify({
                 jsonrpc: '1.0',
                 id: 1,
@@ -105,11 +89,12 @@ Deno.serve(async (req) => {
             success: true,
             balance: parseFloat(balance.toFixed(8)),
             utxoCount: utxos.length,
-            note: 'Live UTXO balance'
+            addressUsed: address,
+            debug: debug
         });
 
     } catch (error) {
         console.error('getRPCBalance error:', error);
-        return Response.json({ success: false, error: error.message || 'Failed to fetch balance' }, { status: 500 });
+        return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
     }
 });
