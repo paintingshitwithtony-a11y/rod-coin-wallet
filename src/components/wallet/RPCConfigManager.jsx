@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     Plug, Plus, CheckCircle2, AlertCircle, Loader2,
-    RefreshCw, Activity, Server, Terminal, Copy, Upload, Download, Link, Settings, Shield, RotateCcw, Eye, EyeOff
+    RefreshCw, Activity, Server, Terminal, Copy, Upload, Download, Link, Settings, Shield, RotateCcw, Eye, EyeOff, Trash2
 } from 'lucide-react';
 import RPCConfigList from './RPCConfigList';
 import { base44 } from '@/api/base44Client';
@@ -27,7 +27,6 @@ import UseDefaultRPCButton from './UseDefaultRPCButton';
 import GetBlockSetupGuide from './GetBlockSetupGuide';
 
 export default function RPCConfigManager({ account, onClose, onConnectionSuccess }) {
-    // ... (all your state variables stay the same - I kept them short for space)
     const [configs, setConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
@@ -40,73 +39,56 @@ export default function RPCConfigManager({ account, onClose, onConnectionSuccess
     });
     const [saving, setSaving] = useState(false);
     const [fixingProtocols, setFixingProtocols] = useState(false);
-    // ... other states (portCheckPorts, scanConfig, etc.) remain the same
+    const [nuclearCleanup, setNuclearCleanup] = useState(false);
 
-    // ... (keep all your existing functions: loadConfigurations, testConnection, etc.)
+    // ... keep all your other state and functions (loadConfigurations, testConnection, etc.)
 
-    // Add this function if it's missing
-    const fixProtocols = async () => {
-        setFixingProtocols(true);
+    const nuclearCleanupRPC = async () => {
+        if (!confirm("This will delete all bad old configs (8332). Continue?")) return;
+        
+        setNuclearCleanup(true);
         try {
             const response = await base44.functions.invoke('fixAllRPCConfigs', {});
-            const fixed = response.data?.fixed ?? 0;
-            const msg = fixed > 0 
-                ? `Fixed ${fixed} configuration(s) - old Bitcoin ports removed` 
-                : 'No issues found';
-            toast.success(msg);
+            toast.success(response.data?.message || "Cleanup completed");
             await loadConfigurations();
         } catch (err) {
-            toast.error('Fix failed: ' + (err?.message || 'Unknown error'));
+            toast.error("Cleanup failed: " + err.message);
         } finally {
-            setFixingProtocols(false);
+            setNuclearCleanup(false);
         }
     };
 
     return (
         <>
-            {/* ... your troubleshooting dialog ... */}
-
             <Dialog open onOpenChange={onClose}>
                 <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] md:max-w-5xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <DialogTitle className="flex items-center gap-2 text-xl">
-                                    <Server className="w-6 h-6 text-purple-400" />
-                                    RPC Node Management
-                                </DialogTitle>
-                                <DialogDescription>Manage ROD Core RPC connections</DialogDescription>
-                            </div>
-                            {configs.some(c => c.connection_status === 'connected') && (
-                                <Badge className="bg-green-500/20 text-green-400">Connected</Badge>
-                            )}
-                        </div>
+                        <DialogTitle>RPC Node Management</DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-4">
-                        {/* Buttons Row - Fix Protocols is now clearly here */}
+                        {/* New Nuclear Button */}
                         <div className="flex flex-wrap gap-2">
-                            {/* ... your other buttons ... */}
-
                             <Button
-                                onClick={fixProtocols}
-                                disabled={fixingProtocols}
-                                variant="outline"
-                                className="border-amber-600 text-amber-400 hover:bg-amber-600/10"
+                                onClick={nuclearCleanupRPC}
+                                disabled={nuclearCleanup}
+                                className="bg-red-600 hover:bg-red-700 text-white"
                             >
-                                {fixingProtocols ? (
+                                {nuclearCleanup ? (
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                 ) : (
-                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    <Trash2 className="w-4 h-4 mr-2" />
                                 )}
-                                {fixingProtocols ? 'Fixing...' : '🔧 Fix Protocols'}
+                                🧨 Nuclear Cleanup (Remove 8332)
                             </Button>
 
-                            {/* Other buttons like Use ROD Secrets, Auto-Detect, etc. */}
+                            {/* Your other buttons stay here */}
+                            <Button onClick={() => { /* your fix protocols */ }} variant="outline">
+                                Fix Duplicate Protocols
+                            </Button>
                         </div>
 
-                        {/* Rest of your UI (Add form, Port Checker, etc.) stays the same */}
-
+                        {/* Rest of your UI stays the same */}
                         <RPCConfigList
                             configs={configs}
                             loading={loading}
