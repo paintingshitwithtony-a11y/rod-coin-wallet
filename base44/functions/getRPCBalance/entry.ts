@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
             headers['Authorization'] = 'Basic ' + auth;
         }
 
-        // Get address from Base44 invoke
+        // Get address from request (Base44 invoke)
         let address = null;
         try {
             const body = await req.json();
@@ -40,6 +40,14 @@ Deno.serve(async (req) => {
                     address = body.address || body.Address || body.walletAddress;
                 }
             } catch (_) {}
+        }
+
+        // If no address provided, use the main wallet address from the logged-in account
+        if (!address) {
+            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id || user.account_id });
+            if (accounts.length > 0) {
+                address = accounts[0].wallet_address;
+            }
         }
 
         if (!address) {
