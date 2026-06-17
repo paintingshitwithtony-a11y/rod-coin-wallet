@@ -4,31 +4,54 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
+        
         if (!user) {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Find WalletAccount using email (most reliable)
-        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-            email: user.email 
-        });
+        // Debug user object
+        console.log('User from auth.me():', JSON.stringify(user, null, 2));
+
+        // Try multiple ways to find WalletAccount
+        let accounts = [];
+        let debug = { user_email: user.email, user_id: user.id };
+
+        // Try by email
+        if (user.email) {
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+            debug.tried_email = true;
+            debug.accounts_found_by_email = accounts.length;
+        }
+
+        // Try by id if email failed
+        if (accounts.length === 0 && (user.id || user.account_id)) {
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
+                id: user.id || user.account_id 
+            });
+            debug.tried_id = true;
+            debug.accounts_found_by_id = accounts.length;
+        }
 
         if (accounts.length === 0) {
-            return Response.json({ success: false, error: 'Wallet account not found' }, { status: 400 });
+            return Response.json({ 
+                success: false, 
+                error: 'Wallet account not found',
+                debug: debug 
+            }, { status: 400 });
         }
 
         const address = accounts[0].wallet_address;
 
         if (!address) {
-            return Response.json({ success: false, error: 'No primary address found in wallet account' }, { status: 400 });
+            return Response.json({ success: false, error: 'No wallet_address in account record' }, { status: 400 });
         }
 
-        // Get active RPC config
+        // Proceed with RPC call
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
@@ -39,7 +62,6 @@ Deno.serve(async (req) => {
             headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
         }
 
-        // Call ROD node
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -73,6 +95,6 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('getRPCBalance error:', error);
-        return Response.json({ success: false, error: error.message || 'Failed to fetch balance' }, { status: 500 });
+        return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
     }
 });
