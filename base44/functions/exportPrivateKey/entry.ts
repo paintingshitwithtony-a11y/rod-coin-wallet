@@ -4,19 +4,29 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         const { address, passphrase = "" } = await req.json();
-
         if (!address) return Response.json({ error: 'Address is required' }, { status: 400 });
 
-        // Find the wallet
+        // Use service role to read wallet data
         const wallets = await base44.asServiceRole.entities.Wallet.filter({ wallet_address: address });
-        if (wallets.length === 0) return Response.json({ error: 'Wallet not found' }, { status: 404 });
+        if (wallets.length === 0) {
+            return Response.json({ error: 'Wallet not found or access denied' }, { status: 404 });
+        }
 
         const wallet = wallets[0];
 
-        // For now, return encrypted key (we can add decryption later if needed)
+        // Basic ownership check
+        if (wallet.account_id) {
+            const account = await base44.asServiceRole.entities.WalletAccount.get(wallet.account_id);
+            if (account.email !== user.email) {
+                return Response.json({ error: 'Access denied' }, { status: 403 });
+            }
+        }
+
         return Response.json({
             success: true,
             wallet_address: wallet.wallet_address,
