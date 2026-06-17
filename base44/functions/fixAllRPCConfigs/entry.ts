@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
+    console.log("=== FIX ALL RPC CONFIGS - AGGRESSIVE MODE ===");
+
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
@@ -12,23 +14,28 @@ Deno.serve(async (req) => {
         let deleted = 0;
         let fixed = 0;
 
+        console.log(`Found ${allConfigs.length} total configs`);
+
         for (const config of allConfigs) {
             const portStr = String(config.port || '').trim();
             const host = String(config.host || '').trim();
+            const name = config.name || '';
 
-            // Detect and DELETE bad old Bitcoin configs
+            console.log(`Checking: ${name} | ${host}:${portStr}`);
+
+            // DELETE bad Bitcoin config
             if (portStr === '8332' || portStr === '8333' || host.includes('64.188.22.190')) {
-                console.log(`🗑️ Deleting bad config: ${config.name} (${host}:${portStr})`);
+                console.log(`🗑️ DELETING bad config: ${name} (${host}:${portStr})`);
                 await base44.asServiceRole.entities.RPCConfiguration.delete(config.id);
                 deleted++;
                 continue;
             }
 
-            // Fix good configs (force ROD settings)
+            // Fix port/SSL
             let needsUpdate = false;
             const updates = {};
 
-            if (['9766', '9767', '11999', ''].includes(portStr)) {
+            if (['9766','9767','11999',''].includes(portStr)) {
                 updates.port = '443';
                 needsUpdate = true;
             }
@@ -42,12 +49,16 @@ Deno.serve(async (req) => {
             if (needsUpdate) {
                 await base44.asServiceRole.entities.RPCConfiguration.update(config.id, updates);
                 fixed++;
+                console.log(`Fixed config ${name}`);
             }
         }
 
+        const message = `✅ Deleted ${deleted} bad configs | Fixed ${fixed} others`;
+
+        console.log(message);
         return Response.json({
             success: true,
-            message: `✅ Cleaned ${deleted} bad configs | Fixed ${fixed} others`,
+            message,
             deleted,
             fixed,
             total: allConfigs.length
