@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get user's primary address
+        // Get primary address
         const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) {
             return Response.json({ success: false, error: 'Wallet account not found' }, { status: 400 });
@@ -19,23 +19,24 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'No primary address found' }, { status: 400 });
         }
 
-        // Get active RPC config
+        // Get active config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+        let rpcUrl = `${protocol}://${config.host}:${config.port}`;
+
+        // Add wallet path for ROD Core (this fixes "Wallet file not specified")
+        rpcUrl += '/wallet/';   // Most common wallet name
 
         const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
             headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
         }
-
-        console.log('Calling RPC:', rpcUrl, 'for address:', address);
 
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
@@ -49,18 +50,7 @@ Deno.serve(async (req) => {
             signal: AbortSignal.timeout(30000)
         });
 
-        const responseText = await rpcResponse.text();
-        console.log('RPC Raw Response:', responseText);
-
-        let rpcData;
-        try {
-            rpcData = JSON.parse(responseText);
-        } catch (parseErr) {
-            return Response.json({ 
-                success: false, 
-                error: 'Invalid JSON from RPC node. Check your tunnel/config.' 
-            }, { status: 500 });
-        }
+        const rpcData = await rpcResponse.json();
 
         if (rpcData.error) {
             return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
@@ -79,7 +69,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        console.error('getRPCBalance FULL ERROR:', error);
+        console.error('getRPCBalance error:', error);
         return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
     }
 });
