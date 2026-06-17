@@ -23,13 +23,13 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
 
-        // FIXED: Add wallet path
+        // FIXED URL WITH WALLET PATH
         const protocol = config.use_ssl ? 'https' : 'http';
         let rpcUrl = `${protocol}://${config.host}`;
         if (config.port && config.port !== '443') rpcUrl += `:${config.port}`;
         rpcUrl += '/wallet/wallet.dat';
 
-        console.log("Import URL:", rpcUrl);
+        console.log("Import RPC URL:", rpcUrl);
 
         const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
                 if (success) successCount++;
                 results.push({ address: item.address, success });
             } catch (err) {
-                results.push({ address: item.address, success: false });
+                results.push({ address: item.address, success: false, error: err.message });
             }
         }
 
@@ -77,11 +77,11 @@ Deno.serve(async (req) => {
             imported: successCount,
             total: addressesToImport.length,
             results,
-            message: `Imported ${successCount} addresses`
+            message: `Imported ${successCount}/${addressesToImport.length} addresses`
         });
 
     } catch (error) {
-        console.error('Import error:', error);
+        console.error('ImportAllAddresses error:', error);
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
