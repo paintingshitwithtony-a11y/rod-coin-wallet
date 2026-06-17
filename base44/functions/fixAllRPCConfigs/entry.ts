@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
-    console.log("=== EMERGENCY RPC CLEANUP RUNNING ===");
+    console.log("=== SAFE RPC CLEANUP ===");
 
     try {
         const base44 = createClientFromRequest(req);
@@ -10,61 +10,48 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Admin access required' }, { status: 403 });
         }
 
-        const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list('', 1000);
         let deleted = 0;
         let fixed = 0;
 
-        console.log(`Total configs found: ${allConfigs.length}`);
-
+        // 1. Clean bad RPCConfiguration entries
+        const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list('', 1000);
         for (const config of allConfigs) {
             const portStr = String(config.port || '').trim();
             const host = String(config.host || '').trim();
-            const name = config.name || 'Unnamed';
 
-            console.log(`Checking: ${name} | ${host}:${portStr}`);
-
-            // === EMERGENCY DELETE BAD CONFIGS ===
             if (portStr === '8332' || portStr === '8333' || host.includes('64.188.22.190')) {
-                console.log(`🗑️ DELETING bad Bitcoin config: ${name} (${host}:${portStr})`);
+                console.log(`🗑️ Deleting bad config: ${config.name || 'Unnamed'} (${host}:${portStr})`);
                 await base44.asServiceRole.entities.RPCConfiguration.delete(config.id);
                 deleted++;
-                continue;
             }
+        }
 
-            // Fix good configs
-            let needsUpdate = false;
-            const updates = {};
+        // 2. Fix WalletAccount RPC fields (does NOT delete wallets)
+        const allAccounts = await base44.asServiceRole.entities.WalletAccount.list('', 1000);
+        for (const account of allAccounts) {
+            const rpcPort = String(account.rpc_port || '').trim();
+            const rpcHost = String(account.rpc_host || '').trim();
 
-            if (['9766', '9767', '11999', ''].includes(portStr)) {
-                updates.port = '443';
-                needsUpdate = true;
-            }
-
-            const isLocal = host === 'localhost' || host === '127.0.0.1';
-            if (config.use_ssl !== !isLocal) {
-                updates.use_ssl = !isLocal;
-                needsUpdate = true;
-            }
-
-            if (needsUpdate) {
-                await base44.asServiceRole.entities.RPCConfiguration.update(config.id, updates);
+            if (rpcPort === '8332' || rpcHost.includes('64.188.22.190')) {
+                console.log(`Fixing WalletAccount ${account.id}`);
+                await base44.asServiceRole.entities.WalletAccount.update(account.id, {
+                    rpc_host: 'rodcoinwallet.duckdns.org',
+                    rpc_port: '443',
+                    rpc_username: 'roduser'
+                });
                 fixed++;
             }
         }
 
-        const message = `✅ Deleted ${deleted} bad configs | Fixed ${fixed} others`;
-
-        console.log(message);
         return Response.json({
             success: true,
-            message,
+            message: `✅ Deleted ${deleted} bad RPC configs | Fixed ${fixed} WalletAccount records`,
             deleted,
-            fixed,
-            total: allConfigs.length
+            fixed
         });
 
     } catch (error) {
-        console.error('Emergency cleanup error:', error);
+        console.error('Safe cleanup error:', error);
         return Response.json({ error: error.message, success: false }, { status: 500 });
     }
 });
