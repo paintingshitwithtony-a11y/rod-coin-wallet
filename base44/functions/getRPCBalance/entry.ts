@@ -13,29 +13,18 @@ Deno.serve(async (req) => {
         if (accounts.length === 0) {
             return Response.json({ success: false, error: 'Wallet account not found' }, { status: 400 });
         }
-
         const address = accounts[0].wallet_address;
+
         if (!address) {
-            return Response.json({ success: false, error: 'No wallet_address in account' }, { status: 400 });
+            return Response.json({ success: false, error: 'No primary address found' }, { status: 400 });
         }
 
-        // Get active config
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
-        const config = configs[0];
-
-        if (!config) {
-            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
-        }
-
-        const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+        // Force DuckDNS + SSL on 443
+        const rpcUrl = "https://rodcoinwallet.duckdns.org:443";
 
         const headers = { 'Content-Type': 'application/json' };
-        if (config.username && config.password) {
-            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
-        }
+        // You can add auth later if needed
 
-        // RPC Call
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -48,14 +37,10 @@ Deno.serve(async (req) => {
             signal: AbortSignal.timeout(30000)
         });
 
-        if (!rpcResponse.ok) {
-            return Response.json({ success: false, error: `HTTP ${rpcResponse.status}` }, { status: 500 });
-        }
-
         const rpcData = await rpcResponse.json();
 
         if (rpcData.error) {
-            return Response.json({ success: false, error: rpcData.error.message || 'RPC error' }, { status: 500 });
+            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
         }
 
         const utxos = rpcData.result || [];
@@ -71,10 +56,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        console.error('getRPCBalance FULL ERROR:', error);
-        return Response.json({ 
-            success: false, 
-            error: error.message || 'Internal error' 
-        }, { status: 500 });
+        console.error('getRPCBalance error:', error);
+        return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
     }
 });
