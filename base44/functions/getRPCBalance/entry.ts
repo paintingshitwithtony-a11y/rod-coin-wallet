@@ -1,15 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
+    console.log('=== getRPCBalance called ===');
+    console.log('Request URL:', req.url);
+
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
+        console.log('User authenticated:', !!user);
+
         if (!user) {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
+        console.log('Active config found:', !!config);
+        console.log('Config host/port:', config?.host, config?.port);
 
         if (!config) {
             return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
@@ -17,6 +24,7 @@ Deno.serve(async (req) => {
 
         const protocol = config.use_ssl ? 'https' : 'http';
         const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+        console.log('Target RPC URL:', rpcUrl);
 
         const headers = {
             'Content-Type': 'application/json'
@@ -25,39 +33,42 @@ Deno.serve(async (req) => {
         if (config.username && config.password) {
             const auth = btoa(`${config.username}:${config.password}`);
             headers['Authorization'] = `Basic ${auth}`;
+            console.log('Basic Auth header added');
         }
 
-        // Get address from frontend
         const url = new URL(req.url);
         const address = url.searchParams.get('address');
+        console.log('Address from query:', address);
 
         if (!address) {
             return Response.json({ success: false, error: 'Address parameter is required' }, { status: 400 });
         }
 
+        const body = JSON.stringify({
+            jsonrpc: '1.0',
+            id: 1,
+            method: 'listunspent',
+            params: [0, 9999999, [address]]
+        });
+        console.log('RPC Request body:', body);
+
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-                jsonrpc: '1.0',
-                id: 1,
-                method: 'listunspent',
-                params: [0, 9999999, [address]]
-            }),
-            signal: AbortSignal.timeout(15000)
+            body,
+            signal: AbortSignal.timeout(20000)
         });
 
-        if (!rpcResponse.ok) {
-            throw new Error(`RPC HTTP error: ${rpcResponse.status}`);
-        }
+        console.log('RPC HTTP status:', rpcResponse.status, rpcResponse.statusText);
 
         const rpcData = await rpcResponse.json();
+        console.log('RPC Response:', JSON.stringify(rpcData, null, 2));
 
         if (rpcData.error) {
-            console.error('RPC Error:', rpcData.error);
+            console.error('RPC Error from node:', rpcData.error);
             return Response.json({ 
                 success: false, 
-                error: rpcData.error.message || 'RPC call failed' 
+                error: rpcData.error.message || 'RPC error' 
             }, { status: 500 });
         }
 
