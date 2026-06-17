@@ -4,54 +4,27 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-        
         if (!user) {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Debug user object
-        console.log('User from auth.me():', JSON.stringify(user, null, 2));
-
-        // Try multiple ways to find WalletAccount
-        let accounts = [];
-        let debug = { user_email: user.email, user_id: user.id };
-
-        // Try by email
-        if (user.email) {
-            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
-            debug.tried_email = true;
-            debug.accounts_found_by_email = accounts.length;
-        }
-
-        // Try by id if email failed
-        if (accounts.length === 0 && (user.id || user.account_id)) {
-            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-                id: user.id || user.account_id 
-            });
-            debug.tried_id = true;
-            debug.accounts_found_by_id = accounts.length;
-        }
-
+        // Get address
+        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) {
-            return Response.json({ 
-                success: false, 
-                error: 'Wallet account not found',
-                debug: debug 
-            }, { status: 400 });
+            return Response.json({ success: false, error: 'Wallet account not found' }, { status: 400 });
         }
 
         const address = accounts[0].wallet_address;
-
         if (!address) {
-            return Response.json({ success: false, error: 'No wallet_address in account record' }, { status: 400 });
+            return Response.json({ success: false, error: 'No wallet_address in account' }, { status: 400 });
         }
 
-        // Proceed with RPC call
+        // Get active config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
@@ -62,6 +35,7 @@ Deno.serve(async (req) => {
             headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
         }
 
+        // RPC Call
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -71,13 +45,17 @@ Deno.serve(async (req) => {
                 method: 'listunspent',
                 params: [0, 9999999, [address]]
             }),
-            signal: AbortSignal.timeout(20000)
+            signal: AbortSignal.timeout(30000)
         });
+
+        if (!rpcResponse.ok) {
+            return Response.json({ success: false, error: `HTTP ${rpcResponse.status}` }, { status: 500 });
+        }
 
         const rpcData = await rpcResponse.json();
 
         if (rpcData.error) {
-            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
+            return Response.json({ success: false, error: rpcData.error.message || 'RPC error' }, { status: 500 });
         }
 
         const utxos = rpcData.result || [];
@@ -89,12 +67,14 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             balance: parseFloat(balance.toFixed(8)),
-            utxoCount: utxos.length,
-            addressUsed: address
+            utxoCount: utxos.length
         });
 
     } catch (error) {
-        console.error('getRPCBalance error:', error);
-        return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
+        console.error('getRPCBalance FULL ERROR:', error);
+        return Response.json({ 
+            success: false, 
+            error: error.message || 'Internal error' 
+        }, { status: 500 });
     }
 });
