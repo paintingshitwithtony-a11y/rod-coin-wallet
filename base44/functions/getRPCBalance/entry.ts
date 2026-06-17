@@ -9,48 +9,37 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get active RPC config (prefer "duck")
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
-        const config = configs.find(c => c.name?.toLowerCase().includes('duck')) || configs[0];
+        // Simple request to getbalance via proxy
+        const rpcRequest = {
+            jsonrpc: '1.0',
+            id: 1,
+            method: 'getbalance',
+            params: []
+        };
 
-        if (!config) {
-            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
-        }
-
-        const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
-
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (config.username && config.password) {
-            headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
-        }
-
-        // Real getbalance call
-        const rpcResponse = await fetch(rpcUrl, {
+        // Forward to rpcProxy (which you already have working)
+        const proxyResponse = await fetch('https://rodcoinwallet.com/api/apps/695c1217b1d1db20f67a77f2/functions/rpcProxy', {
             method: 'POST',
-            headers,
-            body: JSON.stringify({
-                jsonrpc: '1.0',
-                id: 1,
-                method: 'getbalance',
-                params: []
-            }),
-            signal: AbortSignal.timeout(15000)
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': req.headers.get('Authorization') || ''
+            },
+            body: JSON.stringify(rpcRequest)
         });
 
-        const rpcData = await rpcResponse.json();
+        const data = await proxyResponse.json();
 
-        if (rpcData.error) {
-            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
+        if (data.error) {
+            return Response.json({ success: false, error: data.error }, { status: 500 });
         }
 
-        const balance = parseFloat(Number(rpcData.result || 0).toFixed(8));
+        const balance = parseFloat(Number(data.result || 0).toFixed(8));
 
         return Response.json({
             success: true,
             balance: balance,
-            utxoCount: 'Shared Wallet',
-            note: 'Real balance from ROD node'
+            utxoCount: 'Via Proxy',
+            note: 'Using rpcProxy'
         });
 
     } catch (error) {
