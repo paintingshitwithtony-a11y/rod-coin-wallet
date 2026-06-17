@@ -18,16 +18,13 @@ Deno.serve(async (req) => {
         const protocol = config.use_ssl ? 'https' : 'http';
         const rpcUrl = protocol + '://' + config.host + ':' + config.port;
 
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
+        const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
             const auth = btoa(config.username + ':' + config.password);
             headers['Authorization'] = 'Basic ' + auth;
         }
 
-        // Get address from request (Base44 invoke)
+        // Get address from frontend call
         let address = null;
         try {
             const body = await req.json();
@@ -36,22 +33,24 @@ Deno.serve(async (req) => {
             try {
                 const text = await req.text();
                 if (text) {
-                    const body = JSON.parse(text);
-                    address = body.address || body.Address || body.walletAddress;
+                    const parsed = JSON.parse(text);
+                    address = parsed.address || parsed.Address || parsed.walletAddress;
                 }
             } catch (_) {}
         }
 
-        // If no address provided, use the main wallet address from the logged-in account
+        // Fallback: Get main wallet address for this user
         if (!address) {
-            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id || user.account_id });
+            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
+                id: user.id || user.account_id 
+            });
             if (accounts.length > 0) {
                 address = accounts[0].wallet_address;
             }
         }
 
         if (!address) {
-            return Response.json({ success: false, error: 'Address is required' }, { status: 400 });
+            return Response.json({ success: false, error: 'No address found for this account' }, { status: 400 });
         }
 
         const rpcResponse = await fetch(rpcUrl, {
