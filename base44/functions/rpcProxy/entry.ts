@@ -1,111 +1,83 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-async function getAdminRPCSource(base44) {
-    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
-    for (const admin of admins) {
-        const adminAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: admin.email });
-        for (const adminAccount of adminAccounts) {
-            const activeConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: adminAccount.id, is_active: true });
-            const connectedConfig = activeConfigs.find(config => config.connection_status === 'connected');
-            if (connectedConfig) return connectedConfig;
-        }
-    }
-    const configs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
-    return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
-}
-
-async function isAdminAccount(base44, account) {
-    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
-    return admins.some(admin => admin.email === account.email || admin.id === account.id);
-}
-
 Deno.serve(async (req) => {
+    console.log("=== rpcProxy START ===");
+
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-
         if (!user) {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get the RPC request payload
-        const rpcRequest = await req.json();
-
-        // Get this user's wallet account to find their own active RPC config
-        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
-        if (accounts.length === 0) {
-            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
-        }
-        if (accounts.length === 0) {
-            return Response.json({ 
-                error: 'Wallet account not found' 
-            }, { status: 404 });
-        }
-
-        const account = accounts[0];
-
         // Get active RPC configuration
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            account_id: account.id,
-            is_active: true
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ 
+            is_active: true 
         });
-
-        const config = !(await isAdminAccount(base44, account))
-            ? await getAdminRPCSource(base44)
-            : configs.find(c => c.connection_status === 'connected') || await getAdminRPCSource(base44);
-
+        
+        const config = configs[0];
         if (!config) {
-            return Response.json({ 
-                error: 'No connected RPC configuration found' 
-            }, { status: 404 });
+            return Response.json({ error: 'No active RPC configuration found' }, { status: 400 });
         }
 
-        // Build RPC URL
-        const protocol = config.use_ssl ? 'https' : 'http';
-        // For API connections or when port is empty, omit the port
-        const rpcUrl = !config.port || config.port === ''
-            ? `${protocol}://${config.host}`
-            : `${protocol}://${config.host}:${config.port}`;
+        console.log("rpcProxy using config:", config.name, config.host, config.port);
 
-        // Prepare headers
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        // Add authentication based on connection type
-        if (config.connection_type === 'api' && config.api_key) {
-            headers['X-API-Key'] = config.api_key;
-        } else if (config.connection_type === 'rpc') {
-            const auth = btoa(`${config.username}:${config.password}`);
-            headers['Authorization'] = `Basic ${auth}`;
-        } else if (config.connection_type === 'curl' && config.curl_command) {
-            // Parse headers from cURL command
-            const headerMatches = config.curl_command.matchAll(/-H\s+['"]([^'"]+)['"]/g);
-            for (const match of headerMatches) {
-                const [key, value] = match[1].split(':').map(s => s.trim());
-                if (key && value) headers[key] = value;
-            }
+        // Build RPC URL with ROD Core named wallet support
+        const protocol = (config.use_ssl || config.port === '443') ? 'https' : 'http';
+        let rpcUrl = `${protocol}://${config.host}`;
+        
+        if (config.port && config.port !== '80' && config.port !== '443') {
+            rpcUrl += `:${config.port}`;
         }
 
-        // Forward the request to the actual RPC endpoint
-        const response = await fetch(rpcUrl, {
+        // Critical for ROD Core: use named wallet path
+        if (!rpcUrl.includes('/wallet/')) {
+            rpcUrl += '/wallet/wallet.dat';
+        }
+
+        console.log("Final RPC URL:", rpcUrl);
+
+        // Read the original request body
+        let body;
+        try {
+            const text = await req.text();
+            body = JSON.parse(text);
+        } catch (e) {
+            return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+        }
+
+        const rpcAuth = btoa(`${config.username || 'roduser'}:${config.password || ''}`);
+
+        const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
-            headers,
-            body: JSON.stringify(rpcRequest),
-            signal: AbortSignal.timeout(30000)
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${rpcAuth}`
+            },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(20000)
         });
 
-        const data = await response.json();
+        const responseText = await rpcResponse.text();
+        console.log("rpcProxy raw response:", responseText.substring(0, 500));
 
-        // Return the RPC response
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            return Response.json({ 
+                error: 'Invalid response from RPC node',
+                raw: responseText 
+            }, { status: 502 });
+        }
+
         return Response.json(data);
 
     } catch (error) {
-        console.error('RPC proxy error:', error);
+        console.error("rpcProxy FULL ERROR:", error);
         return Response.json({ 
-            error: error.message || 'RPC proxy failed',
-            jsonrpc: '1.0',
-            id: null
+            error: error.message || 'Proxy error',
+            details: error.toString()
         }, { status: 500 });
     }
 });
