@@ -1,57 +1,69 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
-    console.log('=== getRPCBalance called ===');
-    console.log('Full Request URL:', req.url);
+    console.log('=== getRPCBalance START ===');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
 
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-
         if (!user) {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Get active RPC config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
         const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
-        const headers = {
-            'Content-Type': 'application/json'
-        };
+        const headers = { 'Content-Type': 'application/json' };
 
         if (config.username && config.password) {
             const auth = btoa(`${config.username}:${config.password}`);
             headers['Authorization'] = `Basic ${auth}`;
         }
 
-        // Try to get address from query params
-        const url = new URL(req.url);
-        let address = url.searchParams.get('address');
+        // === Get address from frontend (POST body or query) ===
+        let address = null;
 
-        // Fallback: Try to get it from body (in case frontend sends POST)
+        // Try query params first
+        const url = new URL(req.url);
+        address = url.searchParams.get('address');
+
+        // Try POST body (this is what the frontend is using)
         if (!address) {
             try {
-                const body = await req.json();
-                address = body.address || body.Address;
-            } catch (e) {}
+                const bodyText = await req.text();
+                console.log('Raw request body:', bodyText);
+                
+                if (bodyText && bodyText.trim() !== '') {
+                    const body = JSON.parse(bodyText);
+                    address = body.address || body.Address || body.walletAddress;
+                    console.log('Parsed body address:', address);
+                }
+            } catch (e) {
+                console.log('Body parse failed:', e.message);
+            }
         }
 
-        console.log('Address used:', address);
-
         if (!address) {
+            console.log('❌ No address received from frontend');
             return Response.json({ 
                 success: false, 
                 error: 'Address parameter is required' 
             }, { status: 400 });
         }
 
+        console.log('✅ Using address:', address);
+
+        // Call ROD RPC
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -64,16 +76,13 @@ Deno.serve(async (req) => {
             signal: AbortSignal.timeout(20000)
         });
 
-        console.log('RPC Status:', rpcResponse.status);
+        console.log('RPC HTTP Status:', rpcResponse.status);
 
         const rpcData = await rpcResponse.json();
         console.log('RPC Response:', JSON.stringify(rpcData));
 
         if (rpcData.error) {
-            return Response.json({ 
-                success: false, 
-                error: rpcData.error.message 
-            }, { status: 500 });
+            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
         }
 
         const utxos = rpcData.result || [];
@@ -90,7 +99,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        console.error('getRPCBalance FULL ERROR:', error);
+        console.error('💥 getRPCBalance FULL ERROR:', error);
         return Response.json({ 
             success: false, 
             error: error.message || 'Unknown error' 
