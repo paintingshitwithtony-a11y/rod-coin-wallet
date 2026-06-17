@@ -15,11 +15,18 @@ Deno.serve(async (req) => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": req.headers.get("Authorization") || ""
+                    "Authorization": req.headers.get("Authorization") || req.headers.get("authorization") || ""
                 },
                 body: JSON.stringify(rpcRequest)
             }
         );
+
+        if (!relayResponse.ok) {
+            return Response.json({ 
+                success: false, 
+                error: `Relay HTTP error: ${relayResponse.status}` 
+            }, { status: 500 });
+        }
 
         const data = await relayResponse.json();
 
@@ -32,12 +39,15 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             balance: balance,
-            utxoCount: "Via Relay",
-            note: "Real balance"
+            utxoCount: "Via rpcRelay",
+            note: "Real balance from ROD node"
         });
 
     } catch (error) {
         console.error("getRPCBalance error:", error);
-        return Response.json({ success: false, error: error.message || "Relay failed" }, { status: 500 });
+        return Response.json({ 
+            success: false, 
+            error: error.message || "Unknown error" 
+        }, { status: 500 });
     }
 });
