@@ -8,6 +8,44 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
+        // 1. Try address from frontend call first (most common)
+        let address = null;
+        try {
+            const body = await req.json();
+            address = body.address || body.Address || body.walletAddress || body.accountAddress;
+        } catch (e) {
+            try {
+                const text = await req.text();
+                if (text && text.trim() !== '') {
+                    const parsed = JSON.parse(text);
+                    address = parsed.address || parsed.Address || parsed.walletAddress;
+                }
+            } catch (_) {}
+        }
+
+        // 2. Safe fallback: Get main wallet address for THIS user only
+        if (!address) {
+            try {
+                const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
+                    id: user.id || user.account_id 
+                });
+                
+                if (accounts.length > 0 && accounts[0].wallet_address) {
+                    address = accounts[0].wallet_address;
+                }
+            } catch (fallbackErr) {
+                console.error('Fallback query failed:', fallbackErr);
+            }
+        }
+
+        if (!address) {
+            return Response.json({ 
+                success: false, 
+                error: 'No address found for this account. Please generate or import an address first.' 
+            }, { status: 400 });
+        }
+
+        // Load active RPC config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
@@ -24,35 +62,7 @@ Deno.serve(async (req) => {
             headers['Authorization'] = 'Basic ' + auth;
         }
 
-        // Get address from frontend call
-        let address = null;
-        try {
-            const body = await req.json();
-            address = body.address || body.Address || body.walletAddress || body.accountAddress;
-        } catch (e) {
-            try {
-                const text = await req.text();
-                if (text) {
-                    const parsed = JSON.parse(text);
-                    address = parsed.address || parsed.Address || parsed.walletAddress;
-                }
-            } catch (_) {}
-        }
-
-        // Fallback: Get main wallet address for this user
-        if (!address) {
-            const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-                id: user.id || user.account_id 
-            });
-            if (accounts.length > 0) {
-                address = accounts[0].wallet_address;
-            }
-        }
-
-        if (!address) {
-            return Response.json({ success: false, error: 'No address found for this account' }, { status: 400 });
-        }
-
+        // Call ROD node
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers: headers,
