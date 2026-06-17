@@ -8,8 +8,8 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Use a known good address from your account
-        const address = "RQMWaKapFi..7UQyJ2";   // Change to exact full address if needed
+        // Use one of your known addresses from the messages
+        const address = "RQMWaKapFi..7UQyJ2";  // ← Replace with the FULL address shown on your dashboard
 
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
@@ -19,11 +19,11 @@ Deno.serve(async (req) => {
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = protocol + '://' + config.host + ':' + config.port;
+        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
         const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
-            headers['Authorization'] = 'Basic ' + btoa(config.username + ':' + config.password);
+            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
         }
 
         const rpcResponse = await fetch(rpcUrl, {
@@ -46,8 +46,8 @@ Deno.serve(async (req) => {
 
         const utxos = rpcData.result || [];
         let balance = 0;
-        for (let i = 0; i < utxos.length; i++) {
-            balance += parseFloat(utxos[i].amount || 0);
+        for (let utxo of utxos) {
+            balance += parseFloat(utxo.amount || 0);
         }
 
         return Response.json({
