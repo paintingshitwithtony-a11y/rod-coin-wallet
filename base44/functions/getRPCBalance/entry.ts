@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Simple request to getbalance via proxy
+        // Build a simple getbalance request
         const rpcRequest = {
             jsonrpc: '1.0',
             id: 1,
@@ -17,12 +17,14 @@ Deno.serve(async (req) => {
             params: []
         };
 
-        // Forward to rpcProxy (which you already have working)
-        const proxyResponse = await fetch('https://rodcoinwallet.com/api/apps/695c1217b1d1db20f67a77f2/functions/rpcProxy', {
+        // Forward to your existing rpcProxy (which already works for the Test button)
+        const proxyUrl = 'https://rodcoinwallet.com/api/apps/695c1217b1d1db20f67a77f2/functions/rpcProxy';
+
+        const proxyResponse = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': req.headers.get('Authorization') || ''
+                'Authorization': req.headers.get('Authorization') || req.headers.get('authorization') || ''
             },
             body: JSON.stringify(rpcRequest)
         });
@@ -38,8 +40,8 @@ Deno.serve(async (req) => {
         return Response.json({
             success: true,
             balance: balance,
-            utxoCount: 'Via Proxy',
-            note: 'Using rpcProxy'
+            utxoCount: 'Via rpcProxy',
+            note: 'Real balance from ROD node'
         });
 
     } catch (error) {
