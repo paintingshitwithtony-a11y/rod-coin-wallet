@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
-    console.log("=== IMPORT ALL ADDRESSES START ===");
+    console.log("=== IMPORT ALL ADDRESSES - FORCED DUCKDNS ===");
 
     try {
         const base44 = createClientFromRequest(req);
@@ -18,23 +18,13 @@ Deno.serve(async (req) => {
 
         const account = accounts[0];
 
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
-        if (configs.length === 0) return Response.json({ success: true, imported: 0, message: 'No RPC config' });
-
-        const config = configs[0];
-
-        // FIXED URL WITH WALLET PATH
-        const protocol = config.use_ssl ? 'https' : 'http';
-        let rpcUrl = `${protocol}://${config.host}`;
-        if (config.port && config.port !== '443') rpcUrl += `:${config.port}`;
-        rpcUrl += '/wallet/wallet.dat';
-
-        console.log("Import RPC URL:", rpcUrl);
+        // FORCE CORRECT URL
+        const rpcUrl = "https://rodcoinwallet.duckdns.org:443/wallet/wallet.dat";
+        console.log("FORCED Import URL:", rpcUrl);
 
         const headers = { 'Content-Type': 'application/json' };
-        if (config.username && config.password) {
-            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
-        }
+        // Use default credentials from your config
+        headers['Authorization'] = `Basic ${btoa('roduser:a250b99cd8798d396087d0cbd87ab1721cb6f9ba53f6ba06adf77074e6886aff')}`;
 
         // Collect addresses
         const addressesToImport = [];
@@ -67,8 +57,10 @@ Deno.serve(async (req) => {
                 const success = !data.error || (data.error && data.error.message && data.error.message.includes('already'));
                 if (success) successCount++;
                 results.push({ address: item.address, success });
+                console.log(`Imported ${item.address}: ${success}`);
             } catch (err) {
                 results.push({ address: item.address, success: false, error: err.message });
+                console.log(`Failed ${item.address}:`, err.message);
             }
         }
 
