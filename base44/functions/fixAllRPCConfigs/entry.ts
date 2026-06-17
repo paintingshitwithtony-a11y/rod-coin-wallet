@@ -9,41 +9,52 @@ Deno.serve(async (req) => {
         }
 
         const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list('', 1000);
+        let deleted = 0;
         let fixed = 0;
 
         for (const config of allConfigs) {
+            const portStr = String(config.port || '').trim();
+            const host = String(config.host || '').trim();
+
+            // Detect and DELETE bad old Bitcoin configs
+            if (portStr === '8332' || portStr === '8333' || host.includes('64.188.22.190')) {
+                console.log(`🗑️ Deleting bad config: ${config.name} (${host}:${portStr})`);
+                await base44.asServiceRole.entities.RPCConfiguration.delete(config.id);
+                deleted++;
+                continue;
+            }
+
+            // Fix good configs (force ROD settings)
             let needsUpdate = false;
             const updates = {};
 
-            const port = String(config.port || '');
-            if (port === '8332' || port === '8333') {
+            if (['9766', '9767', '11999', ''].includes(portStr)) {
                 updates.port = '443';
                 needsUpdate = true;
             }
 
-            const isLocalhost = config.host === 'localhost' || config.host === '127.0.0.1';
-            const correctUseSSL = isLocalhost ? (config.use_ssl === true) : true;
-
-            if (config.use_ssl !== correctUseSSL) {
-                updates.use_ssl = correctUseSSL;
+            const isLocal = host === 'localhost' || host === '127.0.0.1';
+            if (config.use_ssl !== !isLocal) {
+                updates.use_ssl = !isLocal;
                 needsUpdate = true;
             }
 
             if (needsUpdate) {
                 await base44.asServiceRole.entities.RPCConfiguration.update(config.id, updates);
                 fixed++;
-                console.log(`Fixed config ${config.id}: port=${updates.port || config.port}, ssl=${updates.use_ssl}`);
             }
         }
 
         return Response.json({
             success: true,
-            message: `Fixed ${fixed} RPC configurations`,
-            total: allConfigs.length,
-            fixed
+            message: `✅ Cleaned ${deleted} bad configs | Fixed ${fixed} others`,
+            deleted,
+            fixed,
+            total: allConfigs.length
         });
+
     } catch (error) {
-        console.error('Fix all RPC configs error:', error);
+        console.error('FixAllRPCConfigs error:', error);
         return Response.json({ error: error.message, success: false }, { status: 500 });
     }
 });
