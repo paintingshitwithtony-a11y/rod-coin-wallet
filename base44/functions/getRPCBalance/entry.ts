@@ -8,23 +8,39 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get address
+        // Get user's WalletAccount
         const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
         if (accounts.length === 0) {
             return Response.json({ success: false, error: 'Wallet account not found' }, { status: 400 });
         }
-        const address = accounts[0].wallet_address;
+        const account = accounts[0];
+        const address = account.wallet_address;
 
         if (!address) {
             return Response.json({ success: false, error: 'No primary address found' }, { status: 400 });
         }
 
-        // Force DuckDNS + SSL on 443
-        const rpcUrl = "https://rodcoinwallet.duckdns.org:443";
+        // Get active RPC config (same logic as executeRPCCommand)
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ 
+            account_id: account.id, 
+            is_active: true 
+        });
+
+        let config = configs.find(c => c.connection_status === 'connected') || configs[0];
+
+        if (!config) {
+            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
+        }
+
+        const protocol = config.use_ssl ? 'https' : 'http';
+        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
         const headers = { 'Content-Type': 'application/json' };
-        // You can add auth later if needed
+        if (config.username && config.password) {
+            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
+        }
 
+        // Call ROD node
         const rpcResponse = await fetch(rpcUrl, {
             method: 'POST',
             headers,
@@ -57,6 +73,6 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('getRPCBalance error:', error);
-        return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
+        return Response.json({ success: false, error: error.message || 'Failed to fetch balance' }, { status: 500 });
     }
 });
