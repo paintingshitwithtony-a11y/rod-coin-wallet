@@ -27,19 +27,19 @@ Deno.serve(async (req) => {
             headers['Authorization'] = 'Basic ' + auth;
         }
 
-        // Get address from body or query
+        // Get address from Base44 invoke
         let address = null;
         try {
-            const bodyText = await req.text();
-            if (bodyText) {
-                const body = JSON.parse(bodyText);
-                address = body.address || body.Address || body.walletAddress;
-            }
-        } catch (e) {}
-
-        if (!address) {
-            const url = new URL(req.url);
-            address = url.searchParams.get('address');
+            const body = await req.json();
+            address = body.address || body.Address || body.walletAddress || body.accountAddress;
+        } catch (e) {
+            try {
+                const text = await req.text();
+                if (text) {
+                    const body = JSON.parse(text);
+                    address = body.address || body.Address || body.walletAddress;
+                }
+            } catch (_) {}
         }
 
         if (!address) {
