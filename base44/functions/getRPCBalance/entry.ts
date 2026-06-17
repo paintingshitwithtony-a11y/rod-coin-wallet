@@ -8,9 +8,9 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get primary address from user's WalletAccount
+        // Find WalletAccount using email (most reliable)
         const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ 
-            id: user.id || user.account_id 
+            email: user.email 
         });
 
         if (accounts.length === 0) {
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
         const address = accounts[0].wallet_address;
 
         if (!address) {
-            return Response.json({ success: false, error: 'No primary wallet address found' }, { status: 400 });
+            return Response.json({ success: false, error: 'No primary address found in wallet account' }, { status: 400 });
         }
 
         // Get active RPC config
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC configuration' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
