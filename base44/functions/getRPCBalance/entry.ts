@@ -8,14 +8,14 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // === YOUR MINING WALLET ADDRESS (replace this) ===
-        const address = "RQMWaKapF13vqmrgz7Q8wu8we8L97UQyJ2";   // ← PASTE FULL ADDRESS HERE
+        // Your Mining Wallet address (Primary)
+        const address = "RQMWaKapFi3vqmrgz7Q8wu8we8L97UQyJ2";
 
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
+            return Response.json({ success: false, error: 'No active RPC configuration found' }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? 'https' : 'http';
@@ -59,6 +59,6 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('getRPCBalance error:', error);
-        return Response.json({ success: false, error: error.message || 'Failed' }, { status: 500 });
+        return Response.json({ success: false, error: error.message || 'Failed to fetch balance' }, { status: 500 });
     }
 });
