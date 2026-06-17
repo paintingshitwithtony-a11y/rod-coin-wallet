@@ -8,8 +8,8 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Use one of your known addresses from the messages
-        const address = "RQMWaKapFi..7UQyJ2";  // ← Replace with the FULL address shown on your dashboard
+        // === YOUR MINING WALLET ADDRESS (replace this) ===
+        const address = "RQMWaKapF13vqmrgz7Q8wu8we8L97UQyJ2";   // ← PASTE FULL ADDRESS HERE
 
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs[0];
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
                 method: 'listunspent',
                 params: [0, 9999999, [address]]
             }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(20000)
         });
 
         const rpcData = await rpcResponse.json();
