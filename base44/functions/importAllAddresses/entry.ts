@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
         const rescan = body.rescan === true;
 
         // Get account
-        let accounts = body.accountId
+        let accounts = body.accountId 
             ? await base44.asServiceRole.entities.WalletAccount.filter({ id: body.accountId })
             : await base44.entities.WalletAccount.filter({ email: user.email });
 
@@ -27,18 +27,13 @@ Deno.serve(async (req) => {
         const account = accounts[0];
 
         // Get active RPC config
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            account_id: account.id,
-            is_active: true
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ 
+            account_id: account.id, 
+            is_active: true 
         });
 
         if (configs.length === 0) {
-            return Response.json({
-                success: true,
-                imported: 0,
-                total: 0,
-                message: 'No active RPC configuration'
-            });
+            return Response.json({ success: true, imported: 0, total: 0, message: 'No active RPC configuration' });
         }
 
         const config = configs[0];
@@ -53,79 +48,51 @@ Deno.serve(async (req) => {
 
         // Collect addresses
         const addressesToImport = [];
-        if (account.wallet_address) {
-            addressesToImport.push({ address: account.wallet_address, label: 'Primary Address' });
-        }
+        if (account.wallet_address) addressesToImport.push({ address: account.wallet_address, label: 'Primary' });
 
         const deletedKeys = new Set((account.deleted_wallet_addresses || []).map(a => (a || '').trim().toLowerCase()));
 
         if (account.additional_addresses) {
             account.additional_addresses
                 .filter(addr => !deletedKeys.has((addr.address || '').trim().toLowerCase()))
-                .forEach(addr => {
-                    addressesToImport.push({
-                        address: addr.address,
-                        label: addr.label || 'Additional Address'
-                    });
-                });
+                .forEach(addr => addressesToImport.push({ address: addr.address, label: addr.label || 'Additional' }));
         }
 
-        // Also get from Wallet table
         const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
-        wallets.forEach(wallet => {
-            if (wallet.wallet_address && !deletedKeys.has(wallet.wallet_address.trim().toLowerCase())) {
-                const alreadyAdded = addressesToImport.some(a => a.address === wallet.wallet_address);
-                if (!alreadyAdded) {
-                    addressesToImport.push({
-                        address: wallet.wallet_address,
-                        label: wallet.name || 'Wallet'
-                    });
+        wallets.forEach(w => {
+            if (w.wallet_address && !deletedKeys.has(w.wallet_address.trim().toLowerCase())) {
+                if (!addressesToImport.some(a => a.address === w.wallet_address)) {
+                    addressesToImport.push({ address: w.wallet_address, label: w.name || 'Wallet' });
                 }
             }
         });
 
+        let successCount = 0;
         const results = [];
+
         for (const item of addressesToImport) {
-            let success = false;
-            let lastError = '';
+            try {
+                const response = await fetch(rpcUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        jsonrpc: '1.0',
+                        id: 1,
+                        method: 'importaddress',
+                        params: [item.address, item.label, rescan]
+                    }),
+                    signal: AbortSignal.timeout(30000)
+                });
 
-            for (let attempt = 0; attempt < 2; attempt++) {
-                try {
-                    if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+                const data = await response.json();
+                const success = !data.error || data.error.message?.includes('already');
 
-                    const importResponse = await fetch(rpcUrl, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({
-                            jsonrpc: '1.0',
-                            id: `import-${Date.now()}`,
-                            method: 'importaddress',
-                            params: [item.address, item.label, rescan]
-                        }),
-                        signal: AbortSignal.timeout(rescan ? 120000 : 30000)
-                    });
-
-                    const importData = await importResponse.json();
-
-                    if (importData.error) {
-                        if (importData.error.message?.includes('already')) {
-                            success = true;
-                            break;
-                        }
-                        lastError = importData.error.message;
-                    } else {
-                        success = true;
-                        break;
-                    }
-                } catch (err) {
-                    lastError = err.message;
-                }
+                if (success) successCount++;
+                results.push({ address: item.address, success });
+            } catch (err) {
+                results.push({ address: item.address, success: false, error: err.message });
             }
-
-            results.push({ address: item.address, success, error: success ? null : lastError });
         }
-
-        const successCount = results.filter(r => r.success).length;
 
         return Response.json({
             success: true,
