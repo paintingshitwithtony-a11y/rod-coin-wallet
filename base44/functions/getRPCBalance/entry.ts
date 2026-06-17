@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get address from request or account
+        // Get address
         let body = {};
         try {
             const text = await req.text();
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         }
 
         if (!address) {
-            return Response.json({ success: false, error: "No address found" }, { status: 400 });
+            return Response.json({ success: false, error: "No address found for this account. Please generate or import addresses." }, { status: 400 });
         }
 
         // Get active config
@@ -38,17 +38,17 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'No active RPC config' }, { status: 400 });
         }
 
-        // Build URL with wallet path (CRITICAL for ROD Core)
+        // Build URL with wallet.dat (this fixes the error)
         const protocol = config.use_ssl ? 'https' : 'http';
         let rpcUrl = `${protocol}://${config.host}`;
         if (config.port && config.port !== '443') rpcUrl += `:${config.port}`;
-        rpcUrl += '/wallet/wallet.dat';   // ← This fixes the error
+        rpcUrl += '/wallet/wallet.dat';
 
         console.log("RPC URL:", rpcUrl);
 
         const auth = btoa(`${config.username || 'roduser'}:${config.password}`);
 
-        const rpcResponse = await fetch(rpcUrl, {
+        const response = await fetch(rpcUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -60,13 +60,13 @@ Deno.serve(async (req) => {
                 method: 'listunspent',
                 params: [0, 9999999, [address]]
             }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(20000)
         });
 
-        const data = await rpcResponse.json();
+        const data = await response.json();
 
         if (data.error) {
-            return Response.json({ success: false, error: data.error.message }, { status: 500 });
+            return Response.json({ success: false, error: data.error.message || JSON.stringify(data.error) }, { status: 500 });
         }
 
         const utxos = data.result || [];
