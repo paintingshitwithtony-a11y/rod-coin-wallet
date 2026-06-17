@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
+    console.log("=== importAllAddresses START ===");
+
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
@@ -16,7 +18,7 @@ Deno.serve(async (req) => {
         const rescan = body.rescan === true;
 
         // Get account
-        let accounts = body.accountId 
+        let accounts = body.accountId
             ? await base44.asServiceRole.entities.WalletAccount.filter({ id: body.accountId })
             : await base44.entities.WalletAccount.filter({ email: user.email });
 
@@ -27,9 +29,9 @@ Deno.serve(async (req) => {
         const account = accounts[0];
 
         // Get active RPC config
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ 
-            account_id: account.id, 
-            is_active: true 
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
+            account_id: account.id,
+            is_active: true
         });
 
         if (configs.length === 0) {
@@ -38,8 +40,13 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
 
+        // Build URL with wallet path (CRITICAL FIX)
         const protocol = config.use_ssl ? 'https' : 'http';
-        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+        let rpcUrl = `${protocol}://${config.host}`;
+        if (config.port && config.port !== '443') rpcUrl += `:${config.port}`;
+        rpcUrl += '/wallet/wallet.dat';   // ← This fixes the "Wallet file not specified" error
+
+        console.log("Import RPC URL:", rpcUrl);
 
         const headers = { 'Content-Type': 'application/json' };
         if (config.username && config.password) {
@@ -85,8 +92,7 @@ Deno.serve(async (req) => {
                 });
 
                 const data = await response.json();
-                const success = !data.error || data.error.message?.includes('already');
-
+                const success = !data.error || (data.error && data.error.message && data.error.message.includes('already'));
                 if (success) successCount++;
                 results.push({ address: item.address, success });
             } catch (err) {
@@ -102,7 +108,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        console.error('Import error:', error);
+        console.error('ImportAllAddresses error:', error);
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
