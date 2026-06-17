@@ -4,7 +4,6 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-
         if (!user) {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -12,12 +11,11 @@ Deno.serve(async (req) => {
         let body = {};
         try {
             body = await req.json();
-        } catch (_err) {
-            body = {};
-        }
+        } catch (_) {}
+
         const rescan = body.rescan === true;
 
-        // Get current wallet account from the active wallet session when provided
+        // Get account
         let accounts = body.accountId
             ? await base44.asServiceRole.entities.WalletAccount.filter({ id: body.accountId })
             : await base44.entities.WalletAccount.filter({ email: user.email });
@@ -28,14 +26,14 @@ Deno.serve(async (req) => {
 
         const account = accounts[0];
 
-        // Get active RPC configuration
-        const configs = await base44.entities.RPCConfiguration.filter({
+        // Get active RPC config
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
             account_id: account.id,
             is_active: true
         });
 
         if (configs.length === 0) {
-            return Response.json({ 
+            return Response.json({
                 success: true,
                 imported: 0,
                 total: 0,
@@ -45,38 +43,25 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
 
-        // Build RPC URL
-        const SSL_PORTS = new Set(['443', '9443', '8443']);
-        const rawHost = (config.host || '').trim();
-        const normalizedHost = rawHost.replace(/^https?:\/\//, '').replace(/^https?\/?\/?/, '').replace(/\/$/, '');
-        const protocol = (config.use_ssl || rawHost.startsWith('https') || SSL_PORTS.has(String(config.port))) ? 'https' : 'http';
-        let rpcUrl = !config.port || config.port === ''
-            ? `${protocol}://${normalizedHost}`
-            : `${protocol}://${normalizedHost}:${config.port}`;
+        const protocol = config.use_ssl ? 'https' : 'http';
+        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
-        // Prepare headers
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        if (config.connection_type === 'rpc') {
-            if (config.username && config.password) {
-                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
-            }
-        } else if (config.connection_type === 'api' && config.api_key) {
-            headers['X-API-Key'] = config.api_key;
+        const headers = { 'Content-Type': 'application/json' };
+        if (config.username && config.password) {
+            headers['Authorization'] = `Basic ${btoa(config.username + ':' + config.password)}`;
         }
 
-        // Collect all addresses to import (from account + all wallets)
-        const addressesToImport = [
-            { address: account.wallet_address, label: 'Primary Address' }
-        ];
+        // Collect addresses
+        const addressesToImport = [];
+        if (account.wallet_address) {
+            addressesToImport.push({ address: account.wallet_address, label: 'Primary Address' });
+        }
 
-        const deletedWalletAddressKeys = new Set((account.deleted_wallet_addresses || []).map((address) => (address || '').trim().toLowerCase()));
+        const deletedKeys = new Set((account.deleted_wallet_addresses || []).map(a => (a || '').trim().toLowerCase()));
 
         if (account.additional_addresses) {
             account.additional_addresses
-                .filter(addr => !deletedWalletAddressKeys.has((addr.address || '').trim().toLowerCase()))
+                .filter(addr => !deletedKeys.has((addr.address || '').trim().toLowerCase()))
                 .forEach(addr => {
                     addressesToImport.push({
                         address: addr.address,
@@ -84,115 +69,73 @@ Deno.serve(async (req) => {
                     });
                 });
         }
-        
-        // Also get addresses from current account Wallet entities
+
+        // Also get from Wallet table
         const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
-        wallets.filter(wallet => !deletedWalletAddressKeys.has((wallet.wallet_address || '').trim().toLowerCase())).forEach(wallet => {
-            const alreadyIncluded = addressesToImport.some(a => a.address === wallet.wallet_address);
-            if (!alreadyIncluded) {
-                addressesToImport.push({
-                    address: wallet.wallet_address,
-                    label: wallet.name || 'Wallet Address'
-                });
+        wallets.forEach(wallet => {
+            if (wallet.wallet_address && !deletedKeys.has(wallet.wallet_address.trim().toLowerCase())) {
+                const alreadyAdded = addressesToImport.some(a => a.address === wallet.wallet_address);
+                if (!alreadyAdded) {
+                    addressesToImport.push({
+                        address: wallet.wallet_address,
+                        label: wallet.name || 'Wallet'
+                    });
+                }
             }
         });
 
         const results = [];
-
-        // Import each address with retry logic
         for (const item of addressesToImport) {
             let success = false;
             let lastError = '';
-            
-            // Try up to 2 times with delay
+
             for (let attempt = 0; attempt < 2; attempt++) {
                 try {
-                    if (attempt > 0) {
-                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
-                    }
-                    
+                    if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+
                     const importResponse = await fetch(rpcUrl, {
                         method: 'POST',
                         headers,
                         body: JSON.stringify({
                             jsonrpc: '1.0',
-                            id: `import-${item.address}`,
+                            id: `import-${Date.now()}`,
                             method: 'importaddress',
                             params: [item.address, item.label, rescan]
                         }),
-                        signal: AbortSignal.timeout(rescan ? 120000 : 15000)
+                        signal: AbortSignal.timeout(rescan ? 120000 : 30000)
                     });
-
-                    if (!importResponse.ok) {
-                        const errorText = await importResponse.text();
-                        lastError = `HTTP ${importResponse.status}: ${errorText.slice(0, 100)}`;
-                        
-                        // Don't retry on 503 if it's consistent
-                        if (importResponse.status === 503 && attempt === 0) {
-                            continue; // Retry once for 503
-                        }
-                        break; // Don't retry other errors
-                    }
 
                     const importData = await importResponse.json();
 
                     if (importData.error) {
-                        // Check if already imported (not actually an error)
-                        if (importData.error.message && importData.error.message.includes('already')) {
+                        if (importData.error.message?.includes('already')) {
                             success = true;
                             break;
                         }
                         lastError = importData.error.message;
-                        break;
                     } else {
                         success = true;
                         break;
                     }
                 } catch (err) {
                     lastError = err.message;
-                    if (attempt === 0) continue; // Retry once
                 }
             }
-            
-            results.push({
-                address: item.address,
-                success,
-                error: success ? null : lastError
-            });
+
+            results.push({ address: item.address, success, error: success ? null : lastError });
         }
 
         const successCount = results.filter(r => r.success).length;
-        const failedResults = results.filter(r => !r.success);
 
-        // Log detailed results for debugging
-        console.log('Import Summary:', {
-            total: addressesToImport.length,
-            imported: successCount,
-            failed: failedResults.length
-        });
-        
-        if (failedResults.length > 0) {
-            console.log('Failed imports:');
-            failedResults.forEach(r => {
-                console.log(`  ${r.address}: ${r.error}`);
-            });
-        }
-        
         return Response.json({
-            success: successCount > 0 || addressesToImport.length === 0,
+            success: true,
             imported: successCount,
             total: addressesToImport.length,
-            results,
-            message: successCount === 0 && failedResults.length > 0 
-                ? `Import failed: ${failedResults[0].error}` 
-                : null
+            results
         });
 
     } catch (error) {
-        console.error('Import all addresses error:', error);
-        return Response.json({ 
-            error: error.message,
-            success: false
-        }, { status: 500 });
+        console.error('Import error:', error);
+        return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
