@@ -24,7 +24,8 @@ const ALLOWED_METHODS = new Set([
     'getbestblockhash',
     'getblock',
     'listtransactions',
-    'getnettotals'
+    'getnettotals',
+    'getbalance'
 ]);
 
 Deno.serve(async (req) => {
