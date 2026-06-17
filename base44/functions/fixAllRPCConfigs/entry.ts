@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
-    console.log("=== FORCE CLEAN 'From Wallet Config' ===");
+    console.log("=== NUCLEAR CLEANUP - REMOVING ALL BAD CONFIGS ===");
 
     try {
         const base44 = createClientFromRequest(req);
@@ -14,12 +14,12 @@ Deno.serve(async (req) => {
         let deleted = 0;
 
         for (const config of allConfigs) {
-            if (config.name && config.name.includes("From Wallet Config")) {
-                console.log("Deleting 'From Wallet Config' entry");
-                await base44.asServiceRole.entities.RPCConfiguration.delete(config.id);
-                deleted++;
-            } else if (String(config.port) === '8332' || String(config.host).includes('64.188.22.190')) {
-                console.log("Deleting old Bitcoin config");
+            const name = String(config.name || '');
+            const port = String(config.port || '').trim();
+            const host = String(config.host || '').trim();
+
+            if (name.includes("From Wallet Config") || port === '8332' || host.includes('64.188.22.190')) {
+                console.log(`🗑️ Deleting: ${name} (${host}:${port})`);
                 await base44.asServiceRole.entities.RPCConfiguration.delete(config.id);
                 deleted++;
             }
@@ -27,11 +27,12 @@ Deno.serve(async (req) => {
 
         return Response.json({
             success: true,
-            message: `✅ Removed ${deleted} bad configs including 'From Wallet Config'`,
+            message: `🗑️ Nuclear cleanup complete - Deleted ${deleted} bad configs`,
             deleted
         });
 
     } catch (error) {
+        console.error('Nuclear cleanup error:', error);
         return Response.json({ error: error.message, success: false }, { status: 500 });
     }
 });
