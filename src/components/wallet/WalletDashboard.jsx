@@ -124,7 +124,27 @@ export default function WalletDashboard({ account, onLogout }) {
   }, [account]);
   // ================================================================
 
-  // YOUR ORIGINAL CODE STARTS HERE (kept 100% intact)
+  // Touch handlers
+  const handleTouchStart = (e) => {
+    pullStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!pullStartYRef.current) return;
+    const currentY = e.touches[0].clientY;
+    const distance = currentY - pullStartYRef.current;
+    if (distance > 0) setPullDistance(Math.min(distance, 120));
+  };
+
+  const handleTouchEnd = () => {
+    if (pullDistance > 80) {
+      window.location.reload();
+    }
+    setPullDistance(0);
+    pullStartYRef.current = null;
+  };
+
+  // === YOUR ORIGINAL CODE (kept intact) ===
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     const handleWalletCreated = () => fetchAllWallets();
@@ -138,11 +158,14 @@ export default function WalletDashboard({ account, onLogout }) {
     };
   }, []);
 
-  // ... [Paste the rest of your original functions and return statement here exactly as they were in your last full version]
+  // Paste the rest of your original functions and return statement here
 
   return (
-    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-      {/* Your full original JSX return code goes here */}
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" 
+         onTouchStart={handleTouchStart} 
+         onTouchMove={handleTouchMove} 
+         onTouchEnd={handleTouchEnd}>
+      {/* Your full original return JSX */}
     </div>
   );
 }
