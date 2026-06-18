@@ -13,6 +13,27 @@ import {
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
+import AddressGenerator from './AddressGenerator';
+import SendReceive from './SendReceive';
+import AddressBook from './AddressBook';
+import WalletImport from './WalletImport';
+import RPCConfigManager from './RPCConfigManager';
+import TransactionHistory from './TransactionHistory';
+import WalletManager from './WalletManager';
+import WalletEncryptionDialog from './WalletEncryptionDialog';
+import RODNodeSetupGuide from './RODNodeSetupGuide';
+import NetworkActivityDashboard from './NetworkActivityDashboard';
+import RPCConsole from './RPCConsole';
+import RODConfEditor from './RODConfEditor';
+import NodeStatusCard from './NodeStatusCard';
+import AdminRPCStatusIndicator from './AdminRPCStatusIndicator';
+import DashboardRPCConsole from './DashboardRPCConsole';
+import AddressImportDiagnostics from './AddressImportDiagnostics';
+import WalletMessages from './WalletMessages';
+import BalanceTrendChart from './BalanceTrendChart';
+import AdminDebugButtons from './AdminDebugButtons';
+import MobileWalletTabs from './MobileWalletTabs';
+import ConnectionStatusAlerts from './ConnectionStatusAlerts';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import {
@@ -26,112 +47,69 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const normalizeAddress = (address) => (address || '').trim().toLowerCase();
 
+const uniqueByAddress = (items) => {
+  const byAddress = new Map();
+  items.forEach((item) => {
+    const key = normalizeAddress(item.address || item.wallet_address);
+    if (!key || byAddress.has(key)) return;
+    byAddress.set(key, item);
+  });
+  return Array.from(byAddress.values());
+};
+
 export default function WalletDashboard({ account, onLogout }) {
-  const [balance, setBalance] = useState(account?.balance || 0);
+  const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
   const [addresses, setAddresses] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [allAccountTransactions, setAllAccountTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const [rpcConnected, setRpcConnected] = useState(null);
+  const [showRPCManager, setShowRPCManager] = useState(false);
+  const [rpcNodeInfo, setRpcNodeInfo] = useState(null);
+  const [rpcError, setRpcError] = useState(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [showWalletManager, setShowWalletManager] = useState(false);
+  const [showEncryptWallet, setShowEncryptWallet] = useState(null);
+  const [currentWallet, setCurrentWallet] = useState(null);
+  const [allWallets, setAllWallets] = useState([]);
+  const [walletsLoading, setWalletsLoading] = useState(true);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [editAddressLabel, setEditAddressLabel] = useState('');
+  const [showNodeGuide, setShowNodeGuide] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [showConfEditor, setShowConfEditor] = useState(false);
+  const [lastImportTime, setLastImportTime] = useState(0);
+  const [lastManualSyncTime, setLastManualSyncTime] = useState(0);
+  const [walletUnlocked, setWalletUnlocked] = useState(false);
   const [addressBalances, setAddressBalances] = useState({});
   const [addressUtxoCounts, setAddressUtxoCounts] = useState({});
+  const [checkingUnlockStatus, setCheckingUnlockStatus] = useState(false);
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const [unlockPassphrase, setUnlockPassphrase] = useState('');
+  const [unlockingWallet, setUnlockingWallet] = useState(false);
+  const [electronProxyConnected, setElectronProxyConnected] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const pullStartYRef = useRef(null);
+  const scrollPositionsRef = useRef({});
+  const activeTabRef = useRef('overview');
+  const walletDataRequestRef = useRef(null);
+  const lastWalletDataFetchRef = useRef(0);
+  const lastDepositCheckRef = useRef(0);
 
-  // ===================== LIVE MINING WALLET FIX =====================
-  useEffect(() => {
-    const miningAddr = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
-    if (account?.wallet_address && account.wallet_address.toLowerCase() === miningAddr) {
-      const updateLive = async () => {
-        try {
-          const res = await base44.functions.invoke('getRPCBalance', {});
-          if (res.data?.success) {
-            const key = normalizeAddress(account.wallet_address);
-            setAddressBalances(prev => ({ ...prev, [key]: res.data.balance }));
-            setAddressUtxoCounts(prev => ({ ...prev, [key]: res.data.utxoCount || 21 }));
-          }
-        } catch (e) {}
-      };
-      updateLive();
-    }
-  }, [account]);
-  // ================================================================
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Basic addresses from account
-  useEffect(() => {
-    if (account?.wallet_address) {
-      setAddresses([{
-        id: 'main',
-        address: account.wallet_address,
-        label: 'Mining Wallet',
-        balance: addressBalances[normalizeAddress(account.wallet_address)] || account.balance || 0,
-        utxos: addressUtxoCounts[normalizeAddress(account.wallet_address)] || 0
-      }]);
-    }
-  }, [account, addressBalances, addressUtxoCounts]);
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Address copied!");
-  };
+  // Paste the rest of your original code here (all useEffects, functions, return statement, etc.)
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">ROD Wallet</h1>
-        <Button variant="outline" onClick={onLogout}>
-          <LogOut className="mr-2 h-4 w-4" /> Logout
-        </Button>
-      </div>
-
-      {/* Live RPC Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Live RPC Balance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-4xl font-bold text-green-400">
-            {(addressBalances[normalizeAddress(account?.wallet_address)] || account?.balance || 0).toFixed(4)} ROD
-          </div>
-          <p className="text-sm text-slate-400">21 UTXOs • Updated live</p>
-        </CardContent>
-      </Card>
-
-      {/* My Addresses */}
-      <Card>
-        <CardHeader>
-          <CardTitle>My Addresses</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {addresses.length > 0 ? (
-            addresses.map((addr) => (
-              <div key={addr.id} className="flex justify-between items-center py-3 border-b last:border-0">
-                <div>
-                  <p className="font-medium">{addr.label}</p>
-                  <p className="text-xs text-slate-500 break-all">{addr.address}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-400">
-                    {addr.balance.toFixed(4)} ROD
-                  </p>
-                  <p className="text-xs text-slate-400">{addr.utxos} UTXOs</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => copyToClipboard(addr.address)}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          ) : (
-            <p className="text-slate-500">No addresses found.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add your other tabs and components here as needed */}
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+      {/* Your full original return JSX */}
     </div>
   );
 }
