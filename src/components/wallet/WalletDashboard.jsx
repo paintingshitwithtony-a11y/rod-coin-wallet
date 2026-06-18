@@ -108,8 +108,8 @@ export default function WalletDashboard({ account, onLogout }) {
   // ===================== LIVE MINING WALLET FIX =====================
   useEffect(() => {
     const miningAddr = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
-    if (account && account.wallet_address && account.wallet_address.toLowerCase() === miningAddr) {
-      const updateLiveMining = async () => {
+    if (account?.wallet_address?.toLowerCase() === miningAddr) {
+      const updateLive = async () => {
         try {
           const res = await base44.functions.invoke('getRPCBalance', {});
           if (res.data?.success) {
@@ -118,12 +118,12 @@ export default function WalletDashboard({ account, onLogout }) {
           }
         } catch (e) {}
       };
-      updateLiveMining();
+      updateLive();
     }
   }, [account]);
   // ================================================================
 
-  // Touch Handlers (fixes ReferenceError)
+  // Touch handlers (fixes the ReferenceError)
   const handleTouchStart = (e) => {
     if (!isMobile || window.scrollY > 0) return;
     pullStartYRef.current = e.touches[0].clientY;
@@ -136,14 +136,12 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleTouchEnd = () => {
-    if (pullDistance > 72) {
-      window.location.reload(); // or call handleManualRefresh if you prefer
-    }
+    if (pullDistance > 72) window.location.reload();
     pullStartYRef.current = null;
     setPullDistance(0);
   };
 
-  // === YOUR ORIGINAL CODE STARTS HERE (100% intact) ===
+  // === YOUR ORIGINAL CODE (kept intact) ===
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     const handleWalletCreated = () => fetchAllWallets();
@@ -157,14 +155,14 @@ export default function WalletDashboard({ account, onLogout }) {
     };
   }, []);
 
-  // Paste ALL your remaining original code here (useEffects, functions, return statement, etc.)
+  // Paste the rest of your original functions here (from the long code you sent earlier)
 
   return (
-    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" 
-         onTouchStart={handleTouchStart} 
-         onTouchMove={handleTouchMove} 
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y"
+         onTouchStart={handleTouchStart}
+         onTouchMove={handleTouchMove}
          onTouchEnd={handleTouchEnd}>
-      {/* Your full original JSX */}
+      {/* Your full original dashboard content goes here */}
     </div>
   );
 }
