@@ -7,7 +7,7 @@ import { Copy, Star, Pencil, Trash2, Lock, Unlock, Loader2 } from 'lucide-react'
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
-const normalizeAddress = (address) => (address || '').trim().toLowerCase();
+// Keep all your other imports if needed, but this is the minimal working version for now
 
 export default function WalletDashboard({ account, onLogout }) {
   const [addresses, setAddresses] = useState([]);
@@ -16,93 +16,88 @@ export default function WalletDashboard({ account, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(null);
 
-  // Load addresses + live RPC data
   useEffect(() => {
     if (!account) return;
 
-    const loadData = async () => {
+    const loadLiveData = async () => {
       setLoading(true);
       try {
-        // Basic addresses
-        const baseAddresses = [{
+        // Main Mining Wallet
+        const mainAddr = {
           id: 'main',
           address: account.wallet_address,
           label: 'Mining Wallet',
-          createdAt: account.created_date,
-        }];
+        };
 
-        setAddresses(baseAddresses);
+        setAddresses([mainAddr]);
 
-        // Get live balance + UTXOs
-        const response = await base44.functions.invoke('getRPCBalance', {});
-        if (response.data.success) {
-          setAddressBalances({
-            [normalizeAddress(account.wallet_address)]: response.data.balance
-          });
-          setAddressUtxoCounts({
-            [normalizeAddress(account.wallet_address)]: response.data.utxoCount || 21
-          });
+        // Live RPC data
+        const rpcResponse = await base44.functions.invoke('getRPCBalance', {});
+        if (rpcResponse.data.success) {
+          const key = (account.wallet_address || '').toLowerCase().trim();
+          setAddressBalances({ [key]: rpcResponse.data.balance });
+          setAddressUtxoCounts({ [key]: rpcResponse.data.utxoCount || 21 });
         }
-      } catch (err) {
-        console.error(err);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    loadLiveData();
   }, [account]);
 
-  const copyAddress = async (address) => {
-    await navigator.clipboard.writeText(address);
-    setCopiedAddress(address);
-    toast.success('Address copied!');
+  const copyAddress = async (addr) => {
+    await navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    toast.success('Address copied');
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
   return (
     <div className="space-y-6">
-      {/* RPC Balance already shows above — we keep it */}
-
       <Card className="bg-slate-900/80 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="text-white">My Addresses</CardTitle>
+          <CardTitle className="text-white flex items-center justify-between">
+            My Addresses
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+              <Loader2 className="w-4 h-4 mr-1" /> Refresh
+            </Button>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent>
           {addresses.map((addr) => {
-            const key = normalizeAddress(addr.address);
+            const key = (addr.address || '').toLowerCase().trim();
             const balance = addressBalances[key] || 0;
             const utxos = addressUtxoCounts[key] || 0;
 
             return (
-              <motion.div
-                key={addr.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all"
-              >
+              <div key={addr.id} className="p-4 bg-slate-800/70 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-white">{addr.label}</p>
-                  <p className="font-mono text-xs text-amber-400 break-all">{addr.address}</p>
+                  <div className="font-medium text-white">{addr.label}</div>
+                  <div className="font-mono text-xs text-amber-400 break-all mt-1">
+                    {addr.address}
+                  </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-xl font-bold text-green-400">
+                  <div className="text-2xl font-bold text-green-400">
                     {balance.toFixed(4)} ROD
-                  </p>
-                  <Badge className="bg-blue-500/20 text-blue-300">
+                  </div>
+                  <Badge className="mt-1 bg-blue-500/20 text-blue-300">
                     {utxos} UTXO{utxos !== 1 ? 's' : ''}
                   </Badge>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => copyAddress(addr.address)}>
-                    {copiedAddress === addr.address ? '✓' : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </motion.div>
+                <Button variant="ghost" size="icon" onClick={() => copyAddress(addr.address)}>
+                  {copiedAddress === addr.address ? '✓' : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
             );
           })}
 
-          {loading && <p className="text-center text-slate-400">Loading live data...</p>}
+          {loading && <p className="text-center text-slate-400 py-8">Loading live RPC data...</p>}
         </CardContent>
       </Card>
     </div>
