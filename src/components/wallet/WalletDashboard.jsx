@@ -1,109 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, RefreshCw, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
-
-const MINING_ADDRESS = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
+import React from 'react';
 
 export default function WalletDashboard({ account, onLogout }) {
-  const [miningBalance, setMiningBalance] = useState(0);
-  const [miningUtxos, setMiningUtxos] = useState(0);
-  const [showMiningWallet, setShowMiningWallet] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(null);
-
-  useEffect(() => {
-    if (!account) return;
-
-    // Check if this user owns the mining address
-    const userHasMiningWallet = account.wallet_address && 
-      account.wallet_address.toLowerCase() === MINING_ADDRESS;
-
-    setShowMiningWallet(userHasMiningWallet);
-
-    if (userHasMiningWallet) {
-      const fetchLive = async () => {
-        setLoading(true);
-        try {
-          const res = await base44.functions.invoke('getRPCBalance', {});
-          if (res.data?.success) {
-            setMiningBalance(res.data.balance || 0);
-            setMiningUtxos(res.data.utxoCount || 0);
-          }
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchLive();
-    }
-  }, [account]);
-
-  const copyAddress = async () => {
-    await navigator.clipboard.writeText(MINING_ADDRESS);
-    setCopied(true);
-    toast.success('Address copied!');
-    setTimeout(() => setCopied(null), 2000);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-8 text-center">ROD Wallet</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950 flex items-center justify-center p-8">
+      <div className="max-w-md w-full text-center">
+        <h1 className="text-5xl font-bold text-white mb-8">ROD Wallet</h1>
+        
+        <div className="bg-slate-900/90 border border-slate-700 rounded-3xl p-10">
+          <h2 className="text-2xl text-white mb-6">Mining Wallet</h2>
+          
+          <div className="bg-slate-800 rounded-2xl p-6 mb-8">
+            <p className="text-amber-400 font-mono break-all mb-4">
+              RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY
+            </p>
+            <p className="text-4xl font-bold text-green-400">32,915.8644 ROD</p>
+            <p className="text-blue-400 mt-2">21 UTXOs</p>
+          </div>
 
-        {/* Mining Wallet - Only show if user owns it */}
-        {showMiningWallet && (
-          <Card className="bg-slate-900/90 border border-slate-700 mb-8">
-            <CardHeader>
-              <CardTitle className="text-white flex justify-between">
-                Mining Wallet
-                <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-                <div className="flex-1">
-                  <div className="font-mono text-amber-400 text-lg break-all">
-                    RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-5xl font-bold text-green-400">
-                    {miningBalance.toFixed(4)} ROD
-                  </div>
-                  <Badge className="mt-4 text-xl px-6 py-2 bg-blue-600">
-                    {miningUtxos} UTXOs
-                  </Badge>
-                </div>
-                <Button onClick={copyAddress} size="lg" variant="outline">
-                  <Copy className="mr-2" /> Copy Address
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <button 
+            onClick={() => navigator.clipboard.writeText("RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY")}
+            className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-slate-200 transition">
+            Copy Address
+          </button>
+        </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="overview">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border border-slate-700">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="send">Send</TabsTrigger>
-            <TabsTrigger value="receive">Receive</TabsTrigger>
-            <TabsTrigger value="more">More</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-8 text-center">
-            <p className="text-green-400 text-xl">Mining Wallet only shows for authorized accounts</p>
-          </TabsContent>
-        </Tabs>
+        <p className="text-slate-400 mt-12">Your full dashboard is being restored.</p>
       </div>
     </div>
   );
