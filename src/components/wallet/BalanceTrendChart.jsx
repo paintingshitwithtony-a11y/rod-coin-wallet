@@ -18,7 +18,7 @@ export default function BalanceTrendChart({ transactions, account, currentWallet
   useEffect(() => {
     const collectMyAddresses = () => {
       const title = Array.from(document.querySelectorAll('*')).find((node) => node.textContent?.trim() === 'My Addresses');
-      const cardText = title?.closest('.bg-slate-900\/80')?.textContent || '';
+      const cardText = title?.closest('[class*="bg-slate-900"]')?.textContent || '';
       const addresses = Array.from(new Set((transactions || [])
         .map((tx) => tx.wallet_address)
         .filter((address) => address && cardText.includes(address))
