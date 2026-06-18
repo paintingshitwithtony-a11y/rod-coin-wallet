@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
@@ -15,11 +16,12 @@ export default function WalletDashboard({ account, onLogout }) {
   const [rpcSummary, setRpcSummary] = useState({ totalUtxos: 0, totalBalance: 0 });
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (!account) return;
 
-    const loadAllData = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
         const res = await base44.functions.invoke('getRPCBalance', {});
@@ -31,7 +33,6 @@ export default function WalletDashboard({ account, onLogout }) {
           setMiningUtxos(utxos);
           setRpcSummary({ totalUtxos: utxos, totalBalance: balance });
 
-          // Main address
           const mainAddr = {
             id: 'main',
             address: account.wallet_address,
@@ -41,8 +42,6 @@ export default function WalletDashboard({ account, onLogout }) {
           };
 
           setAllAddresses([mainAddr]);
-          setAddressBalances({ [account.wallet_address.toLowerCase().trim()]: balance });
-          setAddressUtxoCounts({ [account.wallet_address.toLowerCase().trim()]: utxos });
         }
       } catch (e) {
         console.error(e);
@@ -51,13 +50,13 @@ export default function WalletDashboard({ account, onLogout }) {
       }
     };
 
-    loadAllData();
+    loadData();
   }, [account]);
 
   const copyAddress = async (addr) => {
     await navigator.clipboard.writeText(addr);
     setCopied(addr);
-    toast.success('Address copied');
+    toast.success('Address copied!');
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -66,32 +65,28 @@ export default function WalletDashboard({ account, onLogout }) {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-8 text-center">ROD Wallet</h1>
 
-        {/* RPC Display at the top */}
+        {/* Live RPC Summary */}
         <Card className="bg-slate-900/90 border border-blue-500/30 mb-8">
           <CardHeader>
-            <CardTitle className="text-blue-400 flex items-center gap-2">
-              <RefreshCw className="w-5 h-5" /> Live RPC Status
-            </CardTitle>
+            <CardTitle className="text-blue-400">Live RPC Summary</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div>
-                <p className="text-slate-400 text-sm">Total Balance</p>
-                <p className="text-3xl font-bold text-green-400">{rpcSummary.totalBalance.toFixed(4)} ROD</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-sm">Total UTXOs</p>
-                <p className="text-3xl font-bold text-blue-400">{rpcSummary.totalUtxos}</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-sm">Sync Status</p>
-                <p className="text-green-400 font-medium">Fully Synced • Live</p>
-              </div>
+          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div>
+              <p className="text-slate-400">Total Balance</p>
+              <p className="text-3xl font-bold text-green-400">{rpcSummary.totalBalance.toFixed(4)} ROD</p>
+            </div>
+            <div>
+              <p className="text-slate-400">Total UTXOs</p>
+              <p className="text-3xl font-bold text-blue-400">{rpcSummary.totalUtxos}</p>
+            </div>
+            <div>
+              <p className="text-slate-400">Status</p>
+              <p className="text-green-400 font-medium">Fully Synced • Live</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* My Addresses - Full List */}
+        {/* My Addresses */}
         <Card className="bg-slate-900/90 border border-slate-700 mb-8">
           <CardHeader>
             <CardTitle className="text-white">My Addresses</CardTitle>
@@ -103,28 +98,20 @@ export default function WalletDashboard({ account, onLogout }) {
                   <div className="font-semibold text-white text-xl">{addr.label}</div>
                   <div className="font-mono text-sm text-amber-400 break-all mt-2">{addr.address}</div>
                 </div>
-
-                <div className="text-right flex-shrink-0">
-                  <div className="text-4xl font-bold text-green-400">
-                    {Number(addr.balance || 0).toFixed(4)} ROD
-                  </div>
-                  <Badge className="mt-3 text-lg px-5 py-1.5 bg-blue-600">
-                    {addr.utxos} UTXOs
-                  </Badge>
+                <div className="text-right">
+                  <div className="text-4xl font-bold text-green-400">{Number(addr.balance).toFixed(4)} ROD</div>
+                  <Badge className="mt-3 text-lg px-6 py-2 bg-blue-600">{addr.utxos} UTXOs</Badge>
                 </div>
-
-                <Button onClick={() => copyAddress(addr.address)} variant="outline" className="flex-shrink-0">
-                  <Copy className="mr-2 h-5 w-5" /> Copy
+                <Button onClick={() => copyAddress(addr.address)} variant="outline">
+                  <Copy className="mr-2" /> Copy Address
                 </Button>
               </div>
             ))}
-
-            {loading && <div className="text-center py-8"><Loader2 className="animate-spin mx-auto" /></div>}
           </CardContent>
         </Card>
 
         {/* Tabs */}
-        <Tabs defaultValue="overview">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5 bg-slate-800 border border-slate-700">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -134,7 +121,7 @@ export default function WalletDashboard({ account, onLogout }) {
           </TabsList>
 
           <TabsContent value="overview" className="mt-8 text-center">
-            <p className="text-green-400 text-xl">✅ Everything is now live from RPC</p>
+            <p className="text-green-400 text-xl">✅ Mining Wallet is live synced from RPC</p>
           </TabsContent>
         </Tabs>
       </div>
