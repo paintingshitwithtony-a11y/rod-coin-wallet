@@ -7,55 +7,46 @@ import { Copy, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
+const MINING_ADDRESS = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
+
 export default function WalletDashboard({ account, onLogout }) {
   const [miningBalance, setMiningBalance] = useState(0);
   const [miningUtxos, setMiningUtxos] = useState(0);
-  const [allAddresses, setAllAddresses] = useState([]);
-  const [addressBalances, setAddressBalances] = useState({});
-  const [addressUtxoCounts, setAddressUtxoCounts] = useState({});
-  const [rpcSummary, setRpcSummary] = useState({ totalUtxos: 0, totalBalance: 0 });
+  const [showMiningWallet, setShowMiningWallet] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (!account) return;
 
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const res = await base44.functions.invoke('getRPCBalance', {});
-        if (res.data?.success) {
-          const balance = res.data.balance || 0;
-          const utxos = res.data.utxoCount || 0;
+    // Check if this user owns the mining address
+    const userHasMiningWallet = account.wallet_address && 
+      account.wallet_address.toLowerCase() === MINING_ADDRESS;
 
-          setMiningBalance(balance);
-          setMiningUtxos(utxos);
-          setRpcSummary({ totalUtxos: utxos, totalBalance: balance });
+    setShowMiningWallet(userHasMiningWallet);
 
-          const mainAddr = {
-            id: 'main',
-            address: account.wallet_address,
-            label: 'Mining Wallet',
-            balance: balance,
-            utxos: utxos
-          };
-
-          setAllAddresses([mainAddr]);
+    if (userHasMiningWallet) {
+      const fetchLive = async () => {
+        setLoading(true);
+        try {
+          const res = await base44.functions.invoke('getRPCBalance', {});
+          if (res.data?.success) {
+            setMiningBalance(res.data.balance || 0);
+            setMiningUtxos(res.data.utxoCount || 0);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
+      };
+      fetchLive();
+    }
   }, [account]);
 
-  const copyAddress = async (addr) => {
-    await navigator.clipboard.writeText(addr);
-    setCopied(addr);
+  const copyAddress = async () => {
+    await navigator.clipboard.writeText(MINING_ADDRESS);
+    setCopied(true);
     toast.success('Address copied!');
     setTimeout(() => setCopied(null), 2000);
   };
@@ -65,53 +56,42 @@ export default function WalletDashboard({ account, onLogout }) {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-8 text-center">ROD Wallet</h1>
 
-        {/* Live RPC Summary */}
-        <Card className="bg-slate-900/90 border border-blue-500/30 mb-8">
-          <CardHeader>
-            <CardTitle className="text-blue-400">Live RPC Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <p className="text-slate-400">Total Balance</p>
-              <p className="text-3xl font-bold text-green-400">{rpcSummary.totalBalance.toFixed(4)} ROD</p>
-            </div>
-            <div>
-              <p className="text-slate-400">Total UTXOs</p>
-              <p className="text-3xl font-bold text-blue-400">{rpcSummary.totalUtxos}</p>
-            </div>
-            <div>
-              <p className="text-slate-400">Status</p>
-              <p className="text-green-400 font-medium">Fully Synced • Live</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* My Addresses */}
-        <Card className="bg-slate-900/90 border border-slate-700 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white">My Addresses</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {allAddresses.map((addr) => (
-              <div key={addr.id} className="p-6 bg-slate-800 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        {/* Mining Wallet - Only show if user owns it */}
+        {showMiningWallet && (
+          <Card className="bg-slate-900/90 border border-slate-700 mb-8">
+            <CardHeader>
+              <CardTitle className="text-white flex justify-between">
+                Mining Wallet
+                <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                 <div className="flex-1">
-                  <div className="font-semibold text-white text-xl">{addr.label}</div>
-                  <div className="font-mono text-sm text-amber-400 break-all mt-2">{addr.address}</div>
+                  <div className="font-mono text-amber-400 text-lg break-all">
+                    RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-4xl font-bold text-green-400">{Number(addr.balance).toFixed(4)} ROD</div>
-                  <Badge className="mt-3 text-lg px-6 py-2 bg-blue-600">{addr.utxos} UTXOs</Badge>
+                  <div className="text-5xl font-bold text-green-400">
+                    {miningBalance.toFixed(4)} ROD
+                  </div>
+                  <Badge className="mt-4 text-xl px-6 py-2 bg-blue-600">
+                    {miningUtxos} UTXOs
+                  </Badge>
                 </div>
-                <Button onClick={() => copyAddress(addr.address)} variant="outline">
+                <Button onClick={copyAddress} size="lg" variant="outline">
                   <Copy className="mr-2" /> Copy Address
                 </Button>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="overview">
           <TabsList className="grid w-full grid-cols-5 bg-slate-800 border border-slate-700">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -121,7 +101,7 @@ export default function WalletDashboard({ account, onLogout }) {
           </TabsList>
 
           <TabsContent value="overview" className="mt-8 text-center">
-            <p className="text-green-400 text-xl">✅ Mining Wallet is live synced from RPC</p>
+            <p className="text-green-400 text-xl">Mining Wallet only shows for authorized accounts</p>
           </TabsContent>
         </Tabs>
       </div>
