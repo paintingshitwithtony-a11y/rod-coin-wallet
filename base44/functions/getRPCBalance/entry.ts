@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
             success: true,
             balance: parseFloat(totalBalance.toFixed(8)),
             utxoCount: utxos.length,
-            utxos: utxos,                    // Send ALL UTXOs for frontend
+            utxos: utxos,
             source: config.name || "ROD Node",
             timestamp: new Date().toISOString()
         });
