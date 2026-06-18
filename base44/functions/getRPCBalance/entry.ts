@@ -9,7 +9,6 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get active RPC config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs.find(c => c.connection_status === "connected") || configs[0];
 
@@ -20,15 +19,11 @@ Deno.serve(async (req) => {
         const protocol = config.use_ssl ? "https" : "http";
         const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
-        const headers = {
-            "Content-Type": "application/json"
-        };
-
+        const headers = { "Content-Type": "application/json" };
         if (config.username && config.password) {
             headers["Authorization"] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
 
-        // Get all UTXOs
         const response = await fetch(rpcUrl, {
             method: "POST",
             headers,
@@ -38,7 +33,7 @@ Deno.serve(async (req) => {
                 method: "listunspent",
                 params: [0, 99999999, []]
             }),
-            signal: AbortSignal.timeout(25000)
+            signal: AbortSignal.timeout(30000)
         });
 
         const data = await response.json();
@@ -54,8 +49,9 @@ Deno.serve(async (req) => {
             success: true,
             balance: parseFloat(totalBalance.toFixed(8)),
             utxoCount: utxos.length,
-            rawUtxos: utxos.slice(0, 50),   // Send some raw data for debugging
-            source: config.name || "ROD Node"
+            utxos: utxos,                    // Send ALL UTXOs for frontend
+            source: config.name || "ROD Node",
+            timestamp: new Date().toISOString()
         });
 
     } catch (error) {
