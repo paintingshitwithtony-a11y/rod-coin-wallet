@@ -9,27 +9,21 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get user's RPC config
+        // Get any active RPC config for this user
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            account_id: user.id,
             is_active: true
         });
 
-        let config = configs.find(c => c.connection_status === "connected");
-
-        // Fallback to any active config
-        if (!config && configs.length > 0) {
-            config = configs[0];
-        }
+        const config = configs.find(c => c.connection_status === "connected") || configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: "No active RPC config found" }, { status: 400 });
+            return Response.json({ success: false, error: "No active RPC configuration found" }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? "https" : "http";
         const rpcUrl = `${protocol}://${config.host}:${config.port}`;
 
-        const headers: Record<string, string> = {
+        const headers = {
             "Content-Type": "application/json"
         };
 
@@ -37,8 +31,8 @@ Deno.serve(async (req) => {
             headers["Authorization"] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
 
-        // Call getbalance
-        const rpcResponse = await fetch(rpcUrl, {
+        // Simple getbalance call
+        const response = await fetch(rpcUrl, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -47,26 +41,27 @@ Deno.serve(async (req) => {
                 method: "getbalance",
                 params: []
             }),
-            signal: AbortSignal.timeout(20000)
+            signal: AbortSignal.timeout(15000)
         });
 
-        const rpcData = await rpcResponse.json();
+        const data = await response.json();
 
-        if (rpcData.error) {
-            return Response.json({ success: false, error: rpcData.error.message }, { status: 500 });
+        if (data.error) {
+            return Response.json({ success: false, error: data.error.message }, { status: 500 });
         }
-
-        const balance = parseFloat(Number(rpcData.result || 0).toFixed(8));
 
         return Response.json({
             success: true,
-            balance: balance,
-            utxoCount: "N/A (using getbalance)",
-            note: "Per-account balance"
+            balance: parseFloat(Number(data.result || 0).toFixed(8)),
+            utxoCount: "N/A",
+            source: config.name || "ROD Node"
         });
 
     } catch (error) {
         console.error("getRPCBalance error:", error);
-        return Response.json({ success: false, error: error.message || "Unknown error" }, { status: 500 });
+        return Response.json({ 
+            success: false, 
+            error: error.message || "Unknown error" 
+        }, { status: 500 });
     }
 });
