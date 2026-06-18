@@ -9,15 +9,11 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get any active RPC config for this user
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            is_active: true
-        });
-
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs.find(c => c.connection_status === "connected") || configs[0];
 
         if (!config) {
-            return Response.json({ success: false, error: "No active RPC configuration found" }, { status: 400 });
+            return Response.json({ success: false, error: "No active RPC config" }, { status: 400 });
         }
 
         const protocol = config.use_ssl ? "https" : "http";
@@ -31,17 +27,17 @@ Deno.serve(async (req) => {
             headers["Authorization"] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
 
-        // Simple getbalance call
+        // Call listunspent to get real UTXOs
         const response = await fetch(rpcUrl, {
             method: "POST",
             headers,
             body: JSON.stringify({
                 jsonrpc: "1.0",
                 id: 1,
-                method: "getbalance",
-                params: []
+                method: "listunspent",
+                params: [0, 99999999, []]
             }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(20000)
         });
 
         const data = await response.json();
@@ -50,18 +46,18 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: data.error.message }, { status: 500 });
         }
 
+        const utxos = data.result || [];
+        const balance = utxos.reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0);
+
         return Response.json({
             success: true,
-            balance: parseFloat(Number(data.result || 0).toFixed(8)),
-            utxoCount: "N/A",
+            balance: parseFloat(balance.toFixed(8)),
+            utxoCount: utxos.length,
             source: config.name || "ROD Node"
         });
 
     } catch (error) {
         console.error("getRPCBalance error:", error);
-        return Response.json({ 
-            success: false, 
-            error: error.message || "Unknown error" 
-        }, { status: 500 });
+        return Response.json({ success: false, error: error.message || "Unknown error" }, { status: 500 });
     }
 });
