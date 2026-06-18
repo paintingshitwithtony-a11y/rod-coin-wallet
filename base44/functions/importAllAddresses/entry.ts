@@ -1,80 +1,198 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
-    console.log("=== IMPORT ALL ADDRESSES - FORCED CORRECT URL ===");
-
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
-        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-        // FORCE THE CORRECT ROD NODE URL
-        const rpcUrl = "https://rodcoinwallet.duckdns.org:443/wallet/wallet.dat";
-        console.log("🚀 Using forced URL:", rpcUrl);
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Basic ${btoa('roduser:a250b99cd8798d396087d0cbd87ab1721cb6f9ba53f6ba06adf77074e6886aff')}`
-        };
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         let body = {};
-        try { body = await req.json(); } catch (_) {}
-
+        try {
+            body = await req.json();
+        } catch (_err) {
+            body = {};
+        }
         const rescan = body.rescan === true;
 
-        // Get user's addresses
-        const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
-        if (accounts.length === 0) return Response.json({ error: 'Wallet not found' }, { status: 404 });
+        // Get current wallet account from the active wallet session when provided
+        let accounts = body.accountId
+            ? await base44.asServiceRole.entities.WalletAccount.filter({ id: body.accountId })
+            : await base44.entities.WalletAccount.filter({ email: user.email });
+
+        if (accounts.length === 0) {
+            return Response.json({ error: 'Wallet not found' }, { status: 404 });
+        }
 
         const account = accounts[0];
 
-        const addressesToImport = [];
-        if (account.wallet_address) addressesToImport.push({ address: account.wallet_address, label: 'Primary' });
+        // Get active RPC configuration
+        const configs = await base44.entities.RPCConfiguration.filter({
+            account_id: account.id,
+            is_active: true
+        });
 
-        if (account.additional_addresses) {
-            account.additional_addresses.forEach(addr => {
-                if (addr && addr.address) addressesToImport.push({ address: addr.address, label: addr.label || 'Additional' });
+        if (configs.length === 0) {
+            return Response.json({ 
+                success: true,
+                imported: 0,
+                total: 0,
+                message: 'No active RPC configuration'
             });
         }
 
-        let successCount = 0;
-        const results = [];
+        const config = configs[0];
 
-        for (const item of addressesToImport) {
-            try {
-                const response = await fetch(rpcUrl, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        jsonrpc: '1.0',
-                        id: 1,
-                        method: 'importaddress',
-                        params: [item.address, item.label, rescan]
-                    }),
-                    signal: AbortSignal.timeout(30000)
-                });
+        // Build RPC URL
+        const SSL_PORTS = new Set(['443', '9443', '8443']);
+        const rawHost = (config.host || '').trim();
+        const normalizedHost = rawHost.replace(/^https?:\/\//, '').replace(/^https?\/?\/?/, '').replace(/\/$/, '');
+        const protocol = (config.use_ssl || rawHost.startsWith('https') || SSL_PORTS.has(String(config.port))) ? 'https' : 'http';
+        let rpcUrl = !config.port || config.port === ''
+            ? `${protocol}://${normalizedHost}`
+            : `${protocol}://${normalizedHost}:${config.port}`;
 
-                const data = await response.json();
-                const success = !data.error || (data.error && data.error.message && data.error.message.includes('already'));
-                if (success) successCount++;
-                results.push({ address: item.address, success });
-                console.log(`Imported ${item.address}: ${success}`);
-            } catch (err) {
-                results.push({ address: item.address, success: false, error: err.message });
-                console.log(`Failed ${item.address}:`, err.message);
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (config.connection_type === 'rpc') {
+            if (config.username && config.password) {
+                headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
             }
+        } else if (config.connection_type === 'api' && config.api_key) {
+            headers['X-API-Key'] = config.api_key;
         }
 
+        // Collect all addresses to import (from account + all wallets)
+        const addressesToImport = [
+            { address: account.wallet_address, label: 'Primary Address' }
+        ];
+
+        const deletedWalletAddressKeys = new Set((account.deleted_wallet_addresses || []).map((address) => (address || '').trim().toLowerCase()));
+
+        if (account.additional_addresses) {
+            account.additional_addresses
+                .filter(addr => !deletedWalletAddressKeys.has((addr.address || '').trim().toLowerCase()))
+                .forEach(addr => {
+                    addressesToImport.push({
+                        address: addr.address,
+                        label: addr.label || 'Additional Address'
+                    });
+                });
+        }
+        
+        // Also get addresses from current account Wallet entities
+        const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
+        wallets.filter(wallet => !deletedWalletAddressKeys.has((wallet.wallet_address || '').trim().toLowerCase())).forEach(wallet => {
+            const alreadyIncluded = addressesToImport.some(a => a.address === wallet.wallet_address);
+            if (!alreadyIncluded) {
+                addressesToImport.push({
+                    address: wallet.wallet_address,
+                    label: wallet.name || 'Wallet Address'
+                });
+            }
+        });
+
+        const results = [];
+
+        // Import each address with retry logic
+        for (const item of addressesToImport) {
+            let success = false;
+            let lastError = '';
+            
+            // Try up to 2 times with delay
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    if (attempt > 0) {
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+                    }
+                    
+                    const importResponse = await fetch(rpcUrl, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            jsonrpc: '1.0',
+                            id: `import-${item.address}`,
+                            method: 'importaddress',
+                            params: [item.address, item.label, rescan]
+                        }),
+                        signal: AbortSignal.timeout(rescan ? 120000 : 15000)
+                    });
+
+                    if (!importResponse.ok) {
+                        const errorText = await importResponse.text();
+                        lastError = `HTTP ${importResponse.status}: ${errorText.slice(0, 100)}`;
+                        
+                        // Don't retry on 503 if it's consistent
+                        if (importResponse.status === 503 && attempt === 0) {
+                            continue; // Retry once for 503
+                        }
+                        break; // Don't retry other errors
+                    }
+
+                    const importData = await importResponse.json();
+
+                    if (importData.error) {
+                        // Check if already imported (not actually an error)
+                        if (importData.error.message && importData.error.message.includes('already')) {
+                            success = true;
+                            break;
+                        }
+                        lastError = importData.error.message;
+                        break;
+                    } else {
+                        success = true;
+                        break;
+                    }
+                } catch (err) {
+                    lastError = err.message;
+                    if (attempt === 0) continue; // Retry once
+                }
+            }
+            
+            results.push({
+                address: item.address,
+                success,
+                error: success ? null : lastError
+            });
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        const failedResults = results.filter(r => !r.success);
+
+        // Log detailed results for debugging
+        console.log('Import Summary:', {
+            total: addressesToImport.length,
+            imported: successCount,
+            failed: failedResults.length
+        });
+        
+        if (failedResults.length > 0) {
+            console.log('Failed imports:');
+            failedResults.forEach(r => {
+                console.log(`  ${r.address}: ${r.error}`);
+            });
+        }
+        
         return Response.json({
-            success: true,
+            success: successCount > 0 || addressesToImport.length === 0,
             imported: successCount,
             total: addressesToImport.length,
             results,
-            message: `Imported ${successCount} of ${addressesToImport.length} addresses`
+            message: successCount === 0 && failedResults.length > 0 
+                ? `Import failed: ${failedResults[0].error}` 
+                : null
         });
 
     } catch (error) {
-        console.error('Import error:', error);
-        return Response.json({ success: false, error: error.message }, { status: 500 });
+        console.error('Import all addresses error:', error);
+        return Response.json({ 
+            error: error.message,
+            success: false
+        }, { status: 500 });
     }
 });

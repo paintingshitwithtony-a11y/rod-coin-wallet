@@ -1,40 +1,44 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
-    console.log("=== scanNetwork START ===");
-
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
+
         if (!user) {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // ROD Coin specific ports only (no Bitcoin ports)
-        const commonPorts = [9766, 9767, 11999, 443];
+        // Common ROD Core ports to scan
+        const commonPorts = [9766, 9767, 8332, 8333];
         
-        // Only scan localhost / local network
-        const hostsToScan = ['127.0.0.1', 'localhost'];
+        // IP ranges to scan (localhost and common local networks)
+        const hostsToScan = [
+            '127.0.0.1',
+            'localhost',
+        ];
 
         const discoveredNodes = [];
 
+        // Scan each host/port combination
         for (const host of hostsToScan) {
             for (const port of commonPorts) {
                 try {
+                    // Try to connect with common default credentials
                     const credentials = [
-                        { user: 'roduser', pass: '' },           // common for ROD
-                        { user: '__cookie__', pass: '' },        // cookie auth
-                        { user: 'rod', pass: 'rodpassword' },
+                        { user: 'roduser', pass: 'rodpass' },
                         { user: 'rpcuser', pass: 'rpcpass' },
+                        { user: 'rod', pass: 'rod123' },
+                        { user: 'admin', pass: 'admin' },
                     ];
 
                     for (const cred of credentials) {
                         try {
                             const auth = btoa(`${cred.user}:${cred.pass}`);
                             const rpcUrl = `http://${host}:${port}`;
-
+                            
                             const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 1500);
+                            const timeoutId = setTimeout(() => controller.abort(), 2000);
 
                             const response = await fetch(rpcUrl, {
                                 method: 'POST',
@@ -55,6 +59,7 @@ Deno.serve(async (req) => {
 
                             if (response.ok) {
                                 const data = await response.json();
+                                
                                 if (data.result && data.result.chain) {
                                     discoveredNodes.push({
                                         host,
@@ -63,17 +68,19 @@ Deno.serve(async (req) => {
                                         password: cred.pass,
                                         chain: data.result.chain,
                                         blocks: data.result.blocks,
+                                        version: data.result.version,
                                         verified: true
                                     });
-                                    console.log(`✅ Found ROD node on ${host}:${port}`);
-                                    break;
+                                    break; // Found working credentials, move to next host/port
                                 }
                             }
                         } catch (err) {
+                            // Connection failed, try next credential
                             continue;
                         }
                     }
                 } catch (err) {
+                    // Host/port not reachable, continue scanning
                     continue;
                 }
             }
@@ -83,17 +90,13 @@ Deno.serve(async (req) => {
             success: true,
             nodes: discoveredNodes,
             scannedHosts: hostsToScan.length,
-            scannedPorts: commonPorts.length,
-            message: discoveredNodes.length > 0 
-                ? `Found ${discoveredNodes.length} ROD node(s)` 
-                : "No local ROD nodes detected. Use DuckDNS config."
+            scannedPorts: commonPorts.length
         });
 
     } catch (error) {
-        console.error("scanNetwork error:", error);
-        return Response.json({
-            success: false,
-            error: error.message
+        return Response.json({ 
+            error: error.message,
+            success: false
         }, { status: 500 });
     }
 });

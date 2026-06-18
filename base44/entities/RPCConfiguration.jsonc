@@ -57,7 +57,6 @@
     },
     "last_connected": {
       "type": "string",
-      "format": "date-time",
       "description": "Last successful connection timestamp"
     },
     "connection_status": {
@@ -73,7 +72,7 @@
     },
     "node_info": {
       "type": "object",
-      "description": "Cached node information",
+      "description": "Cached node information (blocks, chain, etc.)",
       "properties": {
         "blocks": {
           "type": "number"

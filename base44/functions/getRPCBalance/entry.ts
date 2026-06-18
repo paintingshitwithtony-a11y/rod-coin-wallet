@@ -1,61 +1,171 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+async function getAdminRPCSource(base44) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    for (const admin of admins) {
+        const adminAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: admin.email });
+        for (const adminAccount of adminAccounts) {
+            const activeConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: adminAccount.id, is_active: true });
+            const connectedConfig = activeConfigs.find(config => config.connection_status === 'connected');
+            if (connectedConfig) return connectedConfig;
+        }
+    }
+    const configs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
+    return configs.find(config => config.connection_status === 'connected' && (config.name?.endsWith('(Default)') || config.name === 'ROD Core (from secrets)')) || null;
+}
+
+async function isAdminAccount(base44, account) {
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
 
         if (!user) {
-            return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
-        const config = configs.find(c => c.connection_status === "connected") || configs[0];
+        let body = {};
+        try {
+            body = await req.json();
+        } catch (_err) {
+            body = {};
+        }
+        const requestedAddress = (body.address || '').trim();
+
+        // Get user's wallet account with service role after authenticating the user
+        let accounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: user.email });
+        
+        if (accounts.length === 0) {
+            accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: user.id });
+        }
+
+        if (accounts.length === 0) {
+            return Response.json({ 
+                success: false,
+                error: 'Wallet not found'
+            }, { status: 404 });
+        }
+
+        const account = accounts[0];
+        const accountAddresses = [
+            account.wallet_address,
+            ...(account.additional_addresses || []).map(addr => addr.address)
+        ].filter(Boolean);
+        const wallets = await base44.asServiceRole.entities.Wallet.filter({ account_id: account.id });
+        wallets.forEach(wallet => accountAddresses.push(wallet.wallet_address));
+        const uniqueAddresses = [...new Set(accountAddresses.map(address => address?.trim()).filter(Boolean))];
+        const queryAddresses = requestedAddress ? [requestedAddress] : uniqueAddresses;
+
+        if (requestedAddress && !uniqueAddresses.some(address => address?.toLowerCase() === requestedAddress.toLowerCase())) {
+            return Response.json({
+                success: false,
+                error: 'Address does not belong to this wallet account'
+            }, { status: 403 });
+        }
+
+        // Get active RPC configuration, falling back to the admin connected RPC
+        const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({
+            account_id: account.id,
+            is_active: true
+        });
+
+        const config = !(await isAdminAccount(base44, account))
+            ? await getAdminRPCSource(base44)
+            : configs.find(c => c.connection_status === 'connected') || await getAdminRPCSource(base44);
 
         if (!config) {
-            return Response.json({ success: false, error: "No active RPC config" }, { status: 400 });
+            return Response.json({ 
+                success: false,
+                error: 'No connected RPC configuration'
+            }, { status: 400 });
         }
 
-        const protocol = config.use_ssl ? "https" : "http";
-        const rpcUrl = `${protocol}://${config.host}:${config.port}`;
+        // Build RPC URL
+        const SSL_PORTS = new Set(['443', '9443', '8443']);
+        const rawHost = (config.host || '').trim();
+        const normalizedHost = rawHost.replace(/^https?:\/\//, '').replace(/^https?\/?\/?/, '').replace(/\/$/, '');
+        const protocol = (config.use_ssl || rawHost.startsWith('https') || SSL_PORTS.has(String(config.port))) ? 'https' : 'http';
+        const rpcUrl = !config.port || config.port === ''
+            ? `${protocol}://${normalizedHost}`
+            : `${protocol}://${normalizedHost}:${config.port}`;
 
-        const headers = { "Content-Type": "application/json" };
-        if (config.username && config.password) {
-            headers["Authorization"] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (config.connection_type === 'api' && config.api_key) {
+            headers['X-API-Key'] = config.api_key;
+        } else if (config.connection_type === 'rpc' && config.username && config.password) {
+            headers['Authorization'] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
+        
+        try {
+            const rpcResponse = await fetch(rpcUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    jsonrpc: '1.0',
+                    id: 'getBalance',
+                    method: 'listunspent',
+                    params: [0, 9999999, queryAddresses, true]
+                }),
+                signal: AbortSignal.timeout(15000)
+            });
 
-        const response = await fetch(rpcUrl, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-                jsonrpc: "1.0",
-                id: 1,
-                method: "listunspent",
-                params: [0, 99999999, []]
-            }),
-            signal: AbortSignal.timeout(30000)
-        });
+            if (!rpcResponse.ok) {
+                return Response.json({ 
+                    success: false,
+                    error: 'RPC connection failed'
+                }, { status: 500 });
+            }
 
-        const data = await response.json();
+            const rpcData = await rpcResponse.json();
+            
+            if (rpcData.error) {
+                return Response.json({ 
+                    success: false,
+                    error: rpcData.error.message
+                }, { status: 500 });
+            }
 
-        if (data.error) {
-            return Response.json({ success: false, error: data.error.message }, { status: 500 });
+            if (Array.isArray(rpcData.result)) {
+                const querySet = new Set(queryAddresses.map(address => address.toLowerCase()));
+                const matchingUtxos = rpcData.result.filter(utxo => querySet.has((utxo.address || '').toLowerCase()));
+                const balance = parseFloat(matchingUtxos
+                    .reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0)
+                    .toFixed(8));
+
+                return Response.json({ 
+                    success: true,
+                    address: requestedAddress || 'all-account-addresses',
+                    addresses: queryAddresses,
+                    balance,
+                    utxoCount: matchingUtxos.length
+                });
+            }
+
+            return Response.json({ 
+                success: false,
+                error: 'Invalid RPC response'
+            }, { status: 500 });
+
+        } catch (err) {
+            return Response.json({ 
+                success: false,
+                error: 'RPC connection timeout or unreachable'
+            }, { status: 500 });
         }
-
-        const utxos = data.result || [];
-        const totalBalance = utxos.reduce((sum, u) => sum + Number(u.amount || 0), 0);
-
-        return Response.json({
-            success: true,
-            balance: parseFloat(totalBalance.toFixed(8)),
-            utxoCount: utxos.length,
-            utxos: utxos,
-            source: config.name || "ROD Node",
-            timestamp: new Date().toISOString()
-        });
 
     } catch (error) {
-        console.error("getRPCBalance error:", error);
-        return Response.json({ success: false, error: error.message || "Unknown error" }, { status: 500 });
+        console.error('getRPCBalance error:', error);
+        return Response.json({ 
+            success: false,
+            error: error.message || 'Unknown error'
+        }, { status: 500 });
     }
 });

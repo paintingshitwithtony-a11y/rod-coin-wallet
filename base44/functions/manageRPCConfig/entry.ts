@@ -1,9 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const editableFields = [
-    'name', 'connection_type', 'host', 'port', 'username', 'password',
-    'api_key', 'curl_command', 'use_ssl', 'is_active', 'connection_status',
-    'last_connected', 'node_info'
+    'name',
+    'connection_type',
+    'host',
+    'port',
+    'username',
+    'password',
+    'api_key',
+    'curl_command',
+    'use_ssl',
+    'is_active',
+    'connection_status',
+    'last_connected',
+    'node_info'
 ];
 
 function pickConfigFields(data) {
@@ -29,15 +39,25 @@ async function getAccount(base44, user) {
 }
 
 async function getAccountFromSession(base44, payload) {
-    if (!payload.account_id || !payload.session_token) return null;
+    if (!payload.account_id || !payload.session_token) {
+        return null;
+    }
+
     const sessions = await base44.asServiceRole.entities.UserSession.filter({
         account_id: payload.account_id,
         session_token: payload.session_token
     });
-    if (sessions.length === 0) return null;
+
+    if (sessions.length === 0) {
+        return null;
+    }
+
     const session = sessions[0];
     const lastActive = session.last_active ? new Date(session.last_active).getTime() : 0;
-    if (Date.now() - lastActive > 604800000) return null;
+    if (!lastActive || Date.now() - lastActive > 604800000) {
+        return null;
+    }
+
     const accounts = await base44.asServiceRole.entities.WalletAccount.filter({ id: payload.account_id });
     return accounts[0] || null;
 }
@@ -45,7 +65,9 @@ async function getAccountFromSession(base44, payload) {
 async function getOwnedConfig(base44, account, configId) {
     const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ id: configId });
     const config = configs[0];
-    if (!config || config.account_id !== account.id) return null;
+    if (!config || config.account_id !== account.id) {
+        return null;
+    }
     return config;
 }
 
@@ -60,7 +82,9 @@ async function updateAccountRPC(base44, accountId, config) {
 
 async function activateConfig(base44, account, configId) {
     const config = await getOwnedConfig(base44, account, configId);
-    if (!config) return { error: 'RPC configuration not found', status: 404 };
+    if (!config) {
+        return { error: 'RPC configuration not found', status: 404 };
+    }
 
     const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id });
     for (const cfg of configs) {
@@ -68,6 +92,7 @@ async function activateConfig(base44, account, configId) {
             await base44.asServiceRole.entities.RPCConfiguration.update(cfg.id, { is_active: false });
         }
     }
+
     const updated = await base44.asServiceRole.entities.RPCConfiguration.update(config.id, { is_active: true });
     await updateAccountRPC(base44, account.id, { ...config, is_active: true });
     return { config: updated || { ...config, is_active: true } };
@@ -76,24 +101,32 @@ async function activateConfig(base44, account, configId) {
 async function getAdminRPCSource(base44) {
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
     const adminAccountIds = [];
+
     for (const admin of admins) {
         const adminAccounts = await base44.asServiceRole.entities.WalletAccount.filter({ email: admin.email });
-        for (const adminAccount of adminAccounts) adminAccountIds.push(adminAccount.id);
+        for (const adminAccount of adminAccounts) {
+            adminAccountIds.push(adminAccount.id);
+        }
     }
+
     for (const accountId of adminAccountIds) {
         const activeConfigs = await base44.asServiceRole.entities.RPCConfiguration.filter({
-            account_id: accountId, is_active: true
+            account_id: accountId,
+            is_active: true
         });
-        const connectedConfig = activeConfigs.find(c => c.connection_status === 'connected');
-        if (connectedConfig) return connectedConfig;
+        const connectedConfig = activeConfigs.find(config => config.connection_status === 'connected');
+        if (connectedConfig) {
+            return connectedConfig;
+        }
     }
+
     const allConfigs = await base44.asServiceRole.entities.RPCConfiguration.list('-updated_date', 100);
-    return allConfigs.find(c => c.connection_status === 'connected' && isProtectedDefault(c)) || null;
+    return allConfigs.find(config => config.connection_status === 'connected' && isProtectedDefault(config)) || null;
 }
 
 async function isAdminAccount(base44, account) {
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
-    return admins.some(admin => admin.email === account.email);
+    return admins.some(admin => admin.email === account.email || admin.id === account.id);
 }
 
 function sharedAdminRPCView(sourceConfig, account) {
@@ -103,12 +136,12 @@ function sharedAdminRPCView(sourceConfig, account) {
         name: 'VPS RPC (Admin Managed)',
         connection_type: sourceConfig.connection_type || 'rpc',
         host: sourceConfig.host,
-        port: sourceConfig.port || '443',
+        port: sourceConfig.port || '',
         username: '',
         password: '',
         api_key: '',
         curl_command: '',
-        use_ssl: true,
+        use_ssl: sourceConfig.use_ssl || false,
         is_active: true,
         connection_status: sourceConfig.connection_status || 'connected',
         last_connected: sourceConfig.last_connected || '',
@@ -121,13 +154,17 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         const payload = await req.json();
-        
         let user = null;
-        try { user = await base44.auth.me(); } catch (_) {}
+        try {
+            user = await base44.auth.me();
+        } catch (_error) {
+            user = null;
+        }
 
         let account = await getAccountFromSession(base44, payload);
-        if (!account && user) account = await getAccount(base44, user);
-
+        if (!account && user) {
+            account = await getAccount(base44, user);
+        }
         if (!account) {
             return Response.json({ error: 'Unauthorized wallet session' }, { status: 401 });
         }
@@ -135,29 +172,18 @@ Deno.serve(async (req) => {
         const action = payload.action;
 
         if (action === 'list') {
-            let configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
-            
-            // CLEAN OLD BITCOIN PORTS
-            for (const cfg of configs) {
-                if (String(cfg.port) === '8332' || String(cfg.port) === '8333') {
-                    await base44.asServiceRole.entities.RPCConfiguration.update(cfg.id, { 
-                        port: '443', 
-                        use_ssl: true 
-                    });
-                }
-            }
-
-            configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
+            const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
 
             if (!(await isAdminAccount(base44, account))) {
                 const adminRPC = await getAdminRPCSource(base44);
                 if (adminRPC) {
                     return Response.json({
                         success: true,
-                        configs: [sharedAdminRPCView(adminRPC, account), ...configs.filter(c => !isProtectedDefault(c))]
+                        configs: [sharedAdminRPCView(adminRPC, account), ...configs.filter(config => !isProtectedDefault(config))]
                     });
                 }
             }
+
             return Response.json({ success: true, configs });
         }
 
@@ -170,41 +196,76 @@ Deno.serve(async (req) => {
                 is_active: existing.length === 0 || data.is_active === true,
                 connection_status: data.connection_status || 'untested'
             });
-            if (config.is_active) await updateAccountRPC(base44, account.id, config);
+
+            if (config.is_active) {
+                await updateAccountRPC(base44, account.id, config);
+            }
+
             return Response.json({ success: true, config });
         }
 
         if (action === 'update') {
             const config = await getOwnedConfig(base44, account, payload.config_id);
-            if (!config) return Response.json({ error: 'RPC configuration not found' }, { status: 404 });
+            if (!config) {
+                return Response.json({ error: 'RPC configuration not found' }, { status: 404 });
+            }
+
             const data = pickConfigFields(payload.config || {});
             await base44.asServiceRole.entities.RPCConfiguration.update(config.id, data);
             const updated = { ...config, ...data };
-            if (updated.is_active) await updateAccountRPC(base44, account.id, updated);
+
+            if (updated.is_active) {
+                await updateAccountRPC(base44, account.id, updated);
+            }
+
             return Response.json({ success: true, config: updated });
         }
 
         if (action === 'delete') {
             const config = await getOwnedConfig(base44, account, payload.config_id);
-            if (!config) return Response.json({ error: 'RPC configuration not found' }, { status: 404 });
-            if (config.is_active) return Response.json({ error: 'Active configuration cannot be deleted' }, { status: 400 });
-            if (isProtectedDefault(config)) return Response.json({ error: 'This configuration is managed' }, { status: 403 });
+            if (!config) {
+                return Response.json({ error: 'RPC configuration not found' }, { status: 404 });
+            }
+            if (config.is_active) {
+                return Response.json({ error: 'Active configuration cannot be deleted' }, { status: 400 });
+            }
+            if (isProtectedDefault(config)) {
+                return Response.json({ error: 'This configuration is managed and cannot be deleted' }, { status: 403 });
+            }
+
             await base44.asServiceRole.entities.RPCConfiguration.delete(config.id);
             return Response.json({ success: true });
         }
 
         if (action === 'activate') {
             const result = await activateConfig(base44, account, payload.config_id);
-            if (result.error) return Response.json({ error: result.error }, { status: result.status });
+            if (result.error) {
+                return Response.json({ error: result.error }, { status: result.status });
+            }
             return Response.json({ success: true, config: result.config });
         }
 
         if (action === 'useDefault') {
             const adminRPC = await getAdminRPCSource(base44);
-            if (!adminRPC) return Response.json({ error: 'No admin RPC available' }, { status: 404 });
+            if (!adminRPC) {
+                return Response.json({ error: 'No admin RPC configuration is available yet.' }, { status: 404 });
+            }
+
             if (!(await isAdminAccount(base44, account))) {
                 return Response.json({ success: true, config: sharedAdminRPCView(adminRPC, account) });
             }
+
+            const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ account_id: account.id }, '-created_date');
+            const ownDefaultConfig = configs.find(c => c.name && c.name.includes('(Default)'));
+
+            if (ownDefaultConfig) {
+                const result = await activateConfig(base44, account, ownDefaultConfig.id);
+                if (result.error) {
+                    return Response.json({ error: result.error }, { status: result.status });
+                }
+                return Response.json({ success: true, config: result.config });
+            }
+
             return Response.json({ success: true, config: adminRPC });
         }
 
