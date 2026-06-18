@@ -9,6 +9,7 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
+        // Get active RPC config
         const configs = await base44.asServiceRole.entities.RPCConfiguration.filter({ is_active: true });
         const config = configs.find(c => c.connection_status === "connected") || configs[0];
 
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
             headers["Authorization"] = `Basic ${btoa(`${config.username}:${config.password}`)}`;
         }
 
-        // Call listunspent to get real UTXOs
+        // Get all UTXOs
         const response = await fetch(rpcUrl, {
             method: "POST",
             headers,
@@ -37,7 +38,7 @@ Deno.serve(async (req) => {
                 method: "listunspent",
                 params: [0, 99999999, []]
             }),
-            signal: AbortSignal.timeout(20000)
+            signal: AbortSignal.timeout(25000)
         });
 
         const data = await response.json();
@@ -47,12 +48,13 @@ Deno.serve(async (req) => {
         }
 
         const utxos = data.result || [];
-        const balance = utxos.reduce((sum, utxo) => sum + Number(utxo.amount || 0), 0);
+        const totalBalance = utxos.reduce((sum, u) => sum + Number(u.amount || 0), 0);
 
         return Response.json({
             success: true,
-            balance: parseFloat(balance.toFixed(8)),
+            balance: parseFloat(totalBalance.toFixed(8)),
             utxoCount: utxos.length,
+            rawUtxos: utxos.slice(0, 50),   // Send some raw data for debugging
             source: config.name || "ROD Node"
         });
 
