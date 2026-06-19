@@ -13,20 +13,9 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
     const [savePrivateKeyInApp, setSavePrivateKeyInApp] = useState(false);
     const [insecureSaveAcknowledged, setInsecureSaveAcknowledged] = useState(false);
 
-    const handleSaveWallet = async () => {
+        const handleSaveWallet = async () => {
         if (!walletName.trim()) {
             toast.error('Please enter a wallet name');
-            return;
-        }
-
-        // Force acknowledgment check
-        if (!address.privateKeyViewed || !address.privateKeyAcknowledged) {
-            toast.error('Please view and acknowledge the private key first.');
-            return;
-        }
-
-        if (savePrivateKeyInApp && !insecureSaveAcknowledged) {
-            toast.error('Please acknowledge the insecure storage warning.');
             return;
         }
 
@@ -51,12 +40,11 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
             onClose();
         } catch (err) {
             console.error(err);
-            toast.error('Failed to save wallet. Please try again.');
+            toast.error('Failed to save wallet.');
         } finally {
             setLoading(false);
         }
     };
-
     return (
         <Dialog open={true} onOpenChange={onClose}>
             <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
