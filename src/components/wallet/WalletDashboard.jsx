@@ -1757,41 +1757,55 @@ export default function WalletDashboard({ account, onLogout }) {
                             </CardHeader>
                             <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
                                 {transactions.slice(0, 10).map((tx, index) =>
-                  <motion.div
-                    key={tx.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors">
+<motion.div
+    key={addr.id}
+    onClick={() => handleAddressClick(addr)}
+    className="flex items-start justify-between p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer gap-3 border border-slate-700/50">
 
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.type === 'receive' ? 'bg-green-500/20' : 'bg-red-500/20'}`
-                      }>
-                                                {tx.type === 'receive' ?
-                        <ArrowDownLeft className="w-5 h-5 text-green-400" /> :
+    <div className="flex-1 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm font-medium text-white truncate">{addr.label}</p>
+            {addr.address === account.wallet_address && (
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs">Primary</Badge>
+            )}
+        </div>
+        
+        <p className="text-xs text-amber-400/90 font-mono break-all mb-2">
+            {addr.address}
+        </p>
 
-                        <ArrowUpRight className="w-5 h-5 text-red-400" />
-                        }
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-white">
-                                                    {tx.type === 'receive' ? 'Received' : 'Sent'}
-                                                </p>
-                                                <p className="text-xs text-slate-500">{tx.address}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`text-sm font-semibold ${
-                      tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`
-                      }>
-                                                {tx.amount > 0 ? '+' : ''}{tx.amount} ROD
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                {tx.confirmations} confirmations
-                                            </p>
-                                        </div>
-                                    </motion.div>
+        <div className="flex items-center gap-2 text-xs">
+            <span className={`px-2 py-0.5 rounded ${addrBalance > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                {(addrBalance || 0).toFixed(4)} ROD
+            </span>
+            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs">
+                {addressUtxoCounts[normalizeAddress(addr.address)] || 0} UTXOs
+            </Badge>
+        </div>
+    </div>
+
+    <div className="flex flex-col gap-1 shrink-0 pt-1">
+        <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => { e.stopPropagation(); copyAddress(addr.address); }}
+            className="h-8 w-8 text-slate-400 hover:text-white"
+        >
+            {copiedAddress === addr.address ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+        </Button>
+        
+        {addr.id !== 'main' && (
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); handleDeleteAddress(addr); }}
+                className="h-8 w-8 text-slate-400 hover:text-red-400"
+            >
+                <Trash2 className="w-4 h-4" />
+            </Button>
+        )}
+    </div>
+</motion.div>
                   )}
                             </CardContent>
                         </Card>
