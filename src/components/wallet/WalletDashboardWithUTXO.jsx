@@ -7,12 +7,45 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
   const [showUtxos, setShowUtxos] = useState(false);
   const [panelTarget, setPanelTarget] = useState(null);
 
-  // Disabled UTXOs shortcut button to clean up bottom bar
   useEffect(() => {
-    // Removed dynamic "UTXOs" button creation
+    const setupUtxoPanel = () => {
+      const messagesTab = Array.from(document.querySelectorAll('button')).find((button) => 
+        button.textContent?.trim() === 'Messages'
+      );
+      if (!messagesTab) return;
+
+      const tabsList = messagesTab.parentElement;
+      if (!tabsList) return;
+
+      // Restore UTXOs button in top navigation
+      let button = document.getElementById('raw-utxo-dashboard-shortcut');
+      if (!button) {
+        button = document.createElement('button');
+        button.id = 'raw-utxo-dashboard-shortcut';
+        button.type = 'button';
+        button.textContent = 'UTXOs';
+        button.className = messagesTab.className;
+        button.addEventListener('click', () => setShowUtxos(true));
+        tabsList.insertBefore(button, messagesTab);
+      }
+
+      let panel = document.getElementById('raw-utxo-dashboard-panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'raw-utxo-dashboard-panel';
+        panel.className = 'mt-6 w-full';
+        tabsList.parentElement?.insertAdjacentElement('afterend', panel);
+      }
+      setPanelTarget(panel);
+    };
+
+    const timer = setTimeout(setupUtxoPanel, 500);
+    const observer = new MutationObserver(setupUtxoPanel);
+    observer.observe(document.body, { childList: true, subtree: true });
+
     return () => {
-      document.getElementById('raw-utxo-dashboard-shortcut')?.remove();
-      document.getElementById('raw-utxo-dashboard-panel')?.remove();
+      clearTimeout(timer);
+      observer.disconnect();
     };
   }, []);
 
