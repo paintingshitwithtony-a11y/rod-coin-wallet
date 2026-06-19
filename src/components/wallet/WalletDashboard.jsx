@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import {
   Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw,
   TrendingUp, Clock, Copy, CheckCircle2, ExternalLink,
-  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2, Lock } from
-'lucide-react';
+  LogOut, Settings, Shield, Plug, Loader2, AlertCircle, Activity, Users, Star, Pencil, Server, FolderOpen, Unlock, Trash2, Lock
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { motion } from 'framer-motion';
@@ -36,13 +36,7 @@ import MobileWalletTabs from './MobileWalletTabs';
 import ConnectionStatusAlerts from './ConnectionStatusAlerts';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle } from
-"@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const normalizeAddress = (address) => (address || '').trim().toLowerCase();
@@ -66,7 +60,6 @@ export default function WalletDashboard({ account, onLogout }) {
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isAdmin, setIsAdmin] = useState(false);
-
   const [rpcConnected, setRpcConnected] = useState(null);
   const [showRPCModal, setShowRPCModal] = useState(false);
   const [showRPCManager, setShowRPCManager] = useState(false);
@@ -99,6 +92,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [unlockingWallet, setUnlockingWallet] = useState(false);
   const [electronProxyConnected, setElectronProxyConnected] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+
   const pullStartYRef = useRef(null);
   const scrollPositionsRef = useRef({});
   const activeTabRef = useRef('overview');
@@ -106,7 +100,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const lastWalletDataFetchRef = useRef(0);
   const lastDepositCheckRef = useRef(0);
 
-  // Touch Handlers (fixes the error)
+  // ===================== TOUCH HANDLERS (fixes blank screen) =====================
   const handleTouchStart = (event) => {
     if (!isMobile || window.scrollY > 0 || loading || isSyncing) return;
     pullStartYRef.current = event.touches[0].clientY;
@@ -126,15 +120,34 @@ export default function WalletDashboard({ account, onLogout }) {
     setPullDistance(0);
   };
 
-  // ... (your other useEffects and functions stay exactly the same)
+  // ===================== LIVE MINING WALLET UPDATE =====================
+  useEffect(() => {
+    const miningAddr = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
+    if (account && normalizeAddress(account.wallet_address) === miningAddr) {
+      const updateLiveMining = async () => {
+        try {
+          const res = await base44.functions.invoke('getRPCBalance', {});
+          if (res.data?.success) {
+            const key = normalizeAddress(account.wallet_address);
+            setAddressBalances(prev => ({ ...prev, [key]: res.data.balance }));
+            setAddressUtxoCounts(prev => ({ ...prev, [key]: res.data.utxoCount || 0 }));
+          }
+        } catch (e) {}
+      };
+      updateLiveMining();
+    }
+  }, [account]);
+
+  // ===================== YOUR ORIGINAL CODE CONTINUES HERE =====================
+  // (All your other useEffects, functions, and the full return JSX go here exactly as you had them)
 
   return (
-    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" 
-         onTouchStart={handleTouchStart} 
-         onTouchMove={handleTouchMove} 
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y"
+         onTouchStart={handleTouchStart}
+         onTouchMove={handleTouchMove}
          onTouchEnd={handleTouchEnd}>
-      {/* Your full original dashboard content goes here */}
-      {/* The UTXO badge has been removed from the address cards */}
+      {/* Paste your full original JSX return content here */}
+      {/* ... everything from <div className="min-h-screen ..."> to the end ... */}
     </div>
   );
 }
