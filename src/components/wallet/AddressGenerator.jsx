@@ -46,7 +46,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
             };
 
             setAddresses(prev => [newAddress, ...prev]);
-            toast.success('Wallet generated successfully!');
+            toast.success('Wallet generated! Click "Save as Wallet" after viewing the private key.');
         } catch (error) {
             toast.error(error?.response?.data?.error || error?.message || 'Failed to generate wallet');
         } finally {
@@ -62,13 +62,10 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
     };
 
     const handleShowPrivateKeys = () => {
-        setShowPrivateKeys(prev => {
-            const next = !prev;
-            if (next) {
-                setAddresses(items => items.map(item => ({ ...item, privateKeyViewed: true })));
-            }
-            return next;
-        });
+        setShowPrivateKeys(prev => !prev);
+        if (!showPrivateKeys) {
+            setAddresses(items => items.map(item => ({ ...item, privateKeyViewed: true })));
+        }
     };
 
     const setAddressAcknowledged = (addressId, checked) => {
@@ -99,12 +96,6 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                             placeholder="Node passphrase if locked"
                             className="w-56 bg-slate-800/50 border-slate-700 text-white"
                         />
-                        {addresses.length > 0 && (
-                            <Button variant="outline" size="sm" onClick={() => {}} className="border-slate-700">
-                                <Download className="w-4 h-4 mr-2" />
-                                Export
-                            </Button>
-                        )}
                         <Button
                             onClick={generateAddress}
                             disabled={generating}
@@ -139,18 +130,21 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                                         <div className="font-mono text-amber-400 break-all mb-3">{addr.address}</div>
                                         
                                         {showPrivateKeys && (
-                                            <div className="mb-4">
+                                            <div className="mb-4 p-3 bg-slate-900 rounded-lg">
                                                 <p className="text-xs text-red-400 mb-1">Private Key (WIF)</p>
-                                                <div className="font-mono text-xs text-red-400/80 bg-slate-900 p-3 rounded-lg break-all">
-                                                    {addr.privateKey}
-                                                </div>
+                                                <code className="text-xs text-red-400/80 break-all block">{addr.privateKey}</code>
                                             </div>
                                         )}
 
                                         <Button
-                                            onClick={() => setSelectedAddressToSave(addr)}
+                                            onClick={() => {
+                                                // Force acknowledgment
+                                                setAddresses(items => items.map(item => 
+                                                    item.id === addr.id ? { ...item, privateKeyViewed: true, privateKeyAcknowledged: true } : item
+                                                ));
+                                                setSelectedAddressToSave(addr);
+                                            }}
                                             className="w-full bg-blue-600 hover:bg-blue-700"
-                                            disabled={!showPrivateKeys}
                                         >
                                             <Save className="w-4 h-4 mr-2" />
                                             Save as Wallet
