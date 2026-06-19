@@ -19,17 +19,14 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
             return;
         }
 
+        // Force acknowledgment check
         if (!address.privateKeyViewed || !address.privateKeyAcknowledged) {
-            toast.error('View and acknowledge the private key before saving this wallet.');
+            toast.error('Please view and acknowledge the private key first.');
             return;
         }
 
         if (savePrivateKeyInApp && !insecureSaveAcknowledged) {
-            toast.error('Acknowledge the insecure app storage warning first.');
-            return;
-        }
-
-        if (savePrivateKeyInApp && !confirm('Warning: this stores the private key in the app as plain WIF and is not secure. Continue?')) {
+            toast.error('Please acknowledge the insecure storage warning.');
             return;
         }
 
@@ -39,7 +36,7 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
                 account_id: account.id,
                 name: walletName.trim(),
                 wallet_address: address.address,
-                public_key_hash: address.publicKeyHash,
+                public_key_hash: address.publicKeyHash || address.address,
                 encrypted_private_key: savePrivateKeyInApp ? address.privateKey : '',
                 app_encryption_enabled: false,
                 encryption_version: savePrivateKeyInApp ? 'plain-wif-insecure' : '',
@@ -49,10 +46,11 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
                 balance: 0
             });
 
-            toast.success(`Wallet "${walletName.trim()}" saved successfully`);
+            toast.success(`Wallet "${walletName.trim()}" saved successfully!`);
             if (onSaved) onSaved(wallet);
             onClose();
         } catch (err) {
+            console.error(err);
             toast.error('Failed to save wallet. Please try again.');
         } finally {
             setLoading(false);
@@ -61,7 +59,7 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
 
     return (
         <Dialog open={true} onOpenChange={onClose}>
-            <DialogContent className="bg-slate-900 border-slate-700 text-white">
+            <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-md">
                 <DialogHeader>
                     <DialogTitle>Save Address as Wallet</DialogTitle>
                 </DialogHeader>
@@ -71,49 +69,64 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
                         <Input
                             value={walletName}
                             onChange={(e) => setWalletName(e.target.value)}
-                            placeholder="e.g., Generated Wallet"
-                            className="bg-slate-800 border-slate-700 text-white mt-2"
-                            onKeyDown={(e) => e.key === 'Enter' && !loading && handleSaveWallet()}
+                            placeholder="e.g., Mobile Tester"
+                            className="bg-slate-800 border-slate-700 text-white mt-1"
                             disabled={loading}
                         />
                     </div>
-                    <p className="text-xs text-slate-500">
-                        Address: <code className="text-amber-400 font-mono">{address.address}</code>
+
+                    <p className="text-xs text-slate-400 break-all">
+                        Address: <span className="text-amber-400 font-mono">{address.address}</span>
                     </p>
-                    <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 space-y-3">
+
+                    <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 space-y-3 text-sm">
                         <div className="flex gap-2 text-red-200">
-                            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs">
-                                By default, this saves only the wallet address. Saving the private key in the app is insecure and stores it as plain WIF.
-                            </p>
+                            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                            <p>By default, this saves only the wallet address. Saving the private key in the app is insecure.</p>
                         </div>
-                        <label className="flex items-start gap-2 text-xs text-red-100 cursor-pointer">
+
+                        <label className="flex items-start gap-2 cursor-pointer text-red-100">
                             <input
                                 type="checkbox"
                                 checked={savePrivateKeyInApp}
                                 onChange={(e) => setSavePrivateKeyInApp(e.target.checked)}
-                                className="mt-0.5 accent-red-500"
+                                className="mt-1 accent-red-500"
                             />
-                            <span>Save private key in app insecurely</span>
+                            <span>Save private key in app (insecure)</span>
                         </label>
+
                         {savePrivateKeyInApp && (
-                            <label className="flex items-start gap-2 text-xs text-red-100 cursor-pointer">
+                            <label className="flex items-start gap-2 cursor-pointer text-red-100">
                                 <input
                                     type="checkbox"
                                     checked={insecureSaveAcknowledged}
                                     onChange={(e) => setInsecureSaveAcknowledged(e.target.checked)}
-                                    className="mt-0.5 accent-red-500"
+                                    className="mt-1 accent-red-500"
                                 />
                                 <span>I understand this is not secure and should not be used for large amounts.</span>
                             </label>
                         )}
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={onClose} className="flex-1 border-slate-700" disabled={loading}>
+
+                    <div className="flex gap-3">
+                        <Button 
+                            variant="outline" 
+                            onClick={onClose} 
+                            className="flex-1 border-slate-700"
+                            disabled={loading}
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={handleSaveWallet} disabled={loading || !walletName.trim() || (savePrivateKeyInApp && !insecureSaveAcknowledged)} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">
-                            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><Save className="w-4 h-4 mr-2" />{savePrivateKeyInApp ? 'Save to App' : 'Save Wallet Only'}</>}
+                        <Button 
+                            onClick={handleSaveWallet} 
+                            disabled={loading || !walletName.trim() || (savePrivateKeyInApp && !insecureSaveAcknowledged)}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        >
+                            {loading ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                            ) : (
+                                <><Save className="w-4 h-4 mr-2" /> Save to App</>
+                            )}
                         </Button>
                     </div>
                 </div>
