@@ -46,7 +46,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
             };
 
             setAddresses(prev => [newAddress, ...prev]);
-            toast.success('Wallet generated! Click "Save as Wallet" after viewing the private key.');
+            toast.success('Wallet generated! Click "Save as Wallet".');
         } catch (error) {
             toast.error(error?.response?.data?.error || error?.message || 'Failed to generate wallet');
         } finally {
@@ -54,24 +54,12 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
         }
     };
 
-    const copyToClipboard = async (text, id) => {
-        await navigator.clipboard.writeText(text);
-        setCopiedId(id);
-        toast.success('Copied!');
-        setTimeout(() => setCopiedId(null), 2000);
-    };
-
-    const handleShowPrivateKeys = () => {
-        setShowPrivateKeys(prev => !prev);
-        if (!showPrivateKeys) {
-            setAddresses(items => items.map(item => ({ ...item, privateKeyViewed: true })));
-        }
-    };
-
-    const setAddressAcknowledged = (addressId, checked) => {
+    const handleSaveWallet = (addr) => {
+        // Force acknowledgment
         setAddresses(items => items.map(item => 
-            item.id === addressId ? { ...item, privateKeyAcknowledged: checked } : item
+            item.id === addr.id ? { ...item, privateKeyViewed: true, privateKeyAcknowledged: true } : item
         ));
+        setSelectedAddressToSave(addr);
     };
 
     return (
@@ -117,33 +105,12 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                             </motion.div>
                         ) : (
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-400">{addresses.length} wallet{addresses.length > 1 ? 's' : ''} generated</span>
-                                    <Button variant="ghost" size="sm" onClick={handleShowPrivateKeys}>
-                                        <Shield className="w-4 h-4 mr-2" />
-                                        {showPrivateKeys ? 'Hide' : 'Show'} Private Keys
-                                    </Button>
-                                </div>
-
                                 {addresses.map((addr) => (
                                     <motion.div key={addr.id} className="p-5 rounded-2xl bg-slate-800/70 border border-slate-700">
                                         <div className="font-mono text-amber-400 break-all mb-3">{addr.address}</div>
                                         
-                                        {showPrivateKeys && (
-                                            <div className="mb-4 p-3 bg-slate-900 rounded-lg">
-                                                <p className="text-xs text-red-400 mb-1">Private Key (WIF)</p>
-                                                <code className="text-xs text-red-400/80 break-all block">{addr.privateKey}</code>
-                                            </div>
-                                        )}
-
                                         <Button
-                                            onClick={() => {
-                                                // Force acknowledgment
-                                                setAddresses(items => items.map(item => 
-                                                    item.id === addr.id ? { ...item, privateKeyViewed: true, privateKeyAcknowledged: true } : item
-                                                ));
-                                                setSelectedAddressToSave(addr);
-                                            }}
+                                            onClick={() => handleSaveWallet(addr)}
                                             className="w-full bg-blue-600 hover:bg-blue-700"
                                         >
                                             <Save className="w-4 h-4 mr-2" />
