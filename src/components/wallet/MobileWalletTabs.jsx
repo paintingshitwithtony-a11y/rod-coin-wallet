@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, MessageCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, MessageCircle, Pencil } from 'lucide-react';
 
 const tabs = [
     { value: 'overview', label: 'Home', Icon: Wallet },
