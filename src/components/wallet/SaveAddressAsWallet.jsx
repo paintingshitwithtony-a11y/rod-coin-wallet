@@ -13,7 +13,7 @@ export default function SaveAddressAsWallet({ address, account, onClose, onSaved
     const [savePrivateKeyInApp, setSavePrivateKeyInApp] = useState(false);
     const [insecureSaveAcknowledged, setInsecureSaveAcknowledged] = useState(false);
 
-        const handleSaveWallet = async () => {
+            const handleSaveWallet = async () => {
         if (!walletName.trim()) {
             toast.error('Please enter a wallet name');
             return;
