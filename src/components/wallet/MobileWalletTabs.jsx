@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, MessageCircle } from 'lucide-react';
+import { Wallet, ArrowUpRight, Clock, MessageCircle, Pencil } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, MessageCircle, Pencil } from 'lucide-react';
 
 const tabs = [
     { value: 'overview', label: 'Home', Icon: Wallet },
     { value: 'send', label: 'Send', Icon: ArrowUpRight },
-    { value: 'generate', label: 'Generate', Icon: Pencil },        // Changed from Receive
+    { value: 'generate', label: 'Generate', Icon: Pencil },
     { value: 'history', label: 'History', Icon: Clock },
     { value: 'messages', label: 'Messages', Icon: MessageCircle }
 ];
