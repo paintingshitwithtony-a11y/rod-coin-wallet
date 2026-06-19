@@ -36,7 +36,13 @@ import MobileWalletTabs from './MobileWalletTabs';
 import ConnectionStatusAlerts from './ConnectionStatusAlerts';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle } from
+"@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const normalizeAddress = (address) => (address || '').trim().toLowerCase();
@@ -60,6 +66,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isAdmin, setIsAdmin] = useState(false);
+
   const [rpcConnected, setRpcConnected] = useState(null);
   const [showRPCModal, setShowRPCModal] = useState(false);
   const [showRPCManager, setShowRPCManager] = useState(false);
@@ -100,7 +107,7 @@ export default function WalletDashboard({ account, onLogout }) {
   const lastWalletDataFetchRef = useRef(0);
   const lastDepositCheckRef = useRef(0);
 
-  // ===================== TOUCH HANDLERS (fixes blank screen) =====================
+  // Touch Handlers - Fixes blank screen
   const handleTouchStart = (event) => {
     if (!isMobile || window.scrollY > 0 || loading || isSyncing) return;
     pullStartYRef.current = event.touches[0].clientY;
@@ -120,7 +127,7 @@ export default function WalletDashboard({ account, onLogout }) {
     setPullDistance(0);
   };
 
-  // ===================== LIVE MINING WALLET UPDATE =====================
+  // Live Mining Wallet Update
   useEffect(() => {
     const miningAddr = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
     if (account && normalizeAddress(account.wallet_address) === miningAddr) {
@@ -138,16 +145,15 @@ export default function WalletDashboard({ account, onLogout }) {
     }
   }, [account]);
 
-  // ===================== YOUR ORIGINAL CODE CONTINUES HERE =====================
-  // (All your other useEffects, functions, and the full return JSX go here exactly as you had them)
+  // === YOUR ORIGINAL CODE (ALL OTHER USEEFFECTS, FUNCTIONS, RETURN JSX) GOES HERE ===
+  // Paste the rest of your original code here (the big return block with tabs, addresses, etc.)
 
   return (
     <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y"
          onTouchStart={handleTouchStart}
          onTouchMove={handleTouchMove}
          onTouchEnd={handleTouchEnd}>
-      {/* Paste your full original JSX return content here */}
-      {/* ... everything from <div className="min-h-screen ..."> to the end ... */}
+      {/* Paste your full original JSX content here from the previous working version */}
     </div>
   );
 }
