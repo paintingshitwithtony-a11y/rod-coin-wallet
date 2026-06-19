@@ -9,9 +9,9 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
 
   useEffect(() => {
     const setupUtxoPanel = () => {
-      const messagesTab = Array.from(document.querySelectorAll('button')).find((button) => 
-        button.textContent?.trim() === 'Messages'
-      );
+      const messagesTab = Array.from(document.querySelectorAll('button'))
+        .find((button) => button.textContent?.trim() === 'Messages');
+
       if (!messagesTab) return;
 
       const tabsList = messagesTab.parentElement;
@@ -46,6 +46,8 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
     return () => {
       clearTimeout(timer);
       observer.disconnect();
+      // Clean up button when component unmounts
+      document.getElementById('raw-utxo-dashboard-shortcut')?.remove();
     };
   }, []);
 
