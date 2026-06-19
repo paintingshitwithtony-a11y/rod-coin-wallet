@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 const tabs = [
     { value: 'overview', label: 'Home', Icon: Wallet },
     { value: 'send', label: 'Send', Icon: ArrowUpRight },
-    { value: 'receive', label: 'Receive', Icon: ArrowDownLeft },
+    { value: 'generate', label: 'Generate', Icon: Pencil },        // Changed from Receive
     { value: 'history', label: 'History', Icon: Clock },
     { value: 'messages', label: 'Messages', Icon: MessageCircle }
 ];
