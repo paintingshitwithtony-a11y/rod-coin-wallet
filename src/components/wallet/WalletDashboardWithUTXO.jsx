@@ -9,6 +9,9 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
 
   useEffect(() => {
     const setupUtxoPanel = () => {
+      // Only add UTXOs button on desktop (larger screens)
+      if (window.innerWidth < 768) return;
+
       const messagesTab = Array.from(document.querySelectorAll('button'))
         .find((button) => button.textContent?.trim() === 'Messages');
 
@@ -17,7 +20,6 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
       const tabsList = messagesTab.parentElement;
       if (!tabsList) return;
 
-      // Restore UTXOs button in top navigation
       let button = document.getElementById('raw-utxo-dashboard-shortcut');
       if (!button) {
         button = document.createElement('button');
@@ -39,14 +41,13 @@ export default function WalletDashboardWithUTXO({ account, onLogout }) {
       setPanelTarget(panel);
     };
 
-    const timer = setTimeout(setupUtxoPanel, 500);
+    const timer = setTimeout(setupUtxoPanel, 600);
     const observer = new MutationObserver(setupUtxoPanel);
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       clearTimeout(timer);
       observer.disconnect();
-      // Clean up button when component unmounts
       document.getElementById('raw-utxo-dashboard-shortcut')?.remove();
     };
   }, []);
