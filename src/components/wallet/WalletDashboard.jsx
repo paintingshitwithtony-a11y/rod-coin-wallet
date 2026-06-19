@@ -1051,7 +1051,10 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 overflow-x-hidden touch-pan-y" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+  <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 pt-20 md:pt-4 pb-20 overflow-x-hidden touch-pan-y"
+       onTouchStart={handleTouchStart}
+       onTouchMove={handleTouchMove}
+       onTouchEnd={handleTouchEnd}>
             {isMobile && pullDistance > 0 && (
               <div className="fixed top-[calc(4.5rem+env(safe-area-inset-top))] left-0 right-0 z-50 flex justify-center pointer-events-none">
                 <div className="rounded-full border border-purple-500/30 bg-slate-950/90 px-3 py-1 text-xs text-amber-300 shadow-lg">
