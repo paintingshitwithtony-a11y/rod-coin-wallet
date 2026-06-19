@@ -46,7 +46,6 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
             };
 
             setAddresses(prev => [newAddress, ...prev]);
-
             toast.success('Spendable ROD wallet generated. View and acknowledge the private key before saving.');
         } catch (error) {
             toast.error(error?.response?.data?.error || error?.message || 'Failed to generate spendable wallet');
@@ -63,7 +62,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
     };
 
     const downloadPrivateKeyTxt = (addr) => {
-        const content = `ROD Wallet Private Key Backup\n\nAddress: ${addr.address}\nPrivate Key (WIF): ${addr.privateKey}\nCreated: ${new Date(addr.createdAt).toLocaleString()}\n\nKeep this file private. Anyone with this key can spend funds from this wallet.`;
+        const content = `ROD Wallet Private Key Backup\n\nAddress: ${addr.address}\nPrivate Key (WIF): ${addr.privateKey}\nCreated: ${new Date(addr.createdAt).toLocaleString()}\n\nKeep this file private.`;
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -111,7 +110,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
     };
 
     return (
-        <div className="space-y-6 pb-28">   {/* ← Extra bottom padding for mobile bar */}
+        <div className="space-y-6 pb-28">   {/* Extra padding for mobile bottom bar */}
             <Card className="bg-slate-900/80 border-purple-500/30 backdrop-blur-xl">
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
                     <div>
@@ -130,7 +129,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                             value={nodePassphrase}
                             onChange={(e) => setNodePassphrase(e.target.value)}
                             placeholder="Node passphrase if locked"
-                            className="w-56 bg-slate-800/50 border-slate-700 text-white min-w-[200px]"
+                            className="w-56 bg-slate-800/50 border-slate-700 text-white"
                         />
                         {addresses.length > 0 && (
                             <Button
@@ -174,7 +173,6 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                             </motion.div>
                         ) : (
                             <div className="space-y-3">
-                                {/* Your existing address list stays unchanged */}
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-sm text-slate-400">
                                         {addresses.length} address{addresses.length !== 1 ? 'es' : ''} generated
@@ -199,8 +197,65 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                                         transition={{ delay: index * 0.05 }}
                                         className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 hover:border-purple-500/50 transition-all"
                                     >
-                                        {/* Your existing address card content stays the same */}
-                                        {/* ... (everything inside this map remains unchanged) ... */}
+                                        {/* Your full address card content - unchanged */}
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <span className="text-sm font-medium text-slate-300">{addr.label}</span>
+                                                    <Badge 
+                                                        variant="outline" 
+                                                        className={addr.isValid ? 'border-green-500/50 text-green-400' : 'border-red-500/50 text-red-400'}
+                                                    >
+                                                        {addr.isValid ? 'Valid' : 'Invalid'}
+                                                    </Badge>
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="flex-1 text-sm text-amber-400 bg-slate-900/50 px-3 py-2 rounded-lg font-mono break-all">
+                                                            {addr.address}
+                                                        </code>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => copyToClipboard(addr.address, `addr-${addr.id}`)}
+                                                        >
+                                                            {copiedId === `addr-${addr.id}` ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                                                        </Button>
+                                                    </div>
+                                                    
+                                                    {showPrivateKeys && (
+                                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                                                            <div className="flex-1">
+                                                                <span className="text-xs text-slate-500">Private Key</span>
+                                                                <code className="text-xs text-red-400/80 bg-slate-900/50 px-3 py-2 rounded-lg font-mono break-all block">
+                                                                    {addr.privateKey}
+                                                                </code>
+                                                            </div>
+                                                            <Button variant="ghost" size="icon" onClick={() => copyToClipboard(addr.privateKey, `pk-${addr.id}`)}>
+                                                                {copiedId === `pk-${addr.id}` ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                                                            </Button>
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (!addr.privateKeyViewed || !addr.privateKeyAcknowledged) {
+                                                            toast.error('Show and acknowledge the private key first.');
+                                                            setShowPrivateKeys(true);
+                                                            return;
+                                                        }
+                                                        setSelectedAddressToSave(addr);
+                                                    }}
+                                                    className="mt-4 w-full bg-blue-600 hover:bg-blue-700"
+                                                >
+                                                    <Save className="w-4 h-4 mr-2" />
+                                                    Save as Wallet
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 ))}
                             </div>
@@ -208,8 +263,7 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                     </AnimatePresence>
                 </CardContent>
             </Card>
-            
-            {/* Save Address as Wallet Modal */}
+
             {selectedAddressToSave && (
                 <SaveAddressAsWallet
                     address={selectedAddressToSave}
@@ -217,29 +271,10 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                     onClose={() => setSelectedAddressToSave(null)}
                     onSaved={(wallet) => {
                         setSelectedAddressToSave(null);
-                        if (onAddressGenerated) {
-                            window.dispatchEvent(new CustomEvent('walletCreated', { detail: wallet }));
-                        }
+                        if (onAddressGenerated) onAddressGenerated(wallet);
                     }}
                 />
             )}
-            
-            {/* Info Card */}
-            <Card className="bg-slate-900/40 border-slate-700/50">
-                <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-purple-500/20">
-                            <Shield className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-medium text-slate-300 mb-1">Address Format</h4>
-                            <p className="text-xs text-slate-500">
-                                New wallets are generated by ROD Core via RPC, so every address has a matching spendable WIF private key.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     );
 }
