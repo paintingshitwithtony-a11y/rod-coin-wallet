@@ -124,14 +124,25 @@ export default function AddressGenerator({ onAddressGenerated, account }) {
                 </CardContent>
             </Card>
 
-            {selectedAddressToSave && (
+                    {selectedAddressToSave && (
                 <SaveAddressAsWallet
                     address={selectedAddressToSave}
                     account={account}
                     onClose={() => setSelectedAddressToSave(null)}
                     onSaved={(wallet) => {
                         setSelectedAddressToSave(null);
-                        if (onAddressGenerated) onAddressGenerated(wallet);
+                        
+                        // Force refresh in parent
+                        if (onAddressGenerated) {
+                            onAddressGenerated(wallet);
+                        }
+                        
+                        // Also trigger full wallet refresh
+                        window.dispatchEvent(new CustomEvent('walletCreated', { 
+                            detail: wallet 
+                        }));
+                        
+                        toast.success(`Wallet "${wallet.name}" saved successfully!`);
                     }}
                 />
             )}
