@@ -66,7 +66,7 @@ export default function MobileWalletTabs({ activeTab, onTabChange, unreadCount }
                 </button>
             )}
 
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/30 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-purple-500/30 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 <div className="grid grid-cols-5 gap-1">
                     {tabs.map(({ value, label, Icon }) => (
                         <button
@@ -74,13 +74,13 @@ export default function MobileWalletTabs({ activeTab, onTabChange, unreadCount }
                             type="button"
                             aria-current={activeTab === value ? 'page' : undefined}
                             onClick={() => onTabChange(value)}
-                            className={`relative flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] touch-manipulation select-none ${activeTab === value ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}
+                            className={`relative flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] touch-manipulation select-none ${activeTab === value ? 'text-amber-300 bg-purple-500/20' : 'text-slate-400'}`}
                         >
                             <span className="relative">
                                 <Icon className="w-5 h-5" />
                                 {value === 'messages' && <Badge />}
                             </span>
-                            {label}
+                            <span className="truncate font-medium">{label}</span>
                         </button>
                     ))}
                 </div>
