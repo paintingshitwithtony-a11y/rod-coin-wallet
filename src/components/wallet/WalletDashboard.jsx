@@ -194,4 +194,4 @@ export default function WalletDashboard({ account, onLogout }) {
       </div>
     </div>
   );
-}
+} 
