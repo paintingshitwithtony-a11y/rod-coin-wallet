@@ -55,7 +55,6 @@ export default function WalletDashboard({ account, onLogout }) {
   const [balance, setBalance] = useState({ confirmed: account?.balance || 0, unconfirmed: 0 });
   const [addresses, setAddresses] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [allAccountTransactions, setAllAccountTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -91,17 +90,9 @@ export default function WalletDashboard({ account, onLogout }) {
   };
 
   const handleManualRefresh = async () => {
-    // your refresh logic here
     toast.info('Refreshing...');
+    // Add your full refresh logic here
   };
-
-  // Live Mining Wallet
-  useEffect(() => {
-    const miningAddr = "RYKcnyMoWnqH67zdMCWCbEkyVNvHknn8FY".toLowerCase();
-    if (account && normalizeAddress(account.wallet_address) === miningAddr) {
-      // update logic
-    }
-  }, [account]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -117,25 +108,18 @@ export default function WalletDashboard({ account, onLogout }) {
          onTouchEnd={handleTouchEnd}>
 
       <div className="max-w-5xl mx-auto px-4 md:px-6">
-        {/* Your full original content goes here */}
-        {/* Paste the rest of your original JSX (header, tabs, My Addresses, etc.) below */}
+        {/* === PASTE YOUR ORIGINAL FULL DASHBOARD CONTENT HERE === */}
+        {/* Include your fixed header, tabs, My Addresses cards, etc. */}
 
         <h1 className="text-3xl font-bold text-white mb-6">ROD Wallet</h1>
 
-        {/* Example of your tabs and content */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsContent value="overview">
-            {/* Your overview content */}
+          <TabsContent value="overview" className="mt-6">
+            <p>Overview content (your original code)</p>
           </TabsContent>
-          <TabsContent value="generate">
-            <AddressGenerator 
-              account={account}
-              onAddressGenerated={(wallet) => {
-                // refresh logic
-              }} 
-            />
+          <TabsContent value="generate" className="mt-6">
+            <AddressGenerator account={account} onAddressGenerated={() => {}} />
           </TabsContent>
-          {/* other tabs */}
         </Tabs>
 
         <MobileWalletTabs activeTab={activeTab} onTabChange={handleTabChange} />
